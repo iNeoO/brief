@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.local
+
+# Prisma generated client
+db/prisma/generated/

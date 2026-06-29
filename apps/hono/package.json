@@ -1,0 +1,37 @@
+{
+	"name": "@brief/hono",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch --clear-screen=false src/index.ts",
+		"backend:dev": "tsx watch --clear-screen=false src/index.ts",
+		"lint": "biome check",
+		"build": "rm -rf dist && tsc",
+		"backend:start": "node dist/index.js"
+	},
+	"dependencies": {
+		"@hono/node-server": "^2.0.4",
+		"@hono/standard-validator": "^0.2.2",
+		"@brief/common": "workspace:*",
+		"@brief/infra": "workspace:*",
+		"@brief/services": "workspace:*",
+		"@scalar/hono-api-reference": "^0.10.19",
+		"hono": "catalog:",
+		"hono-openapi": "catalog:",
+		"zod": "catalog:",
+		"@brief/drizzle": "workspace:*"
+	},
+	"exports": {
+		"./hc": {
+			"import": {
+				"types": "./dist/libs/hc.d.ts",
+				"default": "./dist/libs/hc.js"
+			}
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "catalog:",
+		"@types/node": "catalog:",
+		"tsx": "catalog:",
+		"typescript": "catalog:"
+	}
+}
