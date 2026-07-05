@@ -1,3 +1,4 @@
+export * as errors from "./errors/index.js";
 export * as factories from "./factories/index.js";
 export * as helpers from "./helpers/index.js";
 export * as middlewares from "./middlewares/index.js";

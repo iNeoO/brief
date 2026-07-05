@@ -5,8 +5,6 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { errorHandler } from "./helpers/errors.helper.js";
 import { createHealthController } from "./modules/health/health.controller.js";
-import { createPostsController } from "./modules/posts/posts.controller.js";
-import { createUsersController } from "./modules/users/users.controller.js";
 import type { AppServices } from "./services/container.js";
 
 export const createApp = (services: AppServices) => {
@@ -16,8 +14,6 @@ export const createApp = (services: AppServices) => {
 		.use(logMiddleware)
 		.use(secureHeaders())
 		.route("health", createHealthController(healthService))
-		.route("users", createUsersController(services.users))
-		.route("posts", createPostsController(services.posts))
 		.notFound((c) => {
 			return c.json({ code: "NOT_FOUND", error: "Page not found" }, 404);
 		})

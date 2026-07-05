@@ -7,6 +7,7 @@
 		"common:build": "pnpm --filter @brief/common build",
 		"infra:build": "pnpm --filter @brief/infra build",
 		"services:build": "pnpm --filter @brief/services build",
+		"services:test": "pnpm --filter @brief/services test",
 		"dev:libs:build": "pnpm run common:build && pnpm run infra:build && pnpm run drizzle:build && pnpm run services:build",
 		"react:dev": "dotenv -e .env -- pnpm --filter @brief/react dev",
 		"react:build": "pnpm --filter @brief/react build",
@@ -19,7 +20,7 @@
 	},
 	"type": "module",
 	"version": "1.0.0",
-	"packageManager": "pnpm@11.3.0",
+	"packageManager": "pnpm@11.10.0",
 	"dependencies": {
 		"dotenv-cli": "^11.0.0"
 	},
