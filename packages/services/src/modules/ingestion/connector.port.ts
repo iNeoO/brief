@@ -1,3 +1,5 @@
+import type { SlugConnectors } from "./ingestion.type.js";
+
 export type RawArticle = {
 	url: string;
 	title: string;
@@ -8,6 +10,6 @@ export type RawArticle = {
 };
 
 export interface ArticleConnector {
-	slug: string;
+	slug: SlugConnectors;
 	fetchLatest(input: { url: string; limit: number }): Promise<RawArticle[]>;
 }

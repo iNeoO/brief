@@ -3,12 +3,14 @@
 	"type": "module",
 	"scripts": {
 		"lint": "biome check",
-		"build": "rm -rf dist && tsc"
+		"build": "rm -rf dist && tsc",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@brief/common": "workspace:*",
 		"@brief/drizzle": "workspace:*",
-		"@brief/infra": "workspace:*"
+		"@brief/infra": "workspace:*",
+		"feedsmith": "^2.9.4"
 	},
 	"exports": {
 		".": {
@@ -21,6 +23,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
 		"@types/node": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	}
 }

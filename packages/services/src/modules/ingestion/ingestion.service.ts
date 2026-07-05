@@ -1,4 +1,5 @@
 import { type Database, eq, schema } from "@brief/drizzle";
+import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
 import type { ArticlesService } from "../articles/articles.service.js";
 import type { ProvidersService } from "../providers/providers.service.js";
@@ -21,7 +22,10 @@ export class IngestionService {
 		if (!connector) {
 			const logger = getLoggerStore();
 			logger.error({ provider }, "No connector for provider");
-			throw new Error(`No connector for provider "${provider.slug}"`);
+			throw new InternalError({
+				message: `No connector for provider "${provider.slug}"`,
+				code: "NO_CONNECTOR",
+			});
 		}
 
 		const limit = provider.fetchLimit ?? DEFAULT_FETCH_LIMIT;
@@ -43,12 +47,22 @@ export class IngestionService {
 		return inserted.length;
 	}
 
-	async ingestAll() {
-		const active = await this.db
+	async ingestBySlug(slug: string) {
+		const provider = await this.db
 			.select()
 			.from(schema.providers)
-			.where(eq(schema.providers.isEnable, true));
+			.where(eq(schema.providers.slug, slug))
+			.then((res) => res[0]);
 
-		await Promise.allSettled(active.map((p) => this.ingestProvider(p)));
+		if (!provider) {
+			const logger = getLoggerStore();
+			logger.error({ slug }, "No provider for slug");
+			throw new InternalError({
+				message: `No connector for provider "${slug}"`,
+				code: "NO_CONNECTOR",
+			});
+		}
+
+		await this.ingestProvider(provider);
 	}
 }
