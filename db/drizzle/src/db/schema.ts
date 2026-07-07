@@ -1,6 +1,6 @@
 import {
+	CATEGORY_JOB_STATE,
 	FILE_LANGUAGE,
-	JOB_STATE,
 	JOB_STATUS,
 } from "@brief/common/constants";
 import { defineRelations, sql } from "drizzle-orm";
@@ -118,23 +118,65 @@ export const jobStatus = pgEnum("job_status", [
 	JOB_STATUS.FAILED,
 ]);
 
-export const jobState = pgEnum("job_state", [
-	JOB_STATE.GETTING_ARTICLES,
-	JOB_STATE.CREATING_REPORT,
-	JOB_STATE.CREATING_AUDIO,
-	JOB_STATE.SENDING_MESSAGE,
+export const categoryJobState = pgEnum("category_job_state", [
+	CATEGORY_JOB_STATE.CREATING_REPORT,
+	CATEGORY_JOB_STATE.CREATING_AUDIO,
+	CATEGORY_JOB_STATE.SENDING_MESSAGE,
 ]);
 
-export const jobs = pgTable(
-	"jobs",
+export const providerFetchJobs = pgTable(
+	"provider_fetch_jobs",
+	{
+		id: serial("id").primaryKey(),
+		providerId: integer("provider_id")
+			.notNull()
+			.references(() => providers.id, { onDelete: "restrict" }),
+		targetDate: date("target_date", { mode: "date" }).notNull(),
+		status: jobStatus("status").notNull(),
+		error: text("error"),
+		retry: integer("retry").notNull().default(0),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+		finishedAt: timestamp("finished_at", { withTimezone: true }),
+	},
+	(t) => [
+		unique("provider_fetch_jobs_provider_target_date_unique").on(
+			t.providerId,
+			t.targetDate,
+		),
+		index("provider_fetch_jobs_status_created_at_idx").on(
+			t.status,
+			t.createdAt,
+		),
+		index("provider_fetch_jobs_pending_queue_idx")
+			.on(t.createdAt)
+			.where(sql`${t.status} = 'pending'`),
+		check(
+			"provider_fetch_jobs_finished_at_consistency",
+			sql`(${t.status} IN ('finished', 'failed')) = (${t.finishedAt} IS NOT NULL)`,
+		),
+		check(
+			"provider_fetch_jobs_failed_requires_error",
+			sql`${t.status} <> 'failed' OR ${t.error} IS NOT NULL`,
+		),
+	],
+);
+
+export const categoryJobs = pgTable(
+	"category_jobs",
 	{
 		id: serial("id").primaryKey(),
 		categoryId: integer("category_id")
 			.notNull()
 			.references(() => categories.id, { onDelete: "restrict" }),
-		targetDate: date("target_date").notNull(),
+		targetDate: date("target_date", { mode: "date" }).notNull(),
 		status: jobStatus("status").notNull(),
-		state: jobState("state").notNull(),
+		state: categoryJobState("state").notNull(),
 		summary: text("summary"),
 		error: text("error"),
 		retry: integer("retry").notNull().default(0),
@@ -148,56 +190,63 @@ export const jobs = pgTable(
 		finishedAt: timestamp("finished_at", { withTimezone: true }),
 	},
 	(t) => [
-		unique("jobs_category_target_date_unique").on(t.categoryId, t.targetDate),
-		index("jobs_status_created_at_idx").on(t.status, t.createdAt),
-		index("jobs_pending_queue_idx")
+		unique("category_jobs_category_target_date_unique").on(
+			t.categoryId,
+			t.targetDate,
+		),
+		index("category_jobs_status_created_at_idx").on(t.status, t.createdAt),
+		index("category_jobs_pending_queue_idx")
 			.on(t.createdAt)
 			.where(sql`${t.status} = 'pending'`),
 		check(
-			"jobs_finished_at_consistency",
+			"category_jobs_finished_at_consistency",
 			sql`(${t.status} IN ('finished', 'failed')) = (${t.finishedAt} IS NOT NULL)`,
 		),
 		check(
-			"jobs_failed_requires_error",
+			"category_jobs_failed_requires_error",
 			sql`${t.status} <> 'failed' OR ${t.error} IS NOT NULL`,
 		),
 	],
 );
 
-export const jobArticles = pgTable(
-	"job_articles",
+export const categoryJobArticles = pgTable(
+	"category_job_articles",
 	{
-		jobId: integer("job_id")
+		categoryJobId: integer("category_job_id")
 			.notNull()
-			.references(() => jobs.id, { onDelete: "cascade" }),
+			.references(() => categoryJobs.id, { onDelete: "cascade" }),
 		articleId: uuid("article_id")
 			.notNull()
 			.references(() => articles.id, { onDelete: "restrict" }),
 		rank: integer("rank"),
 	},
 	(t) => [
-		primaryKey({ columns: [t.jobId, t.articleId] }),
-		index("job_articles_article_id_idx").on(t.articleId),
+		primaryKey({ columns: [t.categoryJobId, t.articleId] }),
+		index("category_job_articles_article_id_idx").on(t.articleId),
 	],
 );
 
-export const jobEvents = pgTable(
-	"job_events",
+export const categoryJobEvents = pgTable(
+	"category_job_events",
 	{
 		id: uuid("id").primaryKey().default(sql`uuidv7()`),
-		jobId: integer("job_id")
+		categoryJobId: integer("category_job_id")
 			.notNull()
-			.references(() => jobs.id, { onDelete: "cascade" }),
+			.references(() => categoryJobs.id, { onDelete: "cascade" }),
 		attempt: integer("attempt").notNull(),
-		fromState: jobState("from_state"),
-		toState: jobState("to_state").notNull(),
+		state: categoryJobState("state").notNull(),
 		status: jobStatus("status").notNull(),
 		error: text("error"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
 	},
-	(t) => [index("job_events_job_id_created_at_idx").on(t.jobId, t.createdAt)],
+	(t) => [
+		index("category_job_events_category_job_id_created_at_idx").on(
+			t.categoryJobId,
+			t.createdAt,
+		),
+	],
 );
 
 export const fileKind = pgEnum("file_kind", ["audio_file"]);
@@ -211,9 +260,9 @@ export const files = pgTable(
 	"files",
 	{
 		id: uuid("id").primaryKey().default(sql`uuidv7()`),
-		jobId: integer("job_id")
+		categoryJobId: integer("category_job_id")
 			.notNull()
-			.references(() => jobs.id, { onDelete: "cascade" }),
+			.references(() => categoryJobs.id, { onDelete: "cascade" }),
 		kind: fileKind("kind").notNull(),
 		language: fileLanguage("language").notNull(),
 		bucket: text("bucket").notNull(),
@@ -228,7 +277,11 @@ export const files = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(t) => [
-		unique("files_job_kind_language_unique").on(t.jobId, t.kind, t.language),
+		unique("files_category_job_kind_language_unique").on(
+			t.categoryJobId,
+			t.kind,
+			t.language,
+		),
 	],
 );
 
@@ -238,10 +291,11 @@ export const relations = defineRelations(
 		articles,
 		categories,
 		categoryProviders,
-		jobs,
+		providerFetchJobs,
+		categoryJobs,
 		files,
-		jobArticles,
-		jobEvents,
+		categoryJobArticles,
+		categoryJobEvents,
 	},
 	(r) => ({
 		providers: {
@@ -249,6 +303,13 @@ export const relations = defineRelations(
 			categories: r.many.categories({
 				from: r.providers.id.through(r.categoryProviders.providerId),
 				to: r.categories.id.through(r.categoryProviders.categoryId),
+			}),
+			fetchJobs: r.many.providerFetchJobs(),
+		},
+		providerFetchJobs: {
+			provider: r.one.providers({
+				from: r.providerFetchJobs.providerId,
+				to: r.providers.id,
 			}),
 		},
 		articles: {
@@ -262,30 +323,30 @@ export const relations = defineRelations(
 				from: r.categories.id.through(r.categoryProviders.categoryId),
 				to: r.providers.id.through(r.categoryProviders.providerId),
 			}),
-			jobs: r.many.jobs(),
+			jobs: r.many.categoryJobs(),
 		},
-		jobs: {
+		categoryJobs: {
 			category: r.one.categories({
-				from: r.jobs.categoryId,
+				from: r.categoryJobs.categoryId,
 				to: r.categories.id,
 			}),
 			articles: r.many.articles({
-				from: r.jobs.id.through(r.jobArticles.jobId),
-				to: r.articles.id.through(r.jobArticles.articleId),
+				from: r.categoryJobs.id.through(r.categoryJobArticles.categoryJobId),
+				to: r.articles.id.through(r.categoryJobArticles.articleId),
 			}),
 			files: r.many.files(),
-			events: r.many.jobEvents(),
+			events: r.many.categoryJobEvents(),
 		},
 		files: {
-			job: r.one.jobs({
-				from: r.files.jobId,
-				to: r.jobs.id,
+			job: r.one.categoryJobs({
+				from: r.files.categoryJobId,
+				to: r.categoryJobs.id,
 			}),
 		},
-		jobEvents: {
-			job: r.one.jobs({
-				from: r.jobEvents.jobId,
-				to: r.jobs.id,
+		categoryJobEvents: {
+			job: r.one.categoryJobs({
+				from: r.categoryJobEvents.categoryJobId,
+				to: r.categoryJobs.id,
 			}),
 		},
 	}),
