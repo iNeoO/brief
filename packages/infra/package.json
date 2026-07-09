@@ -9,6 +9,12 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.js"
 		},
+		"./amqp": {
+			"import": {
+				"types": "./dist/amqp/index.d.ts",
+				"default": "./dist/amqp/index.js"
+			}
+		},
 		"./configs": {
 			"import": {
 				"types": "./dist/configs/index.d.ts",
@@ -80,6 +86,7 @@
 		"@hono/zod-validator": "^0.8.0",
 		"@brief/common": "workspace:*",
 		"@types/node": "catalog:",
+		"amqplib": "^2.0.1",
 		"hono": "catalog:",
 		"hono-openapi": "catalog:",
 		"openapi-types": "^12.1.3",
