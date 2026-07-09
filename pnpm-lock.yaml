@@ -43,6 +43,34 @@ importers:
         specifier: ^10.0.0
         version: 10.0.3
 
+  apps/category-worker:
+    dependencies:
+      '@brief/common':
+        specifier: workspace:*
+        version: link:../../packages/common
+      '@brief/drizzle':
+        specifier: workspace:*
+        version: link:../../db/drizzle
+      '@brief/infra':
+        specifier: workspace:*
+        version: link:../../packages/infra
+      amqplib:
+        specifier: ^2.0.1
+        version: 2.0.1
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 'catalog:'
+        version: 2.5.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.9.4
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.9(@types/node@25.9.4)(vite@8.1.0(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4))
+
   apps/hono:
     dependencies:
       '@brief/common':
@@ -217,6 +245,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.4
+      amqplib:
+        specifier: ^2.0.1
+        version: 2.0.1
       hono:
         specifier: 'catalog:'
         version: 4.12.27
@@ -1231,6 +1262,10 @@ packages:
 
   '@vitest/utils@4.1.9':
     resolution: {integrity: sha512-A51o8ymO5PpqlWNnBP9ZHPXDIpuMtTLlGSjN7la4US+LJzoUMyhwjA5QXlm39JexgwHKW4Xjs8Z2d3dLCXOeuA==}
+
+  amqplib@2.0.1:
+    resolution: {integrity: sha512-a3P2MgfCf9nzVis12VxWEn0dS6hcqve7dlEAhXDtIWR27BlhtMkILOc+H9aeHjDi6i6r94dYKc2Kx2OFe3avvg==}
+    engines: {node: '>=18'}
 
   ansi-regex@6.2.2:
     resolution: {integrity: sha512-Bq3SmSpyFHaWjPk8If9yc6svM8c56dB5BAtW4Qbw5jHTwwXXcTLoRMkpDJp6VL0XzlWaCHTXrkFURMYmD0sLqg==}
@@ -2924,6 +2959,8 @@ snapshots:
       '@vitest/pretty-format': 4.1.9
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
+
+  amqplib@2.0.1: {}
 
   ansi-regex@6.2.2: {}
 
