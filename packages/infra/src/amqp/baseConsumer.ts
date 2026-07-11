@@ -29,10 +29,18 @@ export abstract class BaseAmqpConsumer {
 	private connection?: amqp.ChannelModel;
 	private channel?: amqp.Channel;
 	private consumerTag?: string;
-	private shuttingDown = false;
 	private attempt = 0;
 	private reconnectTimer?: NodeJS.Timeout;
 	private hasConnectedOnce = false;
+	private connectionPromise?: Promise<void>;
+	private shutdownPromise?: Promise<void>;
+	private status:
+		| "off"
+		| "connecting"
+		| "running"
+		| "reconnecting"
+		| "shutting-down"
+		| "ended" = "off";
 	private inFlightTasks = new Set<Promise<void>>();
 	private readonly prefetch: number;
 	private readonly retryDelayMs: (attempt: number) => number;
@@ -55,28 +63,52 @@ export abstract class BaseAmqpConsumer {
 	): Promise<void>;
 
 	async init() {
-		if (this.shuttingDown) {
-			throw new Error("consumer has been ended, create a new instance");
+		if (this.status !== "off") {
+			throw new Error(
+				`Consumer is not in status: off (actual status: ${this.status})`,
+			);
 		}
+		this.status = "connecting";
 
-		await this.initConsumer();
+		try {
+			await this.runConnectConsumer();
+		} catch (err) {
+			if (this.status === "connecting") {
+				this.status = "off";
+			}
+
+			throw err;
+		}
+	}
+
+	private async runConnectConsumer() {
+		const connectionPromise = this.connectConsumer();
+		this.connectionPromise = connectionPromise;
+
+		try {
+			await connectionPromise;
+		} finally {
+			if (this.connectionPromise === connectionPromise) {
+				this.connectionPromise = undefined;
+			}
+		}
 	}
 
 	private connectUrl() {
 		const url = new URL(this.url);
-
 		url.searchParams.set("heartbeat", String(this.heartbeatSeconds));
-
 		return url.toString();
 	}
 
-	private async initConsumer() {
-		await this.closeStaleConnection();
+	private async connectConsumer() {
+		const connectingStatus = this.status;
 
+		await this.closeStaleConnection();
 		const connection = await amqp.connect(this.connectUrl());
 
-		if (this.shuttingDown) {
-			await this.safeClose(connection, "connection opened during shutdown");
+		// Shutdown may have started while the connection was opening.
+		if (this.status !== connectingStatus) {
+			await this.safeClose(connection);
 			return;
 		}
 
@@ -96,8 +128,11 @@ export abstract class BaseAmqpConsumer {
 			this.handleDisconnect();
 		});
 
+		let configuredChannel: amqp.Channel | undefined;
+
 		try {
 			const channel = await connection.createChannel();
+			configuredChannel = channel;
 			this.channel = channel;
 
 			channel.on("error", (err) => {
@@ -146,15 +181,27 @@ export abstract class BaseAmqpConsumer {
 					return;
 				}
 
-				this.trackTask(this.handleMessage(channel, msg));
+				this.trackTask(
+					Promise.resolve().then(() => this.handleMessage(channel, msg)),
+				);
 			});
-
 			this.consumerTag = consumer.consumerTag;
 		} catch (err) {
 			await this.closeStaleConnection();
 			throw err;
 		}
+		// Shutdown may have started while the consumer was being configured.
+		if (this.status !== connectingStatus) {
+			await this.closeStaleConnection();
+			return;
+		}
 
+		if (this.connection !== connection || this.channel !== configuredChannel) {
+			await this.closeStaleConnection();
+			throw new Error("AMQP resources closed while configuring consumer");
+		}
+
+		this.status = "running";
 		this.attempt = 0;
 		this.hasConnectedOnce = true;
 	}
@@ -166,16 +213,15 @@ export abstract class BaseAmqpConsumer {
 		this.consumerTag = undefined;
 
 		if (stale) {
-			await this.safeClose(stale, "stale connection");
+			await this.safeClose(stale);
 		}
 	}
 
-	private async safeClose(target: { close(): Promise<void> }, label: string) {
+	private async safeClose(target: amqp.Channel | amqp.ChannelModel) {
 		try {
 			await target.close();
 		} catch (err) {
-			// already closed or closing
-			this.logger.debug({ err }, `failed to close ${label}`);
+			this.logger.debug({ err }, "failed to close AMQP resource");
 		}
 	}
 
@@ -192,9 +238,17 @@ export abstract class BaseAmqpConsumer {
 	}
 
 	private handleDisconnect() {
-		if (!this.hasConnectedOnce || this.shuttingDown || this.reconnectTimer) {
+		if (
+			!this.hasConnectedOnce ||
+			this.status === "shutting-down" ||
+			this.status === "ended" ||
+			this.reconnectTimer ||
+			this.connectionPromise
+		) {
 			return;
 		}
+
+		this.status = "reconnecting";
 
 		const delay = this.retryDelayMs(this.attempt);
 		this.attempt += 1;
@@ -211,19 +265,39 @@ export abstract class BaseAmqpConsumer {
 
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = undefined;
-			this.initConsumer().catch((err) => {
+			this.runConnectConsumer().catch((err) => {
 				this.logger.error({ err }, "Error in initConsumer reconnect");
 				this.handleDisconnect();
 			});
 		}, delay);
 	}
 
-	async end() {
-		this.shuttingDown = true;
+	end() {
+		if (this.shutdownPromise) {
+			return this.shutdownPromise;
+		}
+
+		this.shutdownPromise = this.shutdown().finally(() => {
+			this.shutdownPromise = undefined;
+		});
+
+		return this.shutdownPromise;
+	}
+
+	private async shutdown(): Promise<void> {
+		this.status = "shutting-down";
 
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
 			this.reconnectTimer = undefined;
+		}
+
+		if (this.connectionPromise) {
+			try {
+				await this.connectionPromise;
+			} catch (err) {
+				this.logger.debug({ err }, "connection attempt failed during shutdown");
+			}
 		}
 
 		if (this.channel && this.consumerTag) {
@@ -234,14 +308,21 @@ export abstract class BaseAmqpConsumer {
 			}
 		}
 
-		await Promise.all(this.inFlightTasks);
+		while (this.inFlightTasks.size > 0) {
+			await Promise.all(this.inFlightTasks);
+		}
 
 		if (this.channel) {
-			await this.safeClose(this.channel, "channel during shutdown");
+			await this.safeClose(this.channel);
 		}
 
 		if (this.connection) {
-			await this.safeClose(this.connection, "connection during shutdown");
+			await this.safeClose(this.connection);
 		}
+
+		this.channel = undefined;
+		this.connection = undefined;
+		this.consumerTag = undefined;
+		this.status = "ended";
 	}
 }
