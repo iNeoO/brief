@@ -23,20 +23,56 @@ export class CategoryJobsService {
 	}
 
 	async claimJob(jobId: number) {
-		const [job] = await this.db
-			.update(schema.categoryJobs)
-			.set({
-				status: JOB_STATUS.RUNNING,
-			})
-			.where(
-				and(
-					eq(schema.categoryJobs.id, jobId),
-					eq(schema.categoryJobs.status, JOB_STATUS.PENDING),
-				),
-			)
-			.returning();
+		return await this.db.transaction(async (tx) => {
+			const [job] = await tx
+				.update(schema.categoryJobs)
+				.set({
+					status: JOB_STATUS.RUNNING,
+				})
+				.where(
+					and(
+						eq(schema.categoryJobs.id, jobId),
+						eq(schema.categoryJobs.status, JOB_STATUS.PENDING),
+					),
+				)
+				.returning();
 
-		return job ?? null;
+			if (!job) return undefined;
+
+			const categoryRows = await tx
+				.select({
+					category: schema.categories,
+					provider: schema.providers,
+				})
+				.from(schema.categories)
+				.leftJoin(
+					schema.categoryProviders,
+					eq(schema.categoryProviders.categoryId, schema.categories.id),
+				)
+				.leftJoin(
+					schema.providers,
+					eq(schema.providers.id, schema.categoryProviders.providerId),
+				)
+				.where(eq(schema.categories.id, job.categoryId));
+
+			const category = categoryRows[0]?.category;
+
+			if (!category) {
+				throw new Error(
+					`Category ${job.categoryId} not found for job ${job.id}`,
+				);
+			}
+
+			return {
+				...job,
+				category: {
+					...category,
+					providers: categoryRows.flatMap(({ provider }) =>
+						provider ? [provider] : [],
+					),
+				},
+			};
+		});
 	}
 
 	async findByCategoryAndDate(categoryId: number, targetDate: Date) {
