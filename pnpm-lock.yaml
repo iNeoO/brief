@@ -54,6 +54,9 @@ importers:
       '@brief/infra':
         specifier: workspace:*
         version: link:../../packages/infra
+      '@brief/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       amqplib:
         specifier: ^2.0.1
         version: 2.0.1
