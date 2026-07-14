@@ -1,51 +1,138 @@
-# Brief — Flow
+# Brief: Domain and Data Flow
 
-## But
+## Purpose
 
-Chaque jour, à heure fixe, l'app récupère les derniers articles de diverses sources, les fait passer à un LLM pour sélection + résumé, transforme ce résumé en audio, et l'envoie aux utilisateurs abonnés.
+Brief fetches articles from configured providers each morning, produces one summary per category, converts the summary to audio, and later distributes the result to subscribers.
 
-## Pipeline
+The current work focuses on the database schema. Application services and workers still reflect parts of the previous model and will be updated later.
 
-1. **Fetch (par provider, planifié)**
-   - À heure fixe, chaque provider récupère ses `fetchLimit` derniers articles.
-   - Stockage dans `articles` (dédupliqué par `providerId + url`), mise à jour de `providers.lastFetchedAt`.
-   - Chaque run de fetch est tracé dans `provider_fetch_jobs` (un par `providerId + targetDate`) : `status` (pending/running/finished/failed), `retry`, `error`. C'est ce qui permet de détecter "tous les providers d'une catégorie ont terminé".
+See [`docs/daily-pipeline-workflow.md`](docs/daily-pipeline-workflow.md) for the implementation contract, transaction boundaries, retry rules, and worker sequence.
 
-2. **Création du job (par catégorie)**
-   - Dès que **tous les providers actifs d'une catégorie** ont un `provider_fetch_jobs` à `status = FINISHED` pour la `targetDate` (voir `areAllProvidersFinished`), un `category_job` est créé pour cette catégorie/ce jour.
-   - `status = PENDING`, `state = CREATING_REPORT` directement (pas d'étape dédiée pour la récupération des articles déjà en base).
+## Daily pipeline
 
-3. **Sélection + résumé (`CREATING_REPORT`)**
-   - La liste d'articles de la catégorie est envoyée à un LLM.
-   - Le LLM sélectionne les articles les plus pertinents et génère un texte de résumé.
-   - Résumé stocké dans `category_jobs.summary`, articles retenus tracés dans `category_job_articles` (avec `rank` pour préserver l'ordre).
+### 1. Plan the daily run
 
-4. **Génération audio (`CREATING_AUDIO`)**
-   - Le résumé est envoyé à un service externe de synthèse vocale.
-   - Peut produire **plusieurs fichiers audio, un par langue**.
+The scheduler loads the categories and their enabled providers. For each category, it creates one `category_job` for the target date with:
 
-5. **Envoi (`SENDING_MESSAGE`)**
-   - Le(s) fichier(s) audio sont envoyés via messagerie à tous les utilisateurs abonnés à cette catégorie/ce service.
+- `status = waiting_for_providers`
+- `state = creating_report`
 
-## Modèle de données (actuel)
+The scheduler creates one `provider_fetch_job` per distinct `(providerId, targetDate)`. Categories that share a provider also share that provider's fetch job.
 
-- `providers` — config des sources (URL, `fetchLimit`, `lastFetchedAt`, `isEnabled`)
-- `categories` — thèmes de résumé (tech, actu globale...), `isEnabled` pour suspendre la génération de jobs sans supprimer l'historique
-- `category_providers` — rattachement provider ↔ catégorie, avec un `weight` par provider dans la catégorie (non historisé : si le poids change, on ne peut plus reconstituer *a posteriori* la pondération utilisée pour un job passé)
-- `articles` — articles bruts récupérés, dédupliqués par `(providerId, url)`
-- `provider_fetch_jobs` — un run de fetch par `(providerId, targetDate)` : `status`, `retry`, `error`, `finishedAt`. Sert de gate pour savoir quand créer le `category_job` du jour
-- `category_jobs` — un run de pipeline par catégorie/jour : `status` (pending/running/finished/failed), `state` (étape en cours : creating_report/creating_audio/sending_message), `retry`, `error`, `summary`. `summary` est réécrit sur chaque retry (pas d'historique des versions précédentes du résumé — seul l'historique des tentatives échouées est dans `category_job_events`). `error`/`retry` sont remis à zéro dès qu'une transition réussit (`transitionState`/`markFinished`) — ils ne reflètent que l'échec le plus récent depuis la dernière étape franchie
-- `category_job_articles` — table de jointure : quels articles ont été retenus pour le résumé d'un job donné, avec leur `rank`
-- `category_job_events` — journal d'audit append-only, **une ligne par tentative échouée** (`attempt`, `state`, `status = failed`, `error`) — pas les transitions réussies
-- `files` — métadonnées des fichiers uploadés (bucket/objectKey S3), un par `(categoryJobId, kind, language)` — régénéré (upsert) sur retry, pas versionné. Actuellement seul `kind = audio_file` existe, `language ∈ {fr, en}`
+`category_job_provider_fetch_jobs` records the exact fetch jobs required by each category job. This table is a snapshot of the dependencies for that daily run. Later changes to `category_providers` must not change an existing job's dependencies.
 
-**Retry** : `MAX_JOB_RETRY = 3` (partagé `provider_fetch_jobs`/`category_jobs`). Au-delà, `status = FAILED` au lieu de repasser en `PENDING`.
+The scheduler should create the category jobs, provider fetch jobs, and dependency rows in one database transaction. It then publishes each provider fetch job ID to RabbitMQ.
 
-**Contraintes d'intégrité notables** : `finishedAt` doit être renseigné ssi `status ∈ (finished, failed)` (sur `category_jobs` et `provider_fetch_jobs`) ; `status = failed` impose `error` renseigné (checks DB). Index partiels `*_pending_queue_idx` sur les jobs `pending` pour le polling de la queue. Index `(providerId, publishedAt)` sur `articles` pour les requêtes "articles d'une catégorie sur une fenêtre de temps" (via join `category_providers`).
+### 2. Fetch provider articles
 
-## Points ouverts / pas encore modélisés
+A provider worker claims a `provider_fetch_job`, fetches the provider's latest articles, and stores them in `articles`. The unique `(providerId, url)` constraint deduplicates articles.
 
-- **Abonnés** : aucune notion `users`/`subscribers` ni de table d'abonnement (qui est abonné à quelle catégorie, dans quelle langue) n'existe encore — c'est l'étape "distribution" du pipeline, pas encore modélisée.
-- **Concurrence** : si plusieurs workers pollent `category_jobs`/`provider_fetch_jobs` pour prendre le prochain `PENDING`, utiliser `SELECT ... FOR UPDATE SKIP LOCKED` (les index partiels `*_pending_queue_idx` sont faits pour ce scan). Le claim actuel (`claimJob`) protège contre le double-claim via un `WHERE status = pending` atomique, mais pas encore de `SKIP LOCKED`.
-- **Reproductibilité** : `category_job_articles` ne trace que les articles *sélectionnés* par le LLM, pas l'ensemble des candidats considérés. L'ensemble des candidats reste reconstructible via `articles` filtré par provider + fenêtre de temps, tant que le rattachement provider ↔ catégorie (et son `weight`) n'a pas changé depuis.
-- **`file_kind`** : l'enum n'a qu'une seule valeur (`audio_file`) — à surveiller si un nouveau type de fichier apparaît (transcript, notification...).
+`provider_fetch_job_articles` records every article observed during the fetch. A previously stored article can therefore belong to more than one fetch job without creating another `articles` row.
+
+After the fetch finishes, the worker marks the provider fetch job as `finished`. It follows `category_job_provider_fetch_jobs` to find the waiting category jobs that depend on it.
+
+When every required provider fetch job has finished, one worker atomically changes the category job from `waiting_for_providers` to `pending`. Only the worker that performs this transition publishes the category job ID to RabbitMQ.
+
+### 3. Select articles and create the summary
+
+The category worker claims a pending category job and reads the candidate articles through:
+
+```text
+category_jobs
+  -> category_job_provider_fetch_jobs
+  -> provider_fetch_jobs
+  -> provider_fetch_job_articles
+  -> articles
+```
+
+The LLM selects the relevant articles and creates the summary.
+
+- `category_jobs.summary` stores the generated text.
+- `category_job_articles` stores the selected articles.
+- `category_job_articles.rank` preserves their order within the summary.
+
+The schema rejects duplicate articles and duplicate ranks within the same category job.
+
+### 4. Create the audio
+
+The category job moves to `creating_audio`. An external text-to-speech service converts the summary into audio.
+
+`files` stores the uploaded object metadata. The unique `(categoryJobId, kind, language)` constraint allows one audio file per language for a category job. The current schema supports French and English audio files.
+
+### 5. Distribution
+
+The category job moves to `sending_message` before distribution. Subscriber and subscription tables do not exist yet, so the database does not model the final delivery step.
+
+## Job status and state
+
+Provider fetch jobs use these statuses:
+
+```text
+pending -> running -> finished
+                   -> failed
+```
+
+Category jobs add an initial dependency gate:
+
+```text
+waiting_for_providers -> pending -> running -> finished
+                                         -> failed
+```
+
+The category job state tracks the current processing step:
+
+```text
+creating_report -> creating_audio -> sending_message
+```
+
+`category_jobs` and `provider_fetch_jobs` hold the current status, retry count, latest error, and completion timestamp. `category_job_events` and `provider_fetch_job_events` record individual attempts for audit and retry diagnostics.
+
+## Data model
+
+- `categories`: category definitions. IDs use UUIDv7.
+- `providers`: provider configuration, fetch limit, enabled flag, and last fetch timestamp. IDs use UUIDv7.
+- `category_providers`: current many-to-many provider assignment for categories.
+- `articles`: deduplicated provider articles. IDs use UUIDv7.
+- `category_jobs`: one category pipeline run per `(categoryId, targetDate)`.
+- `provider_fetch_jobs`: one provider fetch run per `(providerId, targetDate)`.
+- `category_job_provider_fetch_jobs`: immutable dependency snapshot between a category run and its provider fetches.
+- `provider_fetch_job_articles`: articles observed by a provider fetch.
+- `category_job_articles`: articles selected by the LLM, with their summary order.
+- `provider_fetch_job_events`: provider fetch attempt history.
+- `category_job_events`: category processing attempt history, including the processing state.
+- `files`: uploaded audio metadata for a category job and language.
+
+Category and provider IDs use UUIDv7. Job IDs remain serial integers because RabbitMQ messages carry job IDs and the jobs are internal processing records.
+
+## Integrity rules
+
+- An article URL is unique within a provider.
+- A category has at most one category job per target date.
+- A provider has at most one fetch job per target date.
+- A dependency can appear only once for a category job.
+- An observed article can appear only once for a provider fetch job.
+- A selected article can appear only once for a category job.
+- A selected article rank is unique within a category job and cannot be negative.
+- A finished or failed job must have `finishedAt`; other job statuses must not have it.
+- A failed job must contain an error.
+- A category job can have at most one file for each `(kind, language)` pair.
+- Pending-job indexes support queue polling by creation time.
+
+## RabbitMQ delivery and the outbox option
+
+The schema does not contain an outbox table yet.
+
+Without an outbox, a process can commit a job state change and crash before publishing the corresponding RabbitMQ message. An outbox would store the message in PostgreSQL in the same transaction as the state change. A separate publisher would send stored events and mark them as published.
+
+Consumers must remain idempotent even with an outbox because a crash after RabbitMQ accepts a message but before PostgreSQL records `publishedAt` can cause a retry.
+
+Add an outbox when the project requires crash-safe RabbitMQ publication. A generic outbox could carry events such as `provider_fetch_job.created` and `category_job.ready`.
+
+## Current boundaries
+
+- Services and workers have not been adapted to this schema yet.
+- Subscriber, subscription, and delivery models do not exist.
+- The schema records the selected articles but does not version summaries or previous selections across retries.
+- The schema does not enforce that linked category and provider jobs share the same target date. The scheduler must create valid dependency rows.
+- The schema does not enforce that an article linked to a fetch job belongs to the same provider. The ingestion code must preserve that invariant.
+- Historical migrations can be discarded. Generate a new initial migration after the schema settles; no existing database data needs migration.

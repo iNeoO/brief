@@ -5,6 +5,11 @@ export const JOB_STATUS = {
 	FAILED: "failed",
 } as const;
 
+export const CATEGORY_JOB_STATUS = {
+	WAITING_FOR_PROVIDERS: "waiting_for_providers",
+	...JOB_STATUS,
+} as const;
+
 export const MAX_JOB_RETRY = 3;
 
 export const CATEGORY_JOB_STATE = {
