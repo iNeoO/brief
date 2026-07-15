@@ -4,7 +4,9 @@ packages:
   - "db/*"
 
 allowBuilds:
+  '@parcel/watcher': false
   esbuild: true
+  msgpackr-extract: false
 
 catalog:
   '@biomejs/biome': ^2.4.10

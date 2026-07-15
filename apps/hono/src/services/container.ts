@@ -1,5 +1,9 @@
-import { type Database, db } from "@brief/drizzle";
-import { ArticlesService, IngestionService, ProvidersService } from "@brief/services";
+import { createDb, type Database } from "@brief/drizzle";
+import {
+	ArticlesService,
+	IngestionService,
+	ProvidersService,
+} from "@brief/services";
 
 export type AppServices = {
 	db: Database;
@@ -9,6 +13,7 @@ export type AppServices = {
 };
 
 export const createServices = (): AppServices => {
+	const db = createDb();
 	const articles = new ArticlesService(db);
 	const providers = new ProvidersService(db);
 

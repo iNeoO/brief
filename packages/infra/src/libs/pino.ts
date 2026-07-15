@@ -52,4 +52,12 @@ type WorkerBindings = {
 export const createWorkerLogger = (bindings: WorkerBindings) =>
 	pinoLogger.child(bindings);
 
+type SchedulerBindings = {
+	schedulerId: string;
+	date: string;
+};
+
+export const createSchedulerLogger = (bindings: SchedulerBindings) =>
+	pinoLogger.child(bindings);
+
 export type PinoLogger = pino.Logger;

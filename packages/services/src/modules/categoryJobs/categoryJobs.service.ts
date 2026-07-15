@@ -75,7 +75,7 @@ export class CategoryJobsService {
 		});
 	}
 
-	async findByCategoryAndDate(categoryId: number, targetDate: Date) {
+	async findByCategoryAndDate(categoryId: string, targetDate: Date) {
 		return await this.db
 			.select()
 			.from(schema.categoryJobs)
