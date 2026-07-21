@@ -4,11 +4,16 @@ import {
 	BaseAmqpConsumer,
 	safeParseProviderFetchJobMessage,
 } from "@brief/infra/amqp";
-import type { CategoryJobsService, IngestionService } from "@brief/services";
+import type {
+	IngestionService,
+	ProviderFetchJobsService,
+	ProvidersService,
+} from "@brief/services";
 
-export class CategoryConsumer extends BaseAmqpConsumer {
+export class ProviderFetchConsumer extends BaseAmqpConsumer {
 	private services: {
-		categoryJobsService: CategoryJobsService;
+		providersService: ProvidersService;
+		providerFetchJobsService: ProviderFetchJobsService;
 		ingestionService: IngestionService;
 	};
 	constructor(
@@ -17,7 +22,8 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 		queue: string,
 		name: string,
 		services: {
-			categoryJobsService: CategoryJobsService;
+			providersService: ProvidersService;
+			providerFetchJobsService: ProviderFetchJobsService;
 			ingestionService: IngestionService;
 		},
 	) {
@@ -36,18 +42,14 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 			return;
 		}
 		const jobId = result.data.id;
-		const job = await this.services.categoryJobsService.claimJob(jobId);
+		const job = await this.services.providerFetchJobsService.claimJob(jobId);
 		if (!job) {
-			this.logger.warn({ jobId }, "Category job could not be claimed");
+			this.logger.warn({ jobId }, "provider fetch job could not be claimed");
 			channel.ack(msg);
 			return;
 		}
 
-		await Promise.all(
-			job.category.providers.map((provider) =>
-				this.services.ingestionService.ingestProvider(provider),
-			),
-		);
+		await this.services.ingestionService.ingestProvider(job.provider);
 
 		channel.ack(msg);
 	}
