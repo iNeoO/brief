@@ -86,7 +86,7 @@
 		"@hono/zod-validator": "^0.8.0",
 		"@brief/common": "workspace:*",
 		"@types/node": "catalog:",
-		"amqplib": "^2.0.1",
+		"amqplib": "catalog:",
 		"hono": "catalog:",
 		"hono-openapi": "catalog:",
 		"openapi-types": "^12.1.3",

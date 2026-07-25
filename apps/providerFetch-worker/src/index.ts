@@ -1,7 +1,9 @@
 import { db } from "@brief/drizzle";
+import { AmqpPublisher } from "@brief/infra/amqp";
 import { pinoLogger } from "@brief/infra/libs";
 import {
 	ArticlesService,
+	CategoryJobsService,
 	IngestionService,
 	ProviderFetchJobsService,
 	ProvidersService,
@@ -9,7 +11,12 @@ import {
 import { env } from "./config/env.js";
 import { ProviderFetchConsumer } from "./consumer.js";
 
-const main = async (id: string, url: string, queue: string) => {
+const main = async (
+	id: string,
+	url: string,
+	queue: string,
+	categoryQueue: string,
+) => {
 	const providersService = new ProvidersService(db);
 	const articlesService = new ArticlesService(db);
 	const ingestionService = new IngestionService(
@@ -18,12 +25,28 @@ const main = async (id: string, url: string, queue: string) => {
 		providersService,
 	);
 	const providerFetchJobsService = new ProviderFetchJobsService(db);
+	const categoryJobsService = new CategoryJobsService(db);
 
-	const consumer = new ProviderFetchConsumer(id, url, queue, "providerFetch", {
-		providersService,
-		providerFetchJobsService,
-		ingestionService,
+	const categoryPublisher = new AmqpPublisher({
+		id,
+		url,
+		queue: categoryQueue,
 	});
+	await categoryPublisher.init();
+
+	const consumer = new ProviderFetchConsumer(
+		id,
+		url,
+		queue,
+		"providerFetch",
+		{
+			providersService,
+			providerFetchJobsService,
+			categoryJobsService,
+			ingestionService,
+		},
+		categoryPublisher,
+	);
 
 	await consumer.init();
 
@@ -34,6 +57,7 @@ const main = async (id: string, url: string, queue: string) => {
 		isShuttingDown = true;
 		pinoLogger.info(`${signal} received. Graceful shutdown initiated.`);
 		await consumer.end();
+		await categoryPublisher.close();
 		await db.$client.end();
 		process.exit(0);
 	};
@@ -42,4 +66,4 @@ const main = async (id: string, url: string, queue: string) => {
 	process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 };
 
-main(env.WORKER_ID, env.AMQP_URL, env.PROVIDER_FETCH_QUEUE);
+main(env.WORKER_ID, env.AMQP_URL, env.PROVIDER_FETCH_QUEUE, env.CATEGORY_QUEUE);

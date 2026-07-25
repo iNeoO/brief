@@ -1,15 +1,15 @@
+import { JOB_STATUS } from "@brief/common/constants";
 import {
 	type AmqpChannel,
 	type AmqpMessage,
 	BaseAmqpConsumer,
-	safeParseProviderFetchJobMessage,
+	safeParseCategoryMessage,
 } from "@brief/infra/amqp";
-import type { CategoryJobsService, IngestionService } from "@brief/services";
+import type { CategoryJobsService, ClaimedCategoryJob } from "@brief/services";
 
 export class CategoryConsumer extends BaseAmqpConsumer {
 	private services: {
 		categoryJobsService: CategoryJobsService;
-		ingestionService: IngestionService;
 	};
 	constructor(
 		id: string,
@@ -18,7 +18,6 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 		name: string,
 		services: {
 			categoryJobsService: CategoryJobsService;
-			ingestionService: IngestionService;
 		},
 	) {
 		super({ id, url, queue, name });
@@ -26,7 +25,7 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 	}
 
 	protected async handleMessage(channel: AmqpChannel, msg: AmqpMessage) {
-		const result = safeParseProviderFetchJobMessage(msg.content);
+		const result = safeParseCategoryMessage(msg.content);
 		if (result.error) {
 			this.logger.error(
 				{ err: result.error, raw: msg.content.toString("utf-8") },
@@ -38,17 +37,44 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 		const jobId = result.data.id;
 		const job = await this.services.categoryJobsService.claimJob(jobId);
 		if (!job) {
-			this.logger.warn({ jobId }, "Category job could not be claimed");
+			this.logger.warn({ jobId }, "category job could not be claimed");
 			channel.ack(msg);
 			return;
 		}
 
-		await Promise.all(
-			job.category.providers.map((provider) =>
-				this.services.ingestionService.ingestProvider(provider),
-			),
-		);
+		try {
+			await this.processCategoryJob(job);
+		} catch (err) {
+			this.logger.error({ err, jobId }, "category job failed");
+			const message = err instanceof Error ? err.message : String(err);
+			const updated = await this.services.categoryJobsService.incrementRetry(
+				jobId,
+				message,
+			);
+
+			if (updated?.status === JOB_STATUS.PENDING) {
+				channel.nack(msg, false, true); // retry : requeue
+			} else {
+				channel.nack(msg, false, false); // épuisé : DLQ
+			}
+			return;
+		}
+
+		try {
+			await this.services.categoryJobsService.markFinished(jobId);
+		} catch (err) {
+			this.logger.error({ err, jobId }, "failed to finalize category job");
+		}
 
 		channel.ack(msg);
+	}
+
+	// TODO(handler): générer le rapport + l'audio, envoyer le message,
+	// et transitionner l'état jusqu'à CATEGORY_JOB_STATE.SENDING_MESSAGE.
+	private async processCategoryJob(job: ClaimedCategoryJob) {
+		this.logger.warn(
+			{ jobId: job.id },
+			"category job handler not implemented yet",
+		);
 	}
 }

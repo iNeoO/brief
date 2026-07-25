@@ -1,4 +1,4 @@
-import { JOB_STATUS } from "@brief/common/constants";
+import { JOB_STATUS, MAX_JOB_RETRY } from "@brief/common/constants";
 import { and, type Database, eq, isNull, schema } from "@brief/drizzle";
 import type { CreateProviderFetchJobParams } from "./providerFetchJobs.type.js";
 
@@ -79,5 +79,53 @@ export class ProviderFetchJobsService {
 			.limit(1);
 
 		return unfinished.length === 0;
+	}
+
+	async markFinished(jobId: number) {
+		return await this.db
+			.update(schema.providerFetchJobs)
+			.set({
+				status: JOB_STATUS.FINISHED,
+				error: null,
+				retry: 0,
+				finishedAt: new Date(),
+			})
+			.where(
+				and(
+					eq(schema.providerFetchJobs.id, jobId),
+					eq(schema.providerFetchJobs.status, JOB_STATUS.RUNNING),
+				),
+			)
+			.returning();
+	}
+
+	async incrementRetry(jobId: number, error: string) {
+		return await this.db.transaction(async (tx) => {
+			const [current] = await tx
+				.select({ retry: schema.providerFetchJobs.retry })
+				.from(schema.providerFetchJobs)
+				.where(eq(schema.providerFetchJobs.id, jobId));
+
+			if (!current) return null;
+
+			const retry = current.retry + 1;
+			const failed = retry >= MAX_JOB_RETRY;
+			const status = failed ? JOB_STATUS.FAILED : JOB_STATUS.PENDING;
+
+			const [job] = await tx
+				.update(schema.providerFetchJobs)
+				.set({ error, retry, status, finishedAt: failed ? new Date() : null })
+				.where(eq(schema.providerFetchJobs.id, jobId))
+				.returning();
+
+			await tx.insert(schema.providerFetchJobEvents).values({
+				providerFetchJobId: jobId,
+				attempt: retry,
+				status: JOB_STATUS.FAILED,
+				error,
+			});
+
+			return job ?? null;
+		});
 	}
 }

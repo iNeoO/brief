@@ -1,5 +1,6 @@
 import {
 	CATEGORY_JOB_STATE,
+	CATEGORY_JOB_STATUS,
 	JOB_STATUS,
 	MAX_JOB_RETRY,
 } from "@brief/common/constants";
@@ -16,7 +17,7 @@ export class CategoryJobsService {
 			.values({
 				categoryId: params.categoryId,
 				targetDate: params.targetDate,
-				status: JOB_STATUS.PENDING,
+				status: CATEGORY_JOB_STATUS.WAITING_FOR_PROVIDERS,
 				state: CATEGORY_JOB_STATE.CREATING_REPORT,
 			})
 			.onConflictDoNothing({
@@ -93,6 +94,45 @@ export class CategoryJobsService {
 			);
 	}
 
+	async findWaitingByProviderAndDate(providerId: string, targetDate: Date) {
+		return await this.db
+			.select({
+				id: schema.categoryJobs.id,
+				categoryId: schema.categoryJobs.categoryId,
+			})
+			.from(schema.categoryJobs)
+			.innerJoin(
+				schema.categoryProviders,
+				eq(schema.categoryProviders.categoryId, schema.categoryJobs.categoryId),
+			)
+			.where(
+				and(
+					eq(schema.categoryProviders.providerId, providerId),
+					eq(schema.categoryJobs.targetDate, targetDate),
+					eq(
+						schema.categoryJobs.status,
+						CATEGORY_JOB_STATUS.WAITING_FOR_PROVIDERS,
+					),
+				),
+			);
+	}
+
+	async markReadyForProcessing(jobId: number) {
+		return await this.db
+			.update(schema.categoryJobs)
+			.set({ status: CATEGORY_JOB_STATUS.PENDING })
+			.where(
+				and(
+					eq(schema.categoryJobs.id, jobId),
+					eq(
+						schema.categoryJobs.status,
+						CATEGORY_JOB_STATUS.WAITING_FOR_PROVIDERS,
+					),
+				),
+			)
+			.returning();
+	}
+
 	async transitionState(jobId: number, newState: CategoryJobState) {
 		return await this.db
 			.update(schema.categoryJobs)
@@ -128,6 +168,7 @@ export class CategoryJobsService {
 				status: JOB_STATUS.FINISHED,
 				error: null,
 				retry: 0,
+				finishedAt: new Date(),
 			})
 			.where(
 				and(
@@ -152,12 +193,12 @@ export class CategoryJobsService {
 			if (!current) return null;
 
 			const retry = current.retry + 1;
-			const status =
-				retry >= MAX_JOB_RETRY ? JOB_STATUS.FAILED : JOB_STATUS.PENDING;
+			const failed = retry >= MAX_JOB_RETRY;
+			const status = failed ? JOB_STATUS.FAILED : JOB_STATUS.PENDING;
 
 			const [job] = await tx
 				.update(schema.categoryJobs)
-				.set({ error, retry, status })
+				.set({ error, retry, status, finishedAt: failed ? new Date() : null })
 				.where(eq(schema.categoryJobs.id, jobId))
 				.returning();
 
