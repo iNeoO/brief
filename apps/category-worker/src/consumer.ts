@@ -1,24 +1,35 @@
-import { JOB_STATUS } from "@brief/common/constants";
+import { API_ERROR, JOB_STATUS } from "@brief/common/constants";
+import type { APIError } from "@brief/common/types";
 import {
 	type AmqpChannel,
 	type AmqpMessage,
 	BaseAmqpConsumer,
 	safeParseCategoryMessage,
 } from "@brief/infra/amqp";
-import type { CategoryJobsService, ClaimedCategoryJob } from "@brief/services";
+import { InternalError } from "@brief/infra/errors";
+import type { CategoryJobsService, ProcessingService } from "@brief/services";
+
+const NON_RETRYABLE_ERROR_CODES = new Set<APIError>([
+	API_ERROR.CATEGORY_JOB_UNKNOWN_STATE,
+]);
+
+const isRetryable = (err: unknown) =>
+	!(err instanceof InternalError) || !NON_RETRYABLE_ERROR_CODES.has(err.code);
+
+type CategoryConsumerServices = {
+	categoryJobsService: CategoryJobsService;
+	processingService: ProcessingService;
+};
 
 export class CategoryConsumer extends BaseAmqpConsumer {
-	private services: {
-		categoryJobsService: CategoryJobsService;
-	};
+	private services: CategoryConsumerServices;
+
 	constructor(
 		id: string,
 		url: string,
 		queue: string,
 		name: string,
-		services: {
-			categoryJobsService: CategoryJobsService;
-		},
+		services: CategoryConsumerServices,
 	) {
 		super({ id, url, queue, name });
 		this.services = services;
@@ -34,47 +45,64 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 			channel.nack(msg, false, false);
 			return;
 		}
+
 		const jobId = result.data.id;
-		const job = await this.services.categoryJobsService.claimJob(jobId);
+
+		let job: Awaited<ReturnType<CategoryJobsService["claimJob"]>>;
+		try {
+			job = await this.services.categoryJobsService.claimJob(jobId);
+		} catch (err) {
+			await this.failJob(channel, msg, jobId, err);
+			return;
+		}
+
 		if (!job) {
-			this.logger.warn({ jobId }, "category job could not be claimed");
+			this.logger.warn({ jobId }, "category job is not pending, skipping");
 			channel.ack(msg);
 			return;
 		}
 
 		try {
-			await this.processCategoryJob(job);
-		} catch (err) {
-			this.logger.error({ err, jobId }, "category job failed");
-			const message = err instanceof Error ? err.message : String(err);
-			const updated = await this.services.categoryJobsService.incrementRetry(
-				jobId,
-				message,
-			);
+			await this.services.processingService.runCategoryJob(job);
 
-			if (updated?.status === JOB_STATUS.PENDING) {
-				channel.nack(msg, false, true); // retry : requeue
-			} else {
-				channel.nack(msg, false, false); // épuisé : DLQ
+			const [finished] =
+				await this.services.categoryJobsService.markFinished(jobId);
+
+			if (!finished) {
+				throw new InternalError({
+					code: API_ERROR.CATEGORY_JOB_STATE_CONFLICT,
+					message: `Category job ${jobId} could not be marked finished`,
+				});
 			}
-			return;
-		}
-
-		try {
-			await this.services.categoryJobsService.markFinished(jobId);
 		} catch (err) {
-			this.logger.error({ err, jobId }, "failed to finalize category job");
+			await this.failJob(channel, msg, jobId, err);
+			return;
 		}
 
 		channel.ack(msg);
 	}
 
-	// TODO(handler): générer le rapport + l'audio, envoyer le message,
-	// et transitionner l'état jusqu'à CATEGORY_JOB_STATE.SENDING_MESSAGE.
-	private async processCategoryJob(job: ClaimedCategoryJob) {
-		this.logger.warn(
-			{ jobId: job.id },
-			"category job handler not implemented yet",
-		);
+	private async failJob(
+		channel: AmqpChannel,
+		msg: AmqpMessage,
+		jobId: number,
+		err: unknown,
+	) {
+		this.logger.error({ err, jobId }, "category job failed");
+		const message = err instanceof Error ? err.message : String(err);
+
+		try {
+			const updated = isRetryable(err)
+				? await this.services.categoryJobsService.incrementRetry(jobId, message)
+				: await this.services.categoryJobsService.markFailed(jobId, message);
+
+			channel.nack(msg, false, updated?.status === JOB_STATUS.PENDING);
+		} catch (bookkeepingErr) {
+			this.logger.error(
+				{ err: bookkeepingErr, jobId },
+				"failed to record category job failure",
+			);
+			channel.nack(msg, false, false);
+		}
 	}
 }

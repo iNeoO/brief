@@ -3,14 +3,23 @@
 	"type": "module",
 	"scripts": {
 		"lint": "biome check",
-		"build": "rm -rf dist && tsc",
-		"test": "vitest run"
+		"build": "rm -rf dist && tsc -p tsconfig.build.json",
+		"test": "vitest run",
+		"test:smoke": "SMOKE=1 vitest run smoke"
 	},
 	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1101.0",
+		"@aws-sdk/lib-storage": "^3.1101.0",
 		"@brief/common": "workspace:*",
 		"@brief/drizzle": "workspace:*",
 		"@brief/infra": "workspace:*",
-		"feedsmith": "^2.9.4"
+		"@mozilla/readability": "^0.6.0",
+		"@tanstack/ai": "^0.42.0",
+		"@tanstack/ai-openai": "^0.17.1",
+		"feedsmith": "^2.9.4",
+		"linkedom": "^0.18.13",
+		"openai": "^7.3.0",
+		"zod": "catalog:"
 	},
 	"exports": {
 		".": {

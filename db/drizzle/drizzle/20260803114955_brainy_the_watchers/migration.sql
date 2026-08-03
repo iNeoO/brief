@@ -1,0 +1,1 @@
+ALTER TABLE "category_jobs" ADD COLUMN "sources" text;

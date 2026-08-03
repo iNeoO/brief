@@ -15,6 +15,8 @@
 		"drizzle:migrate": "dotenv -e .env -- pnpm --filter @brief/drizzle migrate",
 		"drizzle:push": "dotenv -e .env -- pnpm --filter @brief/drizzle push",
 		"drizzle:build": "pnpm --filter @brief/drizzle build",
+		"category:run": "dotenv -e .env -- pnpm --filter @brief/category-worker job:run",
+		"garage:init": "dotenv -e .env -- sh garage/init.sh",
 		"dev:runtime": "concurrently -k \"pnpm run hono:dev\" \"pnpm run react:dev\"",
 		"dev": "pnpm run dev:libs:build && pnpm run hono:build && pnpm run dev:runtime"
 	},

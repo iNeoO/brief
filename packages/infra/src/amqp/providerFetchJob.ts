@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { safeParseJson } from "./json.js";
 
 export const providerFetchJobMessageSchema = z.object({
 	id: z.number(),
@@ -9,6 +10,6 @@ export type ProviderFetchJobMessage = z.infer<
 >;
 
 export const safeParseProviderFetchJobMessage = (raw: Buffer) => {
-	const data = JSON.parse(raw.toString("utf-8"));
+	const data = safeParseJson(raw);
 	return providerFetchJobMessageSchema.safeParse(data);
 };

@@ -1,18 +1,28 @@
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
 import { parseRssFeed } from "feedsmith";
+import { extractArticle } from "../../../helpers/extractArticle.helper.js";
 import { fetchText } from "../../../helpers/fetchText.helper.js";
-import type { ArticleConnector } from "../connector.port.js";
-import type { SlugConnectors } from "../ingestion.type.js";
+import type {
+	ArticleConnector,
+	FetchLatestInput,
+	RawArticle,
+} from "../connector.port.js";
 
-export class FranceInfoConnector implements ArticleConnector {
-	readonly slug: SlugConnectors = "france-info";
+export class RssConnector implements ArticleConnector {
+	async fetchLatest({ url, limit, label }: FetchLatestInput) {
+		const rss = await fetchText({ url, context: `${label} feed` });
+		return this.parse(rss, { limit, label });
+	}
 
-	async parse(rss: string, limit: number) {
+	protected async parse(
+		rss: string,
+		{ limit, label }: { limit: number; label: string },
+	): Promise<RawArticle[]> {
 		const parsed = await parseRssFeed(rss);
 		if (!parsed?.items || !Array.isArray(parsed.items)) {
 			const logger = getLoggerStore();
-			logger.error({ rss }, "Failed to parse RSS feed");
+			logger.error({ rss, label }, "Failed to parse RSS feed");
 			throw new InternalError({
 				message: "Failed to parse RSS feed",
 				code: "CONNECTOR_PARSE_ERROR",
@@ -29,7 +39,7 @@ export class FranceInfoConnector implements ArticleConnector {
 
 				let content: string;
 				try {
-					content = await this.parseArticle(url);
+					content = await this.parseArticle(url, label);
 				} catch (err) {
 					const logger = getLoggerStore();
 					logger.warn(
@@ -53,15 +63,8 @@ export class FranceInfoConnector implements ArticleConnector {
 		return articles.filter((article) => article !== null);
 	}
 
-	async parseArticle(url: string) {
-		return fetchText({ url, context: "France Info article" });
-	}
-
-	async fetchLatest(input: { url: string; limit: number }) {
-		const rss = await fetchText({
-			url: input.url,
-			context: "France Info feed",
-		});
-		return this.parse(rss, input.limit);
+	protected async parseArticle(url: string, label: string) {
+		const html = await fetchText({ url, context: `${label} article` });
+		return extractArticle(html, url);
 	}
 }
