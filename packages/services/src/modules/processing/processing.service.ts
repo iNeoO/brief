@@ -1,7 +1,7 @@
 import {
-	API_ERROR,
 	CATEGORY_JOB_STATE,
 	FILE_KIND,
+	INTERNAL_ERROR_CODE,
 } from "@brief/common/constants";
 import type { Language } from "@brief/common/types";
 import { type Database, eq, schema } from "@brief/drizzle";
@@ -15,6 +15,7 @@ import type { CategoryJobsService } from "../categoryJobs/categoryJobs.service.j
 import type { ClaimedCategoryJob } from "../categoryJobs/categoryJobs.type.js";
 import type { S3Service } from "../s3/s3.service.js";
 import { TextToSpeechHelper } from "../tts/tts.helper.js";
+import { createAiDebugLogger } from "./processing.aiLogger.js";
 import {
 	ARTICLE_SELECTION_SYSTEM_PROMPT,
 	buildArticleSelectionUserPrompt,
@@ -257,6 +258,7 @@ export class ProcessingService {
 		const selection = await chat({
 			adapter: openaiText("gpt-5.5"),
 			stream: false,
+			debug: { logger: createAiDebugLogger(getLoggerStore()) },
 			systemPrompts: [ARTICLE_SELECTION_SYSTEM_PROMPT],
 			messages: [
 				{
@@ -282,10 +284,6 @@ export class ProcessingService {
 			}),
 		});
 
-		const logger = getLoggerStore();
-
-		logger.debug({ selection }, "selection generated");
-
 		const candidates = await this.articlesService.getArticlesByDay(
 			targetDate,
 			providerIds,
@@ -310,6 +308,7 @@ export class ProcessingService {
 		const resume = await chat({
 			adapter: openaiText("gpt-5.5"),
 			stream: false,
+			debug: { logger: createAiDebugLogger(getLoggerStore()) },
 			systemPrompts: [RESUME_SYSTEM_PROMPT],
 			messages: [
 				{
@@ -326,13 +325,6 @@ export class ProcessingService {
 			tools: [this.getArticleTool],
 			outputSchema: z.object({ summary: z.string(), sources: z.string() }),
 		});
-
-		const logger = getLoggerStore();
-
-		logger.debug(
-			{ summary: resume.summary, sources: resume.sources },
-			"summary generated",
-		);
 
 		return { summary: resume.summary, sources: resume.sources };
 	}
