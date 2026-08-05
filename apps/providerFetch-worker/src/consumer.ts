@@ -60,6 +60,8 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 
 		try {
 			await this.processProviderFetchJob(job);
+			await this.services.providerFetchJobsService.markFinished(jobId);
+			await this.publishReadyCategoryJobs(job.providerId, job.targetDate);
 		} catch (err) {
 			this.logger.error({ err, jobId }, "provider fetch job failed");
 			const message = err instanceof Error ? err.message : String(err);
@@ -75,16 +77,6 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 				channel.nack(msg, false, false); // épuisé : DLQ
 			}
 			return;
-		}
-
-		try {
-			await this.services.providerFetchJobsService.markFinished(jobId);
-			await this.publishReadyCategoryJobs(job.providerId, job.targetDate);
-		} catch (err) {
-			this.logger.error(
-				{ err, jobId },
-				"failed to finalize provider fetch job",
-			);
 		}
 
 		channel.ack(msg);
