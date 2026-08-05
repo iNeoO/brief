@@ -8,28 +8,9 @@ import {
 import type { CategoryJobState } from "@brief/common/types";
 import { and, type Database, eq, schema } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
-import type { CreateCategoryJobParams } from "./categoryJobs.type.js";
 
 export class CategoryJobsService {
 	constructor(private db: Database) {}
-
-	async createJob(params: CreateCategoryJobParams) {
-		return await this.db
-			.insert(schema.categoryJobs)
-			.values({
-				categoryId: params.categoryId,
-				targetDate: params.targetDate,
-				status: CATEGORY_JOB_STATUS.WAITING_FOR_PROVIDERS,
-				state: CATEGORY_JOB_STATE.CREATING_REPORT,
-			})
-			.onConflictDoNothing({
-				target: [
-					schema.categoryJobs.categoryId,
-					schema.categoryJobs.targetDate,
-				],
-			})
-			.returning();
-	}
 
 	async claimJob(jobId: number) {
 		return await this.db.transaction(async (tx) => {
@@ -97,21 +78,28 @@ export class CategoryJobsService {
 			);
 	}
 
-	async findWaitingByProviderAndDate(providerId: string, targetDate: Date) {
+	/**
+	 * Walks the immutable dependency snapshot (`category_job_provider_fetch_jobs`)
+	 * for the category jobs depending on this fetch job, not the live
+	 * `category_providers` table.
+	 */
+	async findWaitingByProviderFetchJob(providerFetchJobId: number) {
 		return await this.db
-			.select({
-				id: schema.categoryJobs.id,
-				categoryId: schema.categoryJobs.categoryId,
-			})
-			.from(schema.categoryJobs)
+			.select({ id: schema.categoryJobs.id })
+			.from(schema.categoryJobProviderFetchJobs)
 			.innerJoin(
-				schema.categoryProviders,
-				eq(schema.categoryProviders.categoryId, schema.categoryJobs.categoryId),
+				schema.categoryJobs,
+				eq(
+					schema.categoryJobs.id,
+					schema.categoryJobProviderFetchJobs.categoryJobId,
+				),
 			)
 			.where(
 				and(
-					eq(schema.categoryProviders.providerId, providerId),
-					eq(schema.categoryJobs.targetDate, targetDate),
+					eq(
+						schema.categoryJobProviderFetchJobs.providerFetchJobId,
+						providerFetchJobId,
+					),
 					eq(
 						schema.categoryJobs.status,
 						CATEGORY_JOB_STATUS.WAITING_FOR_PROVIDERS,

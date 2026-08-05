@@ -1,25 +1,8 @@
 import { JOB_STATUS, MAX_JOB_RETRY } from "@brief/common/constants";
-import { and, type Database, eq, isNull, schema } from "@brief/drizzle";
-import type { CreateProviderFetchJobParams } from "./providerFetchJobs.type.js";
+import { and, type Database, eq, ne, schema } from "@brief/drizzle";
 
 export class ProviderFetchJobsService {
 	constructor(private db: Database) {}
-
-	async createJob(params: CreateProviderFetchJobParams) {
-		return await this.db
-			.insert(schema.providerFetchJobs)
-			.values({
-				...params,
-				status: "pending",
-			})
-			.onConflictDoNothing({
-				target: [
-					schema.providerFetchJobs.providerId,
-					schema.providerFetchJobs.targetDate,
-				],
-			})
-			.returning();
-	}
 
 	async claimJob(jobId: number) {
 		return await this.db.transaction(async (tx) => {
@@ -50,30 +33,27 @@ export class ProviderFetchJobsService {
 		});
 	}
 
-	async areAllProvidersFinished(categoryId: string, targetDate: Date) {
+	/**
+	 * Walks the immutable dependency snapshot for this category job
+	 * (`category_job_provider_fetch_jobs`), not the live `category_providers`
+	 * table — a provider added or removed after the job was planned must not
+	 * change what it's waiting on.
+	 */
+	async areAllProvidersFinished(categoryJobId: number) {
 		const unfinished = await this.db
-			.select({ providerId: schema.categoryProviders.providerId })
-			.from(schema.categoryProviders)
+			.select({ id: schema.categoryJobProviderFetchJobs.providerFetchJobId })
+			.from(schema.categoryJobProviderFetchJobs)
 			.innerJoin(
-				schema.providers,
-				eq(schema.providers.id, schema.categoryProviders.providerId),
-			)
-			.leftJoin(
 				schema.providerFetchJobs,
-				and(
-					eq(
-						schema.providerFetchJobs.providerId,
-						schema.categoryProviders.providerId,
-					),
-					eq(schema.providerFetchJobs.targetDate, targetDate),
-					eq(schema.providerFetchJobs.status, JOB_STATUS.FINISHED),
+				eq(
+					schema.providerFetchJobs.id,
+					schema.categoryJobProviderFetchJobs.providerFetchJobId,
 				),
 			)
 			.where(
 				and(
-					eq(schema.categoryProviders.categoryId, categoryId),
-					eq(schema.providers.isEnabled, true),
-					isNull(schema.providerFetchJobs.id),
+					eq(schema.categoryJobProviderFetchJobs.categoryJobId, categoryJobId),
+					ne(schema.providerFetchJobs.status, JOB_STATUS.FINISHED),
 				),
 			)
 			.limit(1);

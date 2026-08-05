@@ -1,10 +1,5 @@
 import type { schema } from "@brief/drizzle";
 
-export type CreateCategoryJobParams = {
-	categoryId: string;
-	targetDate: Date;
-};
-
 type CategoryJob = typeof schema.categoryJobs.$inferSelect;
 type Category = typeof schema.categories.$inferSelect;
 type Provider = typeof schema.providers.$inferSelect;

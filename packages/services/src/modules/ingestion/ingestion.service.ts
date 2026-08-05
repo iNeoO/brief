@@ -1,4 +1,4 @@
-import { type Database, eq, schema } from "@brief/drizzle";
+import { type Database, schema } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
 import type { ArticlesService } from "../articles/articles.service.js";
@@ -16,7 +16,7 @@ export class IngestionService {
 		private providersService: ProvidersService,
 	) {}
 
-	async ingestProvider(provider: Provider) {
+	async ingestProvider(providerFetchJobId: number, provider: Provider) {
 		const connector = getConnector(provider);
 
 		if (!connector) {
@@ -44,29 +44,36 @@ export class IngestionService {
 			publishedAt: a.publishedAt ?? null,
 		}));
 
-		const inserted = await this.articlesService.createManyArticles(rows);
+		await this.articlesService.createManyArticles(rows);
+
+		// `createManyArticles` only returns the newly inserted rows
+		// (`onConflictDoNothing`); resolve the full set actually observed by
+		// this fetch — new and already-known alike — to snapshot in
+		// `provider_fetch_job_articles`.
+		const observed = await this.articlesService.findByProviderAndUrls(
+			provider.id,
+			rows.map((row) => row.url),
+		);
+
+		if (observed.length > 0) {
+			await this.db
+				.insert(schema.providerFetchJobArticles)
+				.values(
+					observed.map((article) => ({
+						providerFetchJobId,
+						articleId: article.id,
+					})),
+				)
+				.onConflictDoNothing({
+					target: [
+						schema.providerFetchJobArticles.providerFetchJobId,
+						schema.providerFetchJobArticles.articleId,
+					],
+				});
+		}
 
 		await this.providersService.touchLastFetchedAt(provider.id);
 
-		return inserted.length;
-	}
-
-	async ingestBySlug(slug: string) {
-		const provider = await this.db
-			.select()
-			.from(schema.providers)
-			.where(eq(schema.providers.slug, slug))
-			.then((res) => res[0]);
-
-		if (!provider) {
-			const logger = getLoggerStore();
-			logger.error({ slug }, "No provider for slug");
-			throw new InternalError({
-				message: `No connector for provider "${slug}"`,
-				code: "NO_CONNECTOR",
-			});
-		}
-
-		await this.ingestProvider(provider);
+		return observed.length;
 	}
 }

@@ -33,22 +33,13 @@ const job = Effect.gen(function* () {
 		return;
 	}
 
-	for (const category of categories) {
-		yield* container.createCategoryJob({
-			targetDate: today,
-			categoryId: category.id,
-		});
-	}
+	const { newProviderFetchJobs } = yield* container.planDailyRun({
+		categories,
+		targetDate: today,
+	});
 
-	for (const providerId of providerIds) {
-		const [job] = yield* container.createProviderFetchJobs({
-			targetDate: today,
-			providerId,
-		});
-
-		if (job) {
-			yield* container.publishProviderFetchJob(job.id);
-		}
+	for (const fetchJob of newProviderFetchJobs) {
+		yield* container.publishProviderFetchJob(fetchJob.id);
 	}
 
 	logger.info(`running job at 7am Paris — ${categories.length} categories`);
