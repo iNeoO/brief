@@ -11,6 +11,7 @@ import type { CategoryJobsService, ProcessingService } from "@brief/services";
 
 const NON_RETRYABLE_ERROR_CODES = new Set<InternalErrorCode>([
 	INTERNAL_ERROR_CODE.CATEGORY_JOB_UNKNOWN_STATE,
+	INTERNAL_ERROR_CODE.CATEGORY_JOB_CATEGORY_NOT_FOUND,
 ]);
 
 const isRetryable = (err: unknown) =>
