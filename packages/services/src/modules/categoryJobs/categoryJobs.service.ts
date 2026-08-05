@@ -1,11 +1,13 @@
 import {
 	CATEGORY_JOB_STATE,
 	CATEGORY_JOB_STATUS,
+	INTERNAL_ERROR_CODE,
 	JOB_STATUS,
 	MAX_JOB_RETRY,
 } from "@brief/common/constants";
 import type { CategoryJobState } from "@brief/common/types";
 import { and, type Database, eq, schema } from "@brief/drizzle";
+import { InternalError } from "@brief/infra/errors";
 import type { CreateCategoryJobParams } from "./categoryJobs.type.js";
 
 export class CategoryJobsService {
@@ -65,9 +67,10 @@ export class CategoryJobsService {
 			const category = categoryRows[0]?.category;
 
 			if (!category) {
-				throw new Error(
-					`Category ${job.categoryId} not found for job ${job.id}`,
-				);
+				throw new InternalError({
+					code: INTERNAL_ERROR_CODE.CATEGORY_JOB_CATEGORY_NOT_FOUND,
+					message: `Category ${job.categoryId} not found for job ${job.id}`,
+				});
 			}
 
 			return {
