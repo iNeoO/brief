@@ -47,6 +47,7 @@ A selected article is a candidate that the LLM used in the summary. `category_jo
 | `provider_fetch_job_events` | Records provider fetch attempts. |
 | `category_job_events` | Records category processing attempts and states. |
 | `files` | Stores uploaded audio metadata. |
+| `message_jobs` | Placeholder for one delivery job per category job. Currently an empty scaffold: nothing inserts rows, claims them, or runs a `message-job` consumer against real recipients yet. |
 
 ## Why both article link tables exist
 
@@ -178,7 +179,7 @@ After all requested languages exist, the worker changes the state to `sending_me
 
 ## Step 6: distribute the result
 
-Subscriber and delivery tables do not exist yet. When the product defines subscriptions, the distribution step will load recipients for the category and deliver the correct language file.
+Subscriber tables do not exist yet. A `message_jobs` table and a standalone `message-job` consumer (`apps/message-worker`) exist as an empty scaffold — decoupling the future delivery step from the category worker's process — but nothing wires them together yet: no code inserts a `message_jobs` row, publishes to its queue, or claims one. When the product defines subscriptions, the distribution step will load recipients for the category, deliver the correct language file, and update the corresponding `message_jobs` row. `message_jobs` deliberately has no `retry` column and no `message_job_events` table: a retry policy needs per-recipient delivery confirmation, which depends on the subscriber model this step is still waiting on. It does keep a plain `error` column for whatever a future implementer chooses to log there (a single global error, or a flattened list of per-recipient failures).
 
 After successful delivery, the worker changes the category job to `finished` and sets `finishedAt`.
 

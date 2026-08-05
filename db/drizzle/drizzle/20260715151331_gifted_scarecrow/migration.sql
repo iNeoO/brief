@@ -1,1 +1,0 @@
-ALTER TABLE "categories" ADD COLUMN "is_enable" boolean DEFAULT true;

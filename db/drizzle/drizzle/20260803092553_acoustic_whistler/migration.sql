@@ -1,1 +1,0 @@
-ALTER TABLE "articles" ALTER COLUMN "content" SET NOT NULL;
