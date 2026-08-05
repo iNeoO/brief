@@ -25,7 +25,9 @@ import {
 import type { CategoryJobContext, CategoryJobStep } from "./processing.type.js";
 
 const MAX_SELECTED_ARTICLES = 10;
-const TARGET_SUMMARY_WORDS = 450;
+const BASE_SUMMARY_WORDS = 190;
+const WORDS_PER_ARTICLE = 130;
+const MAX_SUMMARY_WORDS = 750;
 
 export class ProcessingService {
 	constructor(
@@ -305,6 +307,11 @@ export class ProcessingService {
 		targetDate: Date,
 		category: { name: string; language: Language },
 	) {
+		const targetWordCount = Math.min(
+			BASE_SUMMARY_WORDS + articles.length * WORDS_PER_ARTICLE,
+			MAX_SUMMARY_WORDS,
+		);
+
 		const resume = await chat({
 			adapter: openaiText("gpt-5.5"),
 			stream: false,
@@ -317,7 +324,7 @@ export class ProcessingService {
 						categoryName: category.name,
 						targetDate,
 						language: category.language,
-						targetWordCount: TARGET_SUMMARY_WORDS,
+						targetWordCount,
 						articles,
 					}),
 				},
