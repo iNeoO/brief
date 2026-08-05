@@ -1,4 +1,4 @@
-import type { APIError } from "@brief/common/types";
+import type { InternalErrorCode } from "@brief/common/types";
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
 
@@ -6,8 +6,8 @@ type FetchTextOptions = {
 	url: string;
 	context: string;
 	timeoutMs?: number;
-	timeoutCode?: APIError;
-	fetchErrorCode?: APIError;
+	timeoutCode?: InternalErrorCode;
+	fetchErrorCode?: InternalErrorCode;
 };
 
 export const fetchText = async ({

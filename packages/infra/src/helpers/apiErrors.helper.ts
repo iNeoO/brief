@@ -82,8 +82,6 @@ export const API_ERRORS = {
 			error: "Email already in use",
 		},
 	},
-	// Internal-only codes (connector, file, job failures) are surfaced by the
-	// consumers through InternalError, never as an HTTP response.
 } as const satisfies Partial<Record<APIError, ApiErrorDefinition>>;
 
 export type ApiErrorKey = keyof typeof API_ERRORS;
