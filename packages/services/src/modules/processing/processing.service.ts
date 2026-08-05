@@ -87,10 +87,9 @@ export class ProcessingService {
 
 	private async createReport(context: CategoryJobContext) {
 		const { job } = context;
-		const providerIds = job.category.providers.map((provider) => provider.id);
 
 		const selection = await this.makeSelection(
-			providerIds,
+			job.id,
 			job.targetDate,
 			job.category,
 		);
@@ -156,37 +155,46 @@ export class ProcessingService {
 		);
 	}
 
-	private readonly getArticlesTool = toolDefinition({
-		name: "getArticles",
-		description: "Get articles by day and provider IDs",
-		inputSchema: z.object({
-			day: z.iso.date(),
-			providerIds: z.array(z.string()).optional(),
-		}),
-		// Dates travel as ISO strings: a tool schema is handed to the model as
-		// JSON Schema, which has no way to express a `Date`.
-		outputSchema: z.array(
-			z.object({
-				id: z.string(),
-				providerId: z.string(),
-				title: z.string(),
-				description: z.string().nullable(),
-				publishedAt: z.iso.datetime().nullable(),
+	private buildGetArticlesTool(
+		observed: Awaited<ReturnType<ArticlesService["getObservedArticles"]>>,
+	) {
+		return toolDefinition({
+			name: "getArticles",
+			description: "Get articles by day and provider IDs",
+			inputSchema: z.object({
+				day: z.iso.date(),
+				providerIds: z.array(z.string()).optional(),
 			}),
-		),
-	}).server(async ({ day, providerIds }) => {
-		const articles = await this.articlesService.getArticlesByDay(
-			new Date(day),
-			providerIds ?? [],
-		);
-		return articles.map((article) => ({
-			id: article.id,
-			providerId: article.providerId,
-			title: article.title,
-			description: article.description,
-			publishedAt: article.publishedAt?.toISOString() ?? null,
-		}));
-	});
+			// Dates travel as ISO strings: a tool schema is handed to the model as
+			// JSON Schema, which has no way to express a `Date`.
+			outputSchema: z.array(
+				z.object({
+					id: z.string(),
+					providerId: z.string(),
+					title: z.string(),
+					description: z.string().nullable(),
+					publishedAt: z.iso.datetime().nullable(),
+				}),
+			),
+			// `day` stays part of the contract because the system prompt tells the
+			// model to pass it, but `observed` already comes from this category
+			// job's immutable fetch snapshot, so there's nothing left to filter by
+			// day — only `providerIds` narrows the result.
+		}).server(async ({ providerIds }) => {
+			return observed
+				.filter(
+					(article) =>
+						!providerIds?.length || providerIds.includes(article.providerId),
+				)
+				.map((article) => ({
+					id: article.id,
+					providerId: article.providerId,
+					title: article.title,
+					description: article.description,
+					publishedAt: article.publishedAt?.toISOString() ?? null,
+				}));
+		});
+	}
 
 	private readonly getArticleTool = toolDefinition({
 		name: "getArticle",
@@ -253,10 +261,14 @@ export class ProcessingService {
 	}
 
 	async makeSelection(
-		providerIds: string[],
+		categoryJobId: number,
 		targetDate: Date,
 		category: { name: string; description: string },
 	) {
+		const observed =
+			await this.articlesService.getObservedArticles(categoryJobId);
+		const providerIds = [...new Set(observed.map((a) => a.providerId))];
+
 		const selection = await chat({
 			adapter: openaiText("gpt-5.5"),
 			stream: false,
@@ -274,7 +286,7 @@ export class ProcessingService {
 					}),
 				},
 			],
-			tools: [this.getArticlesTool],
+			tools: [this.buildGetArticlesTool(observed)],
 			// The selection is wrapped in an object: a structured output whose root
 			// is an array comes back empty, the model never fills it.
 			//
@@ -286,11 +298,7 @@ export class ProcessingService {
 			}),
 		});
 
-		const candidates = await this.articlesService.getArticlesByDay(
-			targetDate,
-			providerIds,
-		);
-		const byId = new Map(candidates.map((article) => [article.id, article]));
+		const byId = new Map(observed.map((article) => [article.id, article]));
 
 		return this.normalizeSelection(selection.articles, new Set(byId.keys()))
 			.map(({ id, rank }) => {

@@ -61,7 +61,7 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 		try {
 			await this.processProviderFetchJob(job);
 			await this.services.providerFetchJobsService.markFinished(jobId);
-			await this.publishReadyCategoryJobs(job.providerId, job.targetDate);
+			await this.publishReadyCategoryJobs(jobId);
 		} catch (err) {
 			this.logger.error({ err, jobId }, "provider fetch job failed");
 			const message = err instanceof Error ? err.message : String(err);
@@ -83,21 +83,19 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 	}
 
 	private async processProviderFetchJob(job: ClaimedProviderFetchJob) {
-		await this.services.ingestionService.ingestProvider(job.provider);
+		await this.services.ingestionService.ingestProvider(job.id, job.provider);
 	}
 
-	private async publishReadyCategoryJobs(providerId: string, targetDate: Date) {
+	private async publishReadyCategoryJobs(providerFetchJobId: number) {
 		const candidates =
-			await this.services.categoryJobsService.findWaitingByProviderAndDate(
-				providerId,
-				targetDate,
+			await this.services.categoryJobsService.findWaitingByProviderFetchJob(
+				providerFetchJobId,
 			);
 
 		for (const candidate of candidates) {
 			const allFinished =
 				await this.services.providerFetchJobsService.areAllProvidersFinished(
-					candidate.categoryId,
-					targetDate,
+					candidate.id,
 				);
 			if (!allFinished) continue;
 

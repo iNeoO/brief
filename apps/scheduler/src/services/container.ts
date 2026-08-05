@@ -2,8 +2,8 @@ import { createDb } from "@brief/drizzle";
 import { AmqpPublisher } from "@brief/infra/amqp";
 import {
 	CategoriesService,
-	CategoryJobsService,
-	ProviderFetchJobsService,
+	type PlanDailyRunCategory,
+	SchedulerService,
 } from "@brief/services";
 import { Data, Effect } from "effect";
 import { env } from "../config/env.js";
@@ -57,8 +57,7 @@ export class ContainerService extends Effect.Service<ContainerService>()(
 			const { publisher } = yield* AmqpService;
 
 			const categoriesService = new CategoriesService(db);
-			const categoryJobService = new CategoryJobsService(db);
-			const providerFetchJobs = new ProviderFetchJobsService(db);
+			const schedulerService = new SchedulerService(db);
 
 			const getCategories = (args: { isEnable?: boolean }) =>
 				Effect.tryPromise({
@@ -66,21 +65,13 @@ export class ContainerService extends Effect.Service<ContainerService>()(
 					catch: (cause) => new CategoriesDbError({ cause }),
 				});
 
-			const createCategoryJob = (args: {
-				categoryId: string;
+			const planDailyRun = (args: {
+				categories: PlanDailyRunCategory[];
 				targetDate: Date;
 			}) =>
 				Effect.tryPromise({
-					try: () => categoryJobService.createJob(args),
-					catch: (cause) => new CategoriesDbError({ cause }),
-				});
-
-			const createProviderFetchJobs = (args: {
-				providerId: string;
-				targetDate: Date;
-			}) =>
-				Effect.tryPromise({
-					try: () => providerFetchJobs.createJob(args),
+					try: () =>
+						schedulerService.planDailyRun(args.categories, args.targetDate),
 					catch: (cause) => new CategoriesDbError({ cause }),
 				});
 
@@ -92,8 +83,7 @@ export class ContainerService extends Effect.Service<ContainerService>()(
 
 			return {
 				getCategories,
-				createCategoryJob,
-				createProviderFetchJobs,
+				planDailyRun,
 				publishProviderFetchJob,
 			};
 		}),
