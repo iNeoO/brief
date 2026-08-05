@@ -1,0 +1,31 @@
+{
+	"name": "@brief/message-worker",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch --clear-screen=false src/index.ts",
+		"lint": "biome check",
+		"build": "rm -rf dist && tsc",
+		"start": "node dist/index.js"
+	},
+	"dependencies": {
+		"@brief/common": "workspace:*",
+		"@brief/infra": "workspace:*",
+		"amqplib": "catalog:",
+		"zod": "catalog:"
+	},
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "catalog:",
+		"@types/node": "catalog:",
+		"tsx": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	}
+}

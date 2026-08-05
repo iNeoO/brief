@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "3b11a85e-2d8a-453f-a22b-d4f248748f3c",
+  "id": "ec471395-d817-4518-b324-5339de8a3c59",
   "prevIds": [
-    "dd009de1-05b4-476b-a088-20228f2ab4bc"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -18,18 +18,29 @@
     },
     {
       "values": [
-        "audio_file"
+        "waiting_for_providers",
+        "pending",
+        "running",
+        "finished",
+        "failed"
       ],
-      "name": "file_kind",
+      "name": "category_job_status",
       "entityType": "enums",
       "schema": "public"
     },
     {
       "values": [
-        "fr",
-        "en"
+        "rss"
       ],
-      "name": "file_language",
+      "name": "connector_kind",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "audio_file"
+      ],
+      "name": "file_kind",
       "entityType": "enums",
       "schema": "public"
     },
@@ -41,6 +52,15 @@
         "failed"
       ],
       "name": "job_status",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "fr",
+        "en"
+      ],
+      "name": "language",
       "entityType": "enums",
       "schema": "public"
     },
@@ -70,6 +90,12 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "category_job_provider_fetch_jobs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "category_jobs",
       "entityType": "tables",
       "schema": "public"
@@ -83,6 +109,24 @@
     {
       "isRlsEnabled": false,
       "name": "files",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "message_jobs",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "provider_fetch_job_articles",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "provider_fetch_job_events",
       "entityType": "tables",
       "schema": "public"
     },
@@ -112,7 +156,7 @@
       "table": "articles"
     },
     {
-      "type": "integer",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -166,7 +210,7 @@
     {
       "type": "text",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -216,11 +260,11 @@
       "table": "articles"
     },
     {
-      "type": "serial",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -249,7 +293,20 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "slug",
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "categories"
+    },
+    {
+      "type": "language",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'fr'",
+      "generated": null,
+      "identity": null,
+      "name": "language",
       "entityType": "columns",
       "schema": "public",
       "table": "categories"
@@ -257,12 +314,12 @@
     {
       "type": "boolean",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": "true",
       "generated": null,
       "identity": null,
-      "name": "is_enabled",
+      "name": "is_enable",
       "entityType": "columns",
       "schema": "public",
       "table": "categories"
@@ -322,7 +379,7 @@
     {
       "type": "integer",
       "typeSchema": null,
-      "notNull": false,
+      "notNull": true,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -424,6 +481,32 @@
       "table": "category_job_events"
     },
     {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "category_job_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "category_job_provider_fetch_jobs"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "provider_fetch_job_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "category_job_provider_fetch_jobs"
+    },
+    {
       "type": "serial",
       "typeSchema": null,
       "notNull": true,
@@ -437,7 +520,7 @@
       "table": "category_jobs"
     },
     {
-      "type": "integer",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -463,7 +546,7 @@
       "table": "category_jobs"
     },
     {
-      "type": "job_status",
+      "type": "category_job_status",
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
@@ -480,7 +563,7 @@
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'creating_report'",
       "generated": null,
       "identity": null,
       "name": "state",
@@ -497,6 +580,19 @@
       "generated": null,
       "identity": null,
       "name": "summary",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "category_jobs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "sources",
       "entityType": "columns",
       "schema": "public",
       "table": "category_jobs"
@@ -567,7 +663,7 @@
       "table": "category_jobs"
     },
     {
-      "type": "integer",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -580,7 +676,7 @@
       "table": "category_providers"
     },
     {
-      "type": "integer",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -588,45 +684,6 @@
       "generated": null,
       "identity": null,
       "name": "provider_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "category_providers"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "1",
-      "generated": null,
-      "identity": null,
-      "name": "weight",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "category_providers"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "category_providers"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
       "entityType": "columns",
       "schema": "public",
       "table": "category_providers"
@@ -671,7 +728,7 @@
       "table": "files"
     },
     {
-      "type": "file_language",
+      "type": "language",
       "typeSchema": "public",
       "notNull": true,
       "dimensions": 0,
@@ -753,7 +810,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "now()",
       "generated": null,
       "identity": null,
       "name": "created_at",
@@ -785,10 +842,205 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "provider_fetch_jobs"
+      "table": "message_jobs"
     },
     {
       "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "category_job_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "type": "job_status",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "error",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "finished_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "provider_fetch_job_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_articles"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "article_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_articles"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "uuidv7()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "provider_fetch_job_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "attempt",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "type": "job_status",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "error",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "provider_fetch_jobs"
+    },
+    {
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -892,11 +1144,11 @@
       "table": "provider_fetch_jobs"
     },
     {
-      "type": "serial",
+      "type": "uuid",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "uuidv7()",
       "generated": null,
       "identity": null,
       "name": "id",
@@ -939,6 +1191,19 @@
       "generated": null,
       "identity": null,
       "name": "url",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "providers"
+    },
+    {
+      "type": "connector_kind",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": "'rss'",
+      "generated": null,
+      "identity": null,
+      "name": "kind",
       "entityType": "columns",
       "schema": "public",
       "table": "providers"
@@ -1110,6 +1375,27 @@
       "nameExplicit": true,
       "columns": [
         {
+          "value": "provider_fetch_job_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "category_job_provider_fetch_jobs_provider_job_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "category_job_provider_fetch_jobs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
           "value": "status",
           "isExpression": false,
           "asc": true,
@@ -1199,6 +1485,83 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
+      "name": "message_jobs_status_created_at_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "article_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "provider_fetch_job_articles_article_id_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "provider_fetch_job_articles"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "provider_fetch_job_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "provider_fetch_job_events_id_created_at_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "created_at",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
       "name": "provider_fetch_jobs_status_created_at_idx",
       "entityType": "indexes",
       "schema": "public",
@@ -1254,7 +1617,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "job_articles_job_id_jobs_id_fkey",
+      "name": "category_job_articles_category_job_id_category_jobs_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "category_job_articles"
@@ -1271,7 +1634,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "RESTRICT",
-      "name": "job_articles_article_id_articles_id_fkey",
+      "name": "category_job_articles_article_id_articles_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "category_job_articles"
@@ -1288,10 +1651,44 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "job_events_job_id_jobs_id_fkey",
+      "name": "category_job_events_category_job_id_category_jobs_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "category_job_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "category_job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "category_jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "category_job_provider_fetch_jobs_qJX09k8ntEST_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "category_job_provider_fetch_jobs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "provider_fetch_job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "provider_fetch_jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "category_job_provider_fetch_jobs_4bZiFPbDAEC3_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "category_job_provider_fetch_jobs"
     },
     {
       "nameExplicit": false,
@@ -1305,7 +1702,7 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "RESTRICT",
-      "name": "jobs_category_id_categories_id_fkey",
+      "name": "category_jobs_category_id_categories_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "category_jobs"
@@ -1356,10 +1753,78 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
-      "name": "files_job_id_jobs_id_fkey",
+      "name": "files_category_job_id_category_jobs_id_fkey",
       "entityType": "fks",
       "schema": "public",
       "table": "files"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "category_job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "category_jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "message_jobs_category_job_id_category_jobs_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "message_jobs"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "provider_fetch_job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "provider_fetch_jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "provider_fetch_job_articles_yPO07Pi8cMV9_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "provider_fetch_job_articles"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "article_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "articles",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "RESTRICT",
+      "name": "provider_fetch_job_articles_article_id_articles_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "provider_fetch_job_articles"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "provider_fetch_job_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "provider_fetch_jobs",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "provider_fetch_job_events_pKB3vButXCVr_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "provider_fetch_job_events"
     },
     {
       "nameExplicit": false,
@@ -1384,10 +1849,21 @@
         "article_id"
       ],
       "nameExplicit": false,
-      "name": "job_articles_pkey",
+      "name": "category_job_articles_pkey",
       "entityType": "pks",
       "schema": "public",
       "table": "category_job_articles"
+    },
+    {
+      "columns": [
+        "category_job_id",
+        "provider_fetch_job_id"
+      ],
+      "nameExplicit": false,
+      "name": "category_job_provider_fetch_jobs_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "category_job_provider_fetch_jobs"
     },
     {
       "columns": [
@@ -1399,6 +1875,17 @@
       "entityType": "pks",
       "schema": "public",
       "table": "category_providers"
+    },
+    {
+      "columns": [
+        "provider_fetch_job_id",
+        "article_id"
+      ],
+      "nameExplicit": false,
+      "name": "provider_fetch_job_articles_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "provider_fetch_job_articles"
     },
     {
       "columns": [
@@ -1425,7 +1912,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "job_events_pkey",
+      "name": "category_job_events_pkey",
       "schema": "public",
       "table": "category_job_events",
       "entityType": "pks"
@@ -1435,7 +1922,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "jobs_pkey",
+      "name": "category_jobs_pkey",
       "schema": "public",
       "table": "category_jobs",
       "entityType": "pks"
@@ -1448,6 +1935,26 @@
       "name": "files_pkey",
       "schema": "public",
       "table": "files",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "message_jobs_pkey",
+      "schema": "public",
+      "table": "message_jobs",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "provider_fetch_job_events_pkey",
+      "schema": "public",
+      "table": "provider_fetch_job_events",
       "entityType": "pks"
     },
     {
@@ -1481,6 +1988,18 @@
       "entityType": "uniques",
       "schema": "public",
       "table": "articles"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "category_job_id",
+        "rank"
+      ],
+      "nullsNotDistinct": false,
+      "name": "category_job_articles_job_rank_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "category_job_articles"
     },
     {
       "nameExplicit": true,
@@ -1522,12 +2041,12 @@
     {
       "nameExplicit": false,
       "columns": [
-        "slug"
+        "category_job_id"
       ],
       "nullsNotDistinct": false,
-      "name": "categories_slug_key",
+      "name": "message_jobs_category_job_id_key",
       "schema": "public",
-      "table": "categories",
+      "table": "message_jobs",
       "entityType": "uniques"
     },
     {
@@ -1542,6 +2061,13 @@
       "entityType": "uniques"
     },
     {
+      "value": "\"rank\" >= 0",
+      "name": "category_job_articles_rank_non_negative",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "category_job_articles"
+    },
+    {
       "value": "(\"status\" IN ('finished', 'failed')) = (\"finished_at\" IS NOT NULL)",
       "name": "category_jobs_finished_at_consistency",
       "entityType": "checks",
@@ -1554,13 +2080,6 @@
       "entityType": "checks",
       "schema": "public",
       "table": "category_jobs"
-    },
-    {
-      "value": "\"weight\" > 0",
-      "name": "category_providers_weight_positive",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "category_providers"
     },
     {
       "value": "(\"status\" IN ('finished', 'failed')) = (\"finished_at\" IS NOT NULL)",

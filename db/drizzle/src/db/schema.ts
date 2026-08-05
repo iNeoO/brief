@@ -300,6 +300,30 @@ export const categoryJobArticles = pgTable(
 	],
 );
 
+export const messageJobs = pgTable(
+	"message_jobs",
+	{
+		id: serial("id").primaryKey(),
+		categoryJobId: integer("category_job_id")
+			.notNull()
+			.unique()
+			.references(() => categoryJobs.id, { onDelete: "cascade" }),
+		status: jobStatus("status").notNull(),
+		error: text("error"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+		finishedAt: timestamp("finished_at", { withTimezone: true }),
+	},
+	(t) => [
+		index("message_jobs_status_created_at_idx").on(t.status, t.createdAt),
+	],
+);
+
 export const categoryJobEvents = pgTable(
 	"category_job_events",
 	{
@@ -370,6 +394,7 @@ export const relations = defineRelations(
 		categoryJobArticles,
 		categoryJobEvents,
 		files,
+		messageJobs,
 	},
 	(r) => ({
 		categories: {
@@ -425,6 +450,7 @@ export const relations = defineRelations(
 			}),
 			events: r.many.categoryJobEvents(),
 			files: r.many.files(),
+			messageJob: r.one.messageJobs(),
 		},
 
 		providerFetchJobs: {
@@ -466,6 +492,13 @@ export const relations = defineRelations(
 		files: {
 			job: r.one.categoryJobs({
 				from: r.files.categoryJobId,
+				to: r.categoryJobs.id,
+			}),
+		},
+
+		messageJobs: {
+			job: r.one.categoryJobs({
+				from: r.messageJobs.categoryJobId,
 				to: r.categoryJobs.id,
 			}),
 		},
