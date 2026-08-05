@@ -1,12 +1,12 @@
-import type { APIError } from "@brief/common/types";
+import type { InternalErrorCode } from "@brief/common/types";
 
 type InternalErrorOptions = {
-	code: APIError;
+	code: InternalErrorCode;
 	message?: string;
 };
 
 export class InternalError extends Error {
-	readonly code: APIError;
+	readonly code: InternalErrorCode;
 
 	constructor({ code, message }: InternalErrorOptions) {
 		super(message ?? code);

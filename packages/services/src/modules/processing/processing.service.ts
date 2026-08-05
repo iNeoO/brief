@@ -55,7 +55,7 @@ export class ProcessingService {
 
 		if (startIndex === -1) {
 			throw new InternalError({
-				code: API_ERROR.CATEGORY_JOB_UNKNOWN_STATE,
+				code: INTERNAL_ERROR_CODE.CATEGORY_JOB_UNKNOWN_STATE,
 				message: `Category job ${job.id} sits in the unknown state "${job.state}"`,
 			});
 		}
@@ -74,7 +74,7 @@ export class ProcessingService {
 
 			if (!updated) {
 				throw new InternalError({
-					code: API_ERROR.CATEGORY_JOB_STATE_CONFLICT,
+					code: INTERNAL_ERROR_CODE.CATEGORY_JOB_STATE_CONFLICT,
 					message: `Category job ${job.id} left state "${step.state}" while it was being processed`,
 				});
 			}
@@ -95,7 +95,7 @@ export class ProcessingService {
 
 		if (selection.length === 0) {
 			throw new InternalError({
-				code: API_ERROR.NO_ARTICLES_SELECTED,
+				code: INTERNAL_ERROR_CODE.NO_ARTICLES_SELECTED,
 				message: `No articles selected for category ${job.category.name} on ${job.targetDate.toISOString()}`,
 			});
 		}
@@ -115,7 +115,7 @@ export class ProcessingService {
 
 		if (!updated) {
 			throw new InternalError({
-				code: API_ERROR.CATEGORY_JOB_STATE_CONFLICT,
+				code: INTERNAL_ERROR_CODE.CATEGORY_JOB_STATE_CONFLICT,
 				message: `Category job ${job.id} left state "${CATEGORY_JOB_STATE.CREATING_REPORT}" before its report could be stored`,
 			});
 		}
@@ -128,7 +128,7 @@ export class ProcessingService {
 
 		if (!summary) {
 			throw new InternalError({
-				code: API_ERROR.CATEGORY_JOB_MISSING_SUMMARY,
+				code: INTERNAL_ERROR_CODE.CATEGORY_JOB_MISSING_SUMMARY,
 				message: `Category job ${job.id} reached the audio step without a summary`,
 			});
 		}

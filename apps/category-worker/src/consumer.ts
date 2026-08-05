@@ -1,5 +1,5 @@
-import { API_ERROR, JOB_STATUS } from "@brief/common/constants";
-import type { APIError } from "@brief/common/types";
+import { INTERNAL_ERROR_CODE, JOB_STATUS } from "@brief/common/constants";
+import type { InternalErrorCode } from "@brief/common/types";
 import {
 	type AmqpChannel,
 	type AmqpMessage,
@@ -9,8 +9,8 @@ import {
 import { InternalError } from "@brief/infra/errors";
 import type { CategoryJobsService, ProcessingService } from "@brief/services";
 
-const NON_RETRYABLE_ERROR_CODES = new Set<APIError>([
-	API_ERROR.CATEGORY_JOB_UNKNOWN_STATE,
+const NON_RETRYABLE_ERROR_CODES = new Set<InternalErrorCode>([
+	INTERNAL_ERROR_CODE.CATEGORY_JOB_UNKNOWN_STATE,
 ]);
 
 const isRetryable = (err: unknown) =>
@@ -70,7 +70,7 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 
 			if (!finished) {
 				throw new InternalError({
-					code: API_ERROR.CATEGORY_JOB_STATE_CONFLICT,
+					code: INTERNAL_ERROR_CODE.CATEGORY_JOB_STATE_CONFLICT,
 					message: `Category job ${jobId} could not be marked finished`,
 				});
 			}
