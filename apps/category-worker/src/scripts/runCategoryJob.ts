@@ -14,20 +14,6 @@ import {
 } from "@brief/services";
 import { createS3Config } from "../config/s3.js";
 
-/**
- * Runs one category job through the pipeline, in process, without a broker.
- *
- * This is the manual counterpart of the worker: it exercises the real
- * selection, summary, voice and upload steps, so it spends real API credit on
- * every run. What it deliberately does not cover is the consumer around them —
- * requeueing, the retry budget and the DLQ all live in `consumer.ts`.
- *
- *   pnpm category:run --list
- *   pnpm category:run --job 12
- *   pnpm category:run --job 12 --reset
- *   pnpm category:run --job 12 --from creating_audio
- */
-
 const STATES = Object.values(CATEGORY_JOB_STATE);
 
 const USAGE = `Usage:
@@ -96,7 +82,6 @@ const listJobs = async () => {
 	);
 };
 
-/** Dev-only escape hatch: the worker never rewinds a job by hand. */
 const rewind = async (
 	jobId: number,
 	from: CategoryJobState,

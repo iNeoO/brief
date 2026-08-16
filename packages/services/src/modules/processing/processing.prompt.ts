@@ -1,14 +1,6 @@
 import { LANGUAGE } from "@brief/common/constants";
 import type { Language } from "@brief/common/types";
 
-/**
- * Prompts for the article selection step of a category job.
- *
- * The system prompt is static so it stays cacheable across jobs; everything
- * job-specific (category, date, providers) goes in the user message built by
- * {@link buildArticleSelectionUserPrompt}.
- */
-
 export const ARTICLE_SELECTION_SYSTEM_PROMPT = `You are the editorial curator of a daily news brief. For one category and one day, you pick the articles a well-informed reader would actually want to hear about, and you rank them by editorial interest.
 
 # Procedure
@@ -58,7 +50,6 @@ export type ArticleSelectionPromptParams = {
 	maxArticles: number;
 };
 
-/** ISO calendar day (YYYY-MM-DD), the shape the `getArticles` tool expects. */
 const formatDay = (date: Date) => date.toISOString().slice(0, 10);
 
 export function buildArticleSelectionUserPrompt({

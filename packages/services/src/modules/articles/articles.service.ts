@@ -16,12 +16,6 @@ export class ArticlesService {
 			.returning();
 	}
 
-	/**
-	 * Resolves every article matching these URLs for the provider, whether
-	 * freshly inserted or already known — used right after `createManyArticles`
-	 * to get the full set of articles "observed" during a fetch, since
-	 * `onConflictDoNothing` only returns the newly inserted rows.
-	 */
 	findByProviderAndUrls(providerId: string, urls: string[]) {
 		if (urls.length === 0) return Promise.resolve([]);
 
@@ -36,11 +30,6 @@ export class ArticlesService {
 			);
 	}
 
-	/**
-	 * Candidate articles for a category job, following the immutable fetch
-	 * snapshot (`category_job_provider_fetch_jobs` -> `provider_fetch_job_articles`)
-	 * instead of a live `publishedAt` scan.
-	 */
 	getObservedArticles(categoryJobId: number) {
 		return this.db
 			.select({

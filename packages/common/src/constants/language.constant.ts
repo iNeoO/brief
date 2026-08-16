@@ -3,5 +3,4 @@ export const LANGUAGE = {
 	EN: "en",
 } as const;
 
-/** Language a brief is written in when nothing asks for another one. */
 export const DEFAULT_LANGUAGE = LANGUAGE.FR;

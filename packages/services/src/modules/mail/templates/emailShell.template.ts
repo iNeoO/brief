@@ -9,13 +9,6 @@ type EmailShellInput = {
 	greeting: string;
 };
 
-/**
- * Every field below is interpolated into the HTML the recipient receives, and
- * some of them carry user-controlled data (the display name chosen at sign-up).
- * Unescaped, anyone could inject their own markup — a phishing link — into a
- * genuine, DKIM-signed Brief email addressed to someone else. So escape here,
- * at the single boundary where the HTML is built.
- */
 export const getEmailShellTemplate = (input: EmailShellInput) => {
 	const title = escapeHtml(input.title);
 	const intro = escapeHtml(input.intro);

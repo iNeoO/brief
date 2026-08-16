@@ -12,10 +12,8 @@ export type S3ServiceConfig = {
 
 export type FileRow = typeof schema.files.$inferSelect;
 
-/** Accepted upload contents. A stream carries no name, no type and no size. */
 export type FileBody = Readable | ReadableStream<Uint8Array>;
 
-/** Identifies the single file a job holds for a given kind and language. */
 export type FileTarget = {
 	categoryJobId: number;
 	kind: FileKind;
@@ -24,6 +22,5 @@ export type FileTarget = {
 
 export type UploadFileParams = FileTarget & {
 	body: FileBody;
-	/** Content type of the body: the caller owns it, it cannot be sniffed. */
 	mimeType: MimeType;
 };

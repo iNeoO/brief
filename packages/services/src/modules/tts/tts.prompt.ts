@@ -1,13 +1,6 @@
 import { LANGUAGE } from "@brief/common/constants";
 import type { Language } from "@brief/common/types";
 
-/**
- * Delivery instructions, one per language the brief is written in.
- *
- * The voices are English natives. Told nothing, they read French with an
- * English accent and at a storyteller's pace; naming the language and the
- * register is what turns them into a newsreader.
- */
 export const DELIVERY_INSTRUCTIONS: Record<Language, string> = {
 	[LANGUAGE.FR]: `Tu es présentateur de journal radio français.
 

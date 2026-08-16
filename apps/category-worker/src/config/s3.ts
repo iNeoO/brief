@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * Kept apart from the worker's own env, and read on demand rather than at
- * import time, so tooling that only lists jobs is not stopped by storage
- * credentials it will never use.
- */
 const s3Schema = z.object({
 	S3_ENDPOINT: z.string(),
 	S3_PORT: z.coerce.number().int().positive(),

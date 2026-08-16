@@ -33,12 +33,6 @@ export class ProviderFetchJobsService {
 		});
 	}
 
-	/**
-	 * Walks the immutable dependency snapshot for this category job
-	 * (`category_job_provider_fetch_jobs`), not the live `category_providers`
-	 * table — a provider added or removed after the job was planned must not
-	 * change what it's waiting on.
-	 */
 	async areAllProvidersFinished(categoryJobId: number) {
 		const unfinished = await this.db
 			.select({ id: schema.categoryJobProviderFetchJobs.providerFetchJobId })

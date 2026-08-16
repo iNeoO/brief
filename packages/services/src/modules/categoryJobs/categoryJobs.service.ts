@@ -78,11 +78,6 @@ export class CategoryJobsService {
 			);
 	}
 
-	/**
-	 * Walks the immutable dependency snapshot (`category_job_provider_fetch_jobs`)
-	 * for the category jobs depending on this fetch job, not the live
-	 * `category_providers` table.
-	 */
 	async findWaitingByProviderFetchJob(providerFetchJobId: number) {
 		return await this.db
 			.select({ id: schema.categoryJobs.id })
@@ -124,15 +119,6 @@ export class CategoryJobsService {
 			.returning();
 	}
 
-	/**
-	 * Records that `completed` succeeded and moves the job to `next`, or leaves
-	 * the state where it is when `next` is omitted (the last step of the
-	 * pipeline). The retry counter is scoped to a step: reaching a new one
-	 * clears it, so every step gets its own budget of attempts.
-	 *
-	 * Returns `null` when the job is no longer running at `completed` — another
-	 * attempt moved it in the meantime, and this one must not write over it.
-	 */
 	async completeStep(
 		jobId: number,
 		completed: CategoryJobState,
@@ -204,7 +190,6 @@ export class CategoryJobsService {
 			.returning();
 	}
 
-	/** Ends the job on an error no further attempt could fix. */
 	async markFailed(jobId: number, error: string) {
 		return await this.db.transaction(async (tx) => {
 			const [current] = await tx
