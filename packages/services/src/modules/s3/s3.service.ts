@@ -185,6 +185,20 @@ export class S3Service {
 			.orderBy(desc(schema.files.createdAt));
 	}
 
+	/**
+	 * Best effort, and deliberately so: this runs after the rows referencing
+	 * these objects are already gone, so a failure leaves an orphan in the
+	 * bucket rather than an inconsistent database. Never throws — each failure
+	 * is logged individually.
+	 */
+	async deleteObjects(targets: Array<{ bucket: string; objectKey: string }>) {
+		await Promise.all(
+			targets.map(({ bucket, objectKey }) =>
+				this.deleteObject(bucket, objectKey),
+			),
+		);
+	}
+
 	private async deleteObject(bucket: string, objectKey: string) {
 		try {
 			await this.client.send(

@@ -3,7 +3,9 @@
 // here would make every worker load better-auth and resend just to import a
 // pipeline service.
 export * from "./modules/articles/articles.service.js";
+export * from "./modules/categories/categories.helper.js";
 export * from "./modules/categories/categories.service.js";
+export * from "./modules/categories/categories.type.js";
 export * from "./modules/categoryJobs/categoryJobs.service.js";
 export * from "./modules/categoryJobs/categoryJobs.type.js";
 export * from "./modules/health/health.service.js";
