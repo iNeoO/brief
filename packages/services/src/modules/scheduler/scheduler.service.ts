@@ -1,61 +1,67 @@
 import {
 	CATEGORY_JOB_STATE,
 	CATEGORY_JOB_STATUS,
+	INTERNAL_ERROR_CODE,
 	JOB_STATUS,
 } from "@brief/common/constants";
-import { and, type Database, eq, schema } from "@brief/drizzle";
+import { and, type Database, eq, inArray, schema } from "@brief/drizzle";
+import { InternalError } from "@brief/infra/errors";
 import type { PlanDailyRunCategory } from "./scheduler.type.js";
 
 export class SchedulerService {
 	constructor(private db: Database) {}
 
-	/**
-	 * Creates the category jobs, provider fetch jobs, and the immutable
-	 * dependency snapshot between them, all in one transaction — later changes
-	 * to a category's providers must not change an already-planned job's
-	 * dependencies.
-	 */
 	async planDailyRun(categories: PlanDailyRunCategory[], targetDate: Date) {
 		return await this.db.transaction(async (tx) => {
-			const newProviderFetchJobs: { id: number; providerId: string }[] = [];
-			const providerFetchJobIdByProviderId = new Map<string, number>();
-
 			const providerIds = [
 				...new Set(
 					categories.flatMap(({ providers }) => providers.map((p) => p.id)),
 				),
 			];
 
-			for (const providerId of providerIds) {
-				const [inserted] = await tx
-					.insert(schema.providerFetchJobs)
-					.values({ providerId, targetDate, status: JOB_STATUS.PENDING })
-					.onConflictDoNothing({
-						target: [
-							schema.providerFetchJobs.providerId,
-							schema.providerFetchJobs.targetDate,
-						],
-					})
-					.returning();
+			const jobColumns = {
+				id: schema.providerFetchJobs.id,
+				providerId: schema.providerFetchJobs.providerId,
+			};
 
-				let job = inserted;
-				if (job) {
-					newProviderFetchJobs.push({ id: job.id, providerId });
-				} else {
-					[job] = await tx
-						.select()
+			const newProviderFetchJobs = providerIds.length
+				? await tx
+						.insert(schema.providerFetchJobs)
+						.values(
+							providerIds.map((providerId) => ({
+								providerId,
+								targetDate,
+								status: JOB_STATUS.PENDING,
+							})),
+						)
+						.onConflictDoNothing({
+							target: [
+								schema.providerFetchJobs.providerId,
+								schema.providerFetchJobs.targetDate,
+							],
+						})
+						.returning(jobColumns)
+				: [];
+
+			// Re-read instead of merging the inserted rows with a per-provider fallback:
+			// one query covers both the jobs we just created and the pre-existing ones.
+			const providerFetchJobs = providerIds.length
+				? await tx
+						.select(jobColumns)
 						.from(schema.providerFetchJobs)
 						.where(
 							and(
-								eq(schema.providerFetchJobs.providerId, providerId),
 								eq(schema.providerFetchJobs.targetDate, targetDate),
+								inArray(schema.providerFetchJobs.providerId, providerIds),
 							),
-						);
-				}
+						)
+				: [];
 
-				// biome-ignore lint/style/noNonNullAssertion: just inserted or selected above
-				providerFetchJobIdByProviderId.set(providerId, job!.id);
-			}
+			const providerFetchJobIdByProviderId = new Map(
+				providerFetchJobs.map(
+					({ providerId, id }) => [providerId, id] as const,
+				),
+			);
 
 			for (const category of categories) {
 				const [insertedJob] = await tx
@@ -87,11 +93,20 @@ export class SchedulerService {
 						);
 				}
 
-				const dependencyRows = category.providers.map((provider) => ({
-					categoryJobId: categoryJob.id,
-					// biome-ignore lint/style/noNonNullAssertion: populated above for every provider referenced by a category
-					providerFetchJobId: providerFetchJobIdByProviderId.get(provider.id)!,
-				}));
+				const dependencyRows = category.providers.map((provider) => {
+					const providerFetchJobId = providerFetchJobIdByProviderId.get(
+						provider.id,
+					);
+
+					if (providerFetchJobId === undefined) {
+						throw new InternalError({
+							code: INTERNAL_ERROR_CODE.SCHEDULER_MISSING_PROVIDER_FETCH_JOB,
+							message: `No provider fetch job for provider ${provider.id} on ${targetDate.toISOString()} (category ${category.id})`,
+						});
+					}
+
+					return { categoryJobId: categoryJob.id, providerFetchJobId };
+				});
 
 				if (dependencyRows.length > 0) {
 					await tx
