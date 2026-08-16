@@ -95,6 +95,7 @@ export const createAuth = ({
 			admin({
 				defaultRole: USER_ROLE.USER,
 				adminRoles: [USER_ROLE.ADMIN],
+				adminUserIds: config.adminUserIds,
 			}),
 		],
 	});

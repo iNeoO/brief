@@ -1,8 +1,8 @@
 export type AuthConfig = {
 	secret: string;
-	/** Public origin the browser actually uses. Cookies are scoped to it. */
 	url: string;
 	redisKeyPrefix: string;
+	adminUserIds: string[];
 };
 
 type WithHeaders = {
