@@ -18,6 +18,19 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    container_name: brief-redis-dev
+    image: redis:8-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # S3-compatible object storage. Ports are offset from Garage's defaults so
   # this stack can run next to another project's Garage on the same machine.
   garage:
@@ -41,5 +54,6 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   garage-meta:
   garage-data:
