@@ -61,7 +61,9 @@ The category job moves to `creating_audio`. An external text-to-speech service c
 
 ### 5. Distribution
 
-The category job moves to `sending_message` before distribution. Subscriber and subscription tables do not exist yet, so the database does not model the final delivery step.
+The category job moves to `sending_message` before distribution.
+
+Users and their category subscriptions now exist (`user`, `subscriptions`), so the database can answer "who wants this category?". What still does not exist is the delivery step itself: `message_jobs` remains one row per category job with no fan-out to recipients, `message-worker` still logs "not implemented", and nothing reads `subscriptions` from the pipeline yet.
 
 ## Job status and state
 
@@ -101,6 +103,10 @@ creating_report -> creating_audio -> sending_message
 - `provider_fetch_job_events`: provider fetch attempt history.
 - `category_job_events`: category processing attempt history, including the processing state.
 - `files`: uploaded audio metadata for a category job and language.
+- `user`, `account`, `verification`: owned by Better Auth. Singular names and `text` primary keys on purpose — these are the library's tables, not domain entities. `user` also carries the `admin` plugin's `role`, `banned`, `ban_reason` and `ban_expires` columns; only `role` is used today.
+- `subscriptions`: which categories a user wants briefs for. Composite primary key `(user_id, category_id)`, cascading both ways.
+
+There is deliberately **no `session` table**: sessions live in Redis as Better Auth's secondary storage. Two failure modes follow, and they are not the same. If Redis comes back empty (lost persistence, `FLUSHDB`, `maxmemory` eviction), the sessions are gone and everyone is logged out — a clean 401. If Redis becomes unreachable, session reads throw instead (`enableOfflineQueue: false` in `packages/infra/src/redis/index.ts`), so authenticated server functions answer 500, not 401. This is accepted: Redis down means the app is down, and a 500 is non-destructive — the session cookie survives, so the app recovers on its own once Redis is back. The 5-minute `cookieCache` delays the effect, with active users failing one by one as their cached cookie expires rather than all at once.
 
 Category and provider IDs use UUIDv7. Job IDs remain serial integers because RabbitMQ messages carry job IDs and the jobs are internal processing records.
 
@@ -128,10 +134,27 @@ Consumers must remain idempotent even with an outbox because a crash after Rabbi
 
 Add an outbox when the project requires crash-safe RabbitMQ publication. A generic outbox could carry events such as `provider_fetch_job.created` and `category_job.ready`.
 
+## Applications
+
+- `apps/web`: TanStack Start. The only HTTP entry point, and the whole server layer — endpoints are **server functions**, not routes. Replaced `apps/hono` and the `apps/react` template, both removed.
+- `apps/scheduler`, `apps/providerFetch-worker`, `apps/category-worker`, `apps/message-worker`: the pipeline processes.
+
+Better Auth runs **headless** in `apps/web`: its HTTP handler is never mounted, `AuthService` in `packages/services` wraps `auth.api.*`, and `apps/web/src/libs/server/headers.ts` moves session cookies by hand. A consequence worth knowing: the `admin` plugin's endpoints (list users, set role, ban, impersonate) are reachable at no URL at all.
+
+Headless has a price on the other side: Better Auth's rate limiting lives in the router it never mounts, so `auth.api.*` runs the hooks but none of the router-level protections. `apps/web/src/libs/server/rate-limit.ts` replaces it with Redis counters (`INCR` + `EXPIRE NX`, fixed window) on the four server functions that cost something to call — sign-in, sign-up, password reset, verification resend — keyed on both the client IP and the email. It fails closed: a Redis outage rejects those calls, which is coherent since sessions live in Redis anyway.
+
+Auth secrets are parsed by `apps/web/src/config/env.ts` and injected through constructors — deliberately **not** added to `packages/infra/src/configs/env.ts`, which parses at import time for every worker and would stop them booting.
+
+The same boundary holds inside `packages/services`: `auth` and `mail` are **not** re-exported from `src/index.ts`. They live behind the `@brief/services/auth` and `@brief/services/mail` subpaths, because the barrel is what every worker imports, and `export *` there makes Node load `better-auth` and `resend` at boot just to reach a pipeline service. Only `apps/web` imports the subpaths.
+
+Some `packages/infra` modules (`factories`, `middlewares`, `schemas`, `helpers`, `types/api.type`) and the `hono*` dependencies are now orphaned by the removal of `apps/hono`. So is the `.claude/skills/create-hono-endpoint` skill, which documents a workflow this repo no longer has. Cleanup is pending.
+
 ## Current boundaries
 
 - Services and workers have not been adapted to this schema yet.
-- Subscriber, subscription, and delivery models do not exist.
+- Users, roles, and category subscriptions exist; delivery and per-recipient fan-out do not.
+- No admin surface: the role exists and is enforceable, but nothing reads it and there is no script to promote a user to `admin` yet.
+- No UI. `apps/web` ships server functions only — the verification and password-reset emails link to `/validate-email` and `/reset-password`, which do not exist yet and will 404 until the UI lands.
 - The schema records the selected articles but does not version summaries or previous selections across retries.
 - The schema does not enforce that linked category and provider jobs share the same target date. The scheduler must create valid dependency rows.
 - The schema does not enforce that an article linked to a fetch job belongs to the same provider. The ingestion code must preserve that invariant.
