@@ -1,0 +1,290 @@
+.section {
+	padding-block: clamp(3rem, 7vw, 5rem);
+}
+
+.sectionBordered {
+	border-top: 1px solid var(--brief-line);
+}
+
+.sectionSurface {
+	background-color: var(--brief-surface);
+}
+
+.sectionTitle {
+	margin: 0 0 0.75rem;
+	text-align: center;
+	letter-spacing: -0.02em;
+}
+
+.sectionLead {
+	margin: 0 auto;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+	text-align: center;
+}
+
+/* ---------------------------------------------------------------- opening */
+
+.hero {
+	padding-block: clamp(3.5rem, 10vw, 7rem);
+	text-align: center;
+}
+
+.heroTitle {
+	margin: 0 auto;
+	max-width: 30ch;
+	letter-spacing: -0.035em;
+	text-wrap: balance;
+}
+
+.heroLead {
+	margin: 1.25rem auto 0;
+	max-width: 46ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-lg);
+	line-height: 1.6;
+	text-wrap: pretty;
+}
+
+.heroActions {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.875rem;
+	margin-top: 2.25rem;
+}
+
+@media (min-width: 36em) {
+	.heroActions {
+		flex-direction: row;
+		justify-content: center;
+		gap: 1.25rem;
+	}
+}
+
+.heroRhythm {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+}
+
+/* ------------------------------------------------------------ how it works */
+
+.steps {
+	display: grid;
+	gap: 2.5rem;
+	margin-top: 3rem;
+	counter-reset: step;
+}
+
+@media (min-width: 48em) {
+	.steps {
+		grid-template-columns: repeat(3, 1fr);
+		gap: 3rem;
+	}
+}
+
+.step {
+	text-align: center;
+}
+
+.stepNumber {
+	display: block;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.75rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.04em;
+	color: var(--brief-faint);
+}
+
+.stepTitle {
+	margin: 0.5rem 0 0.5rem;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.stepBody {
+	margin: 0 auto;
+	max-width: 34ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+}
+
+/* --------------------------------------------------------- brief of the day */
+
+.brief {
+	max-width: 46rem;
+	margin-inline: auto;
+}
+
+.briefHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--brief-line-strong);
+}
+
+.briefTitle {
+	margin: 0;
+	letter-spacing: -0.025em;
+}
+
+.briefDate {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+	font-variant-numeric: tabular-nums;
+}
+
+.briefList {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.briefItem {
+	padding-block: 2rem;
+	border-bottom: 1px solid var(--brief-line);
+}
+
+/* The notice below the list draws its own edge; two rules would read as a gap. */
+.briefItem:last-child {
+	border-bottom: 0;
+}
+
+.briefMeta {
+	display: flex;
+	align-items: center;
+	gap: 0.875rem;
+}
+
+.briefTopic {
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--mantine-primary-color-filled);
+}
+
+.briefReadTime {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+	font-variant-numeric: tabular-nums;
+}
+
+.briefHeadline {
+	margin: 0.625rem 0 0.75rem;
+	max-width: 34ch;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+}
+
+.briefBody {
+	margin: 0;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+	text-wrap: pretty;
+}
+
+.briefActions {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.readLink {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	color: var(--brief-text);
+	font-size: var(--mantine-font-size-sm);
+	text-decoration: none;
+	border-bottom: 1px solid var(--brief-line-strong);
+}
+
+.readLink:hover {
+	color: var(--mantine-primary-color-filled);
+	border-bottom-color: currentColor;
+}
+
+.notice {
+	margin-top: 2rem;
+	padding: 1.75rem 1.25rem;
+	border: 1px dashed var(--brief-line-strong);
+	border-radius: var(--mantine-radius-md);
+	text-align: center;
+}
+
+.noticeTitle {
+	margin: 0 0 0.5rem;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.0625rem;
+	font-weight: 600;
+}
+
+.noticeBody {
+	margin: 0 auto 1rem;
+	max-width: 44ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+}
+
+.noticeLink {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	color: var(--mantine-primary-color-filled);
+	font-size: var(--mantine-font-size-sm);
+}
+
+/* ------------------------------------------------------------------ topics */
+
+.topicList {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.625rem;
+	margin: 2.5rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.topicChip {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--brief-line-strong);
+	border-radius: 999px;
+	background-color: var(--brief-bg);
+	font-size: var(--mantine-font-size-sm);
+}
+
+/* ----------------------------------------------------------------- closing */
+
+.closing {
+	text-align: center;
+}
+
+.closingActions {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.875rem;
+	margin-top: 2rem;
+}
+
+.closingNote {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+}

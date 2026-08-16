@@ -1,13 +1,155 @@
+/*
+ * Editorial base layer. Mantine's stylesheet loads first and owns component
+ * internals; everything here is either a page-level token or a deliberate
+ * override of a Mantine default that does not clear WCAG AA.
+ */
+
+:root {
+	--brief-bg: #ffffff;
+	--brief-surface: #f7f8fa;
+	--brief-line: #e4e7ed;
+	--brief-line-strong: #cfd4dd;
+	--brief-text: #14171c;
+	/* Mantine's light `dimmed` is gray[6] (#868e96): 3.5:1 on white, under AA.
+	   This one is 6.2:1, and near-neutral so running text reads as ink. */
+	--brief-muted: #5c6067;
+	/* Recessive but still legible: for large type that should not compete with
+	   the heading next to it. Meets the 3:1 large-text minimum, unlike the
+	   border tokens it is tempting to reach for. */
+	--brief-faint: #868d99;
+	--brief-shell-max: 68rem;
+	/* Running text stays under ~70 characters per line. */
+	--brief-measure: 62ch;
+
+	--mantine-color-body: var(--brief-bg);
+	--mantine-color-text: var(--brief-text);
+	--mantine-color-dimmed: var(--brief-muted);
+	--mantine-color-default-border: var(--brief-line);
+}
+
+[data-mantine-color-scheme="dark"] {
+	--brief-bg: #1b1e24;
+	--brief-surface: #22262d;
+	--brief-line: #2e333c;
+	--brief-line-strong: #3d434e;
+	--brief-text: #e9ebf0;
+	--brief-muted: #a1a6ad;
+	--brief-faint: #6f7789;
+}
+
 * {
 	box-sizing: border-box;
 }
 
-body {
-	margin: 0;
-	font-family: system-ui, sans-serif;
+html {
+	-webkit-text-size-adjust: 100%;
 }
 
-main {
-	width: min(42rem, calc(100% - 2rem));
-	margin: 4rem auto;
+@media (prefers-reduced-motion: no-preference) {
+	html {
+		scroll-behavior: smooth;
+	}
+}
+
+body {
+	margin: 0;
+	background-color: var(--brief-bg);
+	color: var(--brief-text);
+	font-family: var(--mantine-font-family);
+	font-size: var(--mantine-font-size-md);
+	line-height: var(--mantine-line-height-md);
+	font-synthesis-weight: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+::selection {
+	background-color: var(--mantine-color-accent-1);
+	color: var(--brief-text);
+}
+
+[data-mantine-color-scheme="dark"] ::selection {
+	background-color: var(--mantine-color-accent-9);
+	color: var(--brief-text);
+}
+
+/* Every interactive element keeps a visible keyboard ring, Mantine or not. */
+:focus-visible {
+	outline: 2px solid var(--mantine-primary-color-filled);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.brief-skip-link {
+	position: absolute;
+	left: 0.5rem;
+	top: 0.5rem;
+	z-index: 100;
+	padding: 0.6rem 0.9rem;
+	transform: translateY(-150%);
+	background-color: var(--brief-bg);
+	border: 1px solid var(--brief-line-strong);
+	border-radius: var(--mantine-radius-sm);
+	color: var(--brief-text);
+	font-size: var(--mantine-font-size-sm);
+	text-decoration: none;
+}
+
+.brief-skip-link:focus {
+	transform: translateY(0);
+}
+
+/* Shared page rhythm. */
+.brief-shell {
+	width: 100%;
+	max-width: var(--brief-shell-max);
+	margin-inline: auto;
+	padding-inline: 1.25rem;
+}
+
+@media (min-width: 48em) {
+	.brief-shell {
+		padding-inline: 2rem;
+	}
+}
+
+.brief-measure {
+	max-width: var(--brief-measure);
+}
+
+/*
+ * Toasts. Two fixes over Mantine's defaults, both about not getting in the way:
+ *
+ * 1. The container is a fixed 440px box with no `pointer-events: none`, so any
+ *    part of it that is not a visible toast still swallows clicks on whatever is
+ *    underneath. Only the notification itself should be clickable.
+ * 2. Offset below the 60px sticky header so a toast never covers the theme and
+ *    language controls. Only `top` is set — adding `bottom` too would stretch
+ *    the container down the whole viewport.
+ *
+ * Mantine's own position rules use `:where()`, which has no specificity, so
+ * these win without `!important`.
+ */
+.mantine-Notifications-root {
+	pointer-events: none;
+}
+
+.mantine-Notifications-root[data-position="top-right"] {
+	top: calc(60px + var(--mantine-spacing-md));
+}
+
+.mantine-Notifications-notification {
+	pointer-events: auto;
+}
+
+/*
+ * Mantine's `sm` button is 36px and `md` is 42px; both are under the 44px
+ * minimum touch target. The scale itself is raised — rather than each call site
+ * picking a size for its hit area instead of its visual weight. These live on
+ * the Button root because that is the element Mantine defines them on, so a
+ * `:root` override would never win.
+ */
+.mantine-Button-root {
+	--button-height-sm: 2.75rem;
+	--button-height-md: 3rem;
 }

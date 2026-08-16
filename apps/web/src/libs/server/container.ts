@@ -1,6 +1,11 @@
 import { createDb } from "@brief/drizzle";
 import { createRedis } from "@brief/infra/redis";
-import { CategoriesService, SubscriptionsService } from "@brief/services";
+import {
+	CategoriesService,
+	ProvidersService,
+	S3Service,
+	SubscriptionsService,
+} from "@brief/services";
 import { AuthService } from "@brief/services/auth";
 import { MailService } from "@brief/services/mail";
 import { createServerOnlyFn } from "@tanstack/react-start";
@@ -28,10 +33,19 @@ const createContainer = () => {
 				secret: env.BETTER_AUTH_SECRET,
 				url: env.BETTER_AUTH_URL,
 				redisKeyPrefix: env.BETTER_AUTH_REDIS_KEY_PREFIX,
+				adminUserIds: env.ADMIN_USER_IDS,
 			},
 		}),
 		categoriesService: new CategoriesService(db),
+		providersService: new ProvidersService(db),
 		subscriptionsService: new SubscriptionsService(db),
+		s3Service: new S3Service(db, {
+			endpoint: `${env.S3_USE_SSL ? "https" : "http"}://${env.S3_ENDPOINT}:${env.S3_PORT}`,
+			region: env.S3_REGION,
+			bucket: env.S3_BUCKET,
+			accessKeyId: env.S3_ACCESS_KEY,
+			secretAccessKey: env.S3_SECRET_KEY,
+		}),
 	};
 };
 

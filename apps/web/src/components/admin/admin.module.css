@@ -1,0 +1,119 @@
+.wordmarkLink {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	text-decoration: none;
+}
+
+.page {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.heading {
+	margin: 0;
+	letter-spacing: -0.025em;
+}
+
+.lead {
+	margin: 0.25rem 0 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+}
+
+.toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.search {
+	flex: 1 1 14rem;
+	max-width: 22rem;
+}
+
+/* The table is wider than a phone: it scrolls on its own, the page does not. */
+.tableScroll {
+	overflow-x: auto;
+}
+
+.sortButton {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.sortButton:hover {
+	color: var(--brief-text);
+}
+
+.sortIndicator {
+	color: var(--brief-faint);
+	transition: transform 120ms ease;
+}
+
+.sortIndicatorAsc {
+	transform: rotate(180deg);
+}
+
+.sortIndicatorActive {
+	color: var(--brief-text);
+}
+
+.description {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	max-width: 28rem;
+	color: var(--brief-muted);
+}
+
+.numeric {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.footerCount {
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+.pageSize {
+	width: 5.5rem;
+}
+
+.empty {
+	padding: 2.5rem 1rem;
+	text-align: center;
+}
+
+.emptyTitle {
+	margin: 0 0 0.35rem;
+	font-weight: 600;
+}
+
+.emptyBody {
+	margin: 0 0 1rem;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+}

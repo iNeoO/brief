@@ -20,20 +20,22 @@ export const isServerError = (error: unknown): error is ServerError =>
 export const createUnauthorizedError = () =>
 	new ServerError("Vous devez être connecté.", 401);
 
+export const createForbiddenError = () =>
+	new ServerError("Vous n'avez pas accès à cette ressource.", 403);
+
 export const createTooManyRequestsError = () =>
 	new ServerError("Trop de tentatives. Réessayez dans quelques minutes.", 429);
 
 export const createGenericError = () => new ServerError(GENERIC_MESSAGE, 500);
 
-/**
- * Transport mapping for the domain rules services are allowed to reject on.
- * Exhaustive by construction: a new `DomainErrorCode` without an entry here is a
- * compile error, so a rule can never silently fall back to a generic 500.
- */
 const DOMAIN_ERROR_RESPONSES: Record<
 	DomainErrorCode,
 	{ status: number; message: string }
 > = {
+	CATEGORY_NOT_FOUND: {
+		status: 404,
+		message: "Cette catégorie n'existe plus.",
+	},
 	SUBSCRIPTION_CATEGORY_DISABLED: {
 		status: 409,
 		message: "Cette catégorie n'est plus disponible.",

@@ -1,3 +1,4 @@
+import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
@@ -7,6 +8,7 @@ import {
 } from "#/libs/server/headers";
 import { containerMiddleware } from "#/libs/server/middleware";
 import { enforceAuthRateLimit } from "#/libs/server/rate-limit";
+import { attempt } from "#/libs/server/result";
 
 const emailSchema = z.email();
 const passwordSchema = z.string().min(8);
@@ -48,35 +50,39 @@ const sendVerificationEmailInput = z.object({
 export const signInWithEmailAndPassword = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
 	.validator(signInInput)
-	.handler(async ({ data, context }) => {
-		await enforceAuthRateLimit(context.container.redis, "signIn", data.email);
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await enforceAuthRateLimit(context.container.redis, "signIn", data.email);
 
-		const { headers } =
-			await context.container.authService.signInWithEmailAndPassword({
-				...data,
-				headers: getRequestHeadersAsHeaders(),
+			const { headers } =
+				await context.container.authService.signInWithEmailAndPassword({
+					...data,
+					headers: getRequestHeadersAsHeaders(),
+				});
+
+			setResponseCookies(headers);
+
+			return context.container.authService.getSession({
+				headers: mergeSetCookieHeadersIntoRequestHeaders(headers),
 			});
-
-		setResponseCookies(headers);
-
-		return context.container.authService.getSession({
-			headers: mergeSetCookieHeadersIntoRequestHeaders(headers),
-		});
-	});
+		}),
+	);
 
 export const signUpWithEmailAndPassword = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
 	.validator(signUpInput)
-	.handler(async ({ data, context }) => {
-		await enforceAuthRateLimit(context.container.redis, "signUp", data.email);
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await enforceAuthRateLimit(context.container.redis, "signUp", data.email);
 
-		await context.container.authService.signUpWithEmailAndPassword({
-			...data,
-			headers: getRequestHeadersAsHeaders(),
-		});
+			await context.container.authService.signUpWithEmailAndPassword({
+				...data,
+				headers: getRequestHeadersAsHeaders(),
+			});
 
-		return { success: true };
-	});
+			return { success: true };
+		}),
+	);
 
 export const signOut = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
@@ -102,67 +108,76 @@ export type AuthSession = Awaited<ReturnType<typeof getSession>>;
 
 export const sessionQueryKey = ["auth", "session"] as const;
 
-export const sessionQueryOptions = () => ({
-	queryKey: sessionQueryKey,
-	queryFn: () => getSession(),
-});
+export const sessionQueryOptions = () =>
+	queryOptions({
+		queryKey: sessionQueryKey,
+		queryFn: () => getSession(),
+	});
 
 export const requestPasswordReset = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
 	.validator(requestPasswordResetInput)
-	.handler(async ({ data, context }) => {
-		await enforceAuthRateLimit(
-			context.container.redis,
-			"requestPasswordReset",
-			data.email,
-		);
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await enforceAuthRateLimit(
+				context.container.redis,
+				"requestPasswordReset",
+				data.email,
+			);
 
-		await context.container.authService.requestPasswordReset({
-			...data,
-			headers: getRequestHeadersAsHeaders(),
-		});
+			await context.container.authService.requestPasswordReset({
+				...data,
+				headers: getRequestHeadersAsHeaders(),
+			});
 
-		return { success: true };
-	});
+			return { success: true };
+		}),
+	);
 
 export const resetPassword = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
 	.validator(resetPasswordInput)
-	.handler(async ({ data, context }) => {
-		await context.container.authService.resetPassword({
-			...data,
-			headers: getRequestHeadersAsHeaders(),
-		});
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await context.container.authService.resetPassword({
+				...data,
+				headers: getRequestHeadersAsHeaders(),
+			});
 
-		return { success: true };
-	});
+			return { success: true };
+		}),
+	);
 
 export const verifyEmail = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
 	.validator(verifyEmailInput)
-	.handler(async ({ data, context }) => {
-		await context.container.authService.verifyEmail({
-			...data,
-			headers: getRequestHeadersAsHeaders(),
-		});
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await context.container.authService.verifyEmail({
+				...data,
+				headers: getRequestHeadersAsHeaders(),
+			});
 
-		return { success: true };
-	});
+			return { success: true };
+		}),
+	);
 
 export const sendVerificationEmail = createServerFn({ method: "POST" })
 	.middleware([containerMiddleware])
 	.validator(sendVerificationEmailInput)
-	.handler(async ({ data, context }) => {
-		await enforceAuthRateLimit(
-			context.container.redis,
-			"sendVerificationEmail",
-			data.email,
-		);
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await enforceAuthRateLimit(
+				context.container.redis,
+				"sendVerificationEmail",
+				data.email,
+			);
 
-		await context.container.authService.sendVerificationEmail({
-			...data,
-			headers: getRequestHeadersAsHeaders(),
-		});
+			await context.container.authService.sendVerificationEmail({
+				...data,
+				headers: getRequestHeadersAsHeaders(),
+			});
 
-		return { success: true };
-	});
+			return { success: true };
+		}),
+	);
