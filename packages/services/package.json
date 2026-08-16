@@ -10,15 +10,20 @@
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1101.0",
 		"@aws-sdk/lib-storage": "^3.1101.0",
+		"@better-auth/redis-storage": "~1.6.26",
 		"@brief/common": "workspace:*",
 		"@brief/drizzle": "workspace:*",
 		"@brief/infra": "workspace:*",
 		"@mozilla/readability": "^0.6.0",
 		"@tanstack/ai": "^0.42.0",
 		"@tanstack/ai-openai": "^0.17.1",
+		"better-auth": "~1.6.26",
 		"feedsmith": "^2.9.4",
+		"html-escaper": "^3.0.3",
+		"ioredis": "^5.11.1",
 		"linkedom": "^0.18.13",
 		"openai": "^7.3.0",
+		"resend": "^6.18.1",
 		"zod": "catalog:"
 	},
 	"exports": {
@@ -27,10 +32,23 @@
 				"types": "./dist/index.d.ts",
 				"default": "./dist/index.js"
 			}
+		},
+		"./auth": {
+			"import": {
+				"types": "./dist/modules/auth/auth.service.d.ts",
+				"default": "./dist/modules/auth/auth.service.js"
+			}
+		},
+		"./mail": {
+			"import": {
+				"types": "./dist/modules/mail/mail.service.d.ts",
+				"default": "./dist/modules/mail/mail.service.js"
+			}
 		}
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
+		"@types/html-escaper": "^3.0.4",
 		"@types/node": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

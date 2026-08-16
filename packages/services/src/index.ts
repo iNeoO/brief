@@ -1,3 +1,7 @@
+// `auth` and `mail` are deliberately absent: they are reachable at
+// `@brief/services/auth` and `@brief/services/mail` instead. Re-exporting them
+// here would make every worker load better-auth and resend just to import a
+// pipeline service.
 export * from "./modules/articles/articles.service.js";
 export * from "./modules/categories/categories.service.js";
 export * from "./modules/categoryJobs/categoryJobs.service.js";
@@ -13,3 +17,5 @@ export * from "./modules/s3/s3.service.js";
 export * from "./modules/s3/s3.type.js";
 export * from "./modules/scheduler/scheduler.service.js";
 export * from "./modules/scheduler/scheduler.type.js";
+export * from "./modules/subscriptions/subscriptions.service.js";
+export * from "./modules/subscriptions/subscriptions.type.js";
