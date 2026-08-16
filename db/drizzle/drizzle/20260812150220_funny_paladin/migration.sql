@@ -1,0 +1,1 @@
+ALTER TABLE "category_jobs" DROP CONSTRAINT "category_jobs_category_id_categories_id_fkey", ADD CONSTRAINT "category_jobs_category_id_categories_id_fkey" FOREIGN KEY ("category_id") REFERENCES "categories"("id") ON DELETE CASCADE;

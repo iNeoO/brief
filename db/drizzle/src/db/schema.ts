@@ -145,7 +145,11 @@ export const categoryJobs = pgTable(
 		id: serial("id").primaryKey(),
 		categoryId: uuid("category_id")
 			.notNull()
-			.references(() => categories.id, { onDelete: "restrict" }),
+			// Cascade, so an admin can delete a category outright. Everything that
+			// hangs below a category job — selected articles, events, message jobs
+			// and audio file rows — already cascades from here. The S3 objects
+			// behind those file rows are purged by the caller, after the commit.
+			.references(() => categories.id, { onDelete: "cascade" }),
 		targetDate: date("target_date", { mode: "date" }).notNull(),
 		status: categoryJobStatus("status").notNull(),
 		state: categoryJobState("state")
@@ -434,7 +438,6 @@ export const account = pgTable(
 	(t) => [index("account_user_id_idx").on(t.userId)],
 );
 
-/** Short-lived tokens for email verification and password reset. */
 export const verification = pgTable(
 	"verification",
 	{
