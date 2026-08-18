@@ -1,4 +1,4 @@
-import { BRAND_NAME } from "#/config/brand";
+import { BRAND_NAME } from "@brief/common/constants";
 import { ROUTES } from "#/config/routes";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./layout.module.css";

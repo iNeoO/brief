@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@brief/common/constants";
 import interCss from "@fontsource-variable/inter/wght.css?url";
 import interTightCss from "@fontsource-variable/inter-tight/wght.css?url";
 import {
@@ -14,7 +15,6 @@ import {
 	HeadContent,
 	Scripts,
 } from "@tanstack/react-router";
-import { BRAND_NAME } from "#/config/brand";
 import { DEFAULT_LOCALE } from "#/libs/i18n/config";
 import { I18nProvider } from "#/libs/i18n/context";
 import { DICTIONARIES } from "#/libs/i18n/dictionaries";

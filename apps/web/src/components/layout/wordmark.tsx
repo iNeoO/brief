@@ -1,4 +1,4 @@
-import { BRAND_NAME } from "#/config/brand";
+import { BRAND_NAME } from "@brief/common/constants";
 import classes from "./layout.module.css";
 
 export function Wordmark() {

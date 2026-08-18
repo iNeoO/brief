@@ -1,4 +1,4 @@
-import { BRAND_NAME } from "#/config/brand";
+import { BRAND_NAME } from "@brief/common/constants";
 import { DEFAULT_LOCALE, type Locale } from "./config";
 import { DICTIONARIES, type Dictionary } from "./dictionaries";
 import { readStoredLocale } from "./locale-cookie";

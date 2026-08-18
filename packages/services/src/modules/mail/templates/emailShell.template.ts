@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@brief/common/constants";
 import { escape as escapeHtml } from "html-escaper";
 
 type EmailShellInput = {
@@ -23,7 +24,7 @@ export const getEmailShellTemplate = (input: EmailShellInput) => {
 		<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#171a21;border-radius:12px;">
 			<tr>
 				<td style="padding:32px;">
-					<p style="margin:0 0 24px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#7c8598;">Brief</p>
+					<p style="margin:0 0 24px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#7c8598;">${escapeHtml(BRAND_NAME)}</p>
 					<h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:#f2f4f8;">${title}</h1>
 					<p style="margin:0 0 8px;font-size:15px;color:#c2c9d6;">${greeting}</p>
 					<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#c2c9d6;">${intro}</p>
