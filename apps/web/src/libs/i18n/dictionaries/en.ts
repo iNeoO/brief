@@ -48,46 +48,53 @@ export const en = {
 		],
 	},
 	brief: {
-		title: "Today's brief",
+		title: "Latest briefs",
+		lead: "The most recent brief of each topic we cover.",
 		readTime: (minutes: number) => `${minutes} min`,
 		readTimeLabel: (minutes: number) => `${minutes} minutes to read`,
 		listen: "Listen",
 		listenLabel: (headline: string) => `Listen to the brief: ${headline}`,
 		read: "Read the brief",
-		items: [
-			{
-				topic: "Economy",
-				minutes: 3,
-				headline: "The central bank leaves its key rates unchanged",
-				body: "For the first time in ten consecutive meetings, the European Central Bank has paused its monetary tightening, pointing to inflation that is easing but still above target. The deposit rate stays where it was. The decision was widely expected, and bank shares closed slightly higher.",
-			},
-			{
-				topic: "Technology",
-				minutes: 4,
-				headline: "Europe settles on a framework for artificial intelligence",
-				body: "European legislators have reached a provisional agreement on the AI Act, which sorts systems by their level of risk. The uses judged most sensitive will need an assessment before reaching the market. Each member state still has to approve the text formally.",
-			},
-			{
-				topic: "International",
-				minutes: 5,
-				headline: "Grain shipments resume through the Black Sea corridor",
-				body: "Three cargo ships left Odessa on Tuesday under an arrangement negotiated in Ankara, the first departures since the summer. Kyiv says the corridor can carry four million tonnes a month if the agreement on shipping holds through the autumn.",
-			},
-			{
-				topic: "Science",
-				minutes: 3,
-				headline: "An older date for the first traces of life",
-				body: "Working on rock samples from Western Australia, a team dates microbial structures to 3.7 billion years ago, roughly 200 million years earlier than the accepted figure. Two independent laboratories are now trying to reproduce the measurement.",
-			},
-		],
-		unpublished: {
-			title: "Today's brief is not out yet",
-			body: "It is being put together and will be there before 7:00. Yesterday's brief is still available.",
-			cta: "Read yesterday's brief",
+		seeAll: "See every brief",
+		empty: {
+			title: "No brief has been published yet",
+			body: "The first ones arrive as soon as a topic goes through the morning run.",
 		},
-		moreTopics: {
-			body: "You have not selected any other topics.",
-			cta: "Manage my topics",
+		loadError: "The briefs could not be loaded.",
+	},
+	briefs: {
+		nav: "Briefs",
+		title: "Every brief",
+		lead: "All the briefs published so far, newest first.",
+		empty: {
+			title: "Nothing published yet",
+			body: "Briefs appear here as soon as the morning run produces its first one.",
+		},
+		loadError: "The briefs could not be loaded.",
+		pagination: {
+			previous: "Previous",
+			next: "Next",
+			position: (page: number, pageCount: number) =>
+				`Page ${page} of ${pageCount}`,
+		},
+		detail: {
+			back: "Back to every brief",
+			publishedOn: (date: string) => `Published on ${date}`,
+			listenTitle: "Listen",
+			download: "Download the audio",
+			downloadLabel: (name: string) =>
+				`Download the audio of the ${name} brief`,
+			noAudio: "The audio of this brief is not available.",
+			sourcesTitle: "Sources",
+			sourcesLead:
+				"The articles this brief was written from, in the order it covers them.",
+			sourceLabel: (title: string, provider: string) =>
+				`${title} — ${provider}, opens in a new tab`,
+			notFound: {
+				title: "This brief does not exist",
+				body: "It may never have been published, or it was removed with its topic.",
+				cta: "See every brief",
+			},
 		},
 	},
 	topics: {

@@ -7,6 +7,8 @@ export const ROUTES = {
 	forgotPassword: "/forgot-password",
 	resetPassword: AUTH_PATH.RESET_PASSWORD,
 	validateEmail: AUTH_PATH.VERIFY_EMAIL,
+	briefs: "/briefs",
+	brief: "/briefs/$id",
 	home: "/home",
 	admin: "/admin",
 	adminCategories: "/admin/categories",

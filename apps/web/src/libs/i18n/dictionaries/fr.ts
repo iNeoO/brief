@@ -50,47 +50,52 @@ export const fr: Dictionary = {
 		],
 	},
 	brief: {
-		title: "Le brief du jour",
-		readTime: (minutes: number) => `${minutes} min`,
-		readTimeLabel: (minutes: number) => `${minutes} minutes de lecture`,
+		title: "Les derniers briefs",
+		lead: "Le brief le plus récent de chaque sujet que nous couvrons.",
+		readTime: (minutes) => `${minutes} min`,
+		readTimeLabel: (minutes) => `${minutes} minutes de lecture`,
 		listen: "Écouter",
-		listenLabel: (headline: string) => `Écouter le brief : ${headline}`,
+		listenLabel: (headline) => `Écouter le brief : ${headline}`,
 		read: "Lire le brief",
-		items: [
-			{
-				topic: "Économie",
-				minutes: 3,
-				headline: "La banque centrale maintient ses taux directeurs",
-				body: "Pour la première fois en dix réunions consécutives, la Banque centrale européenne interrompt son resserrement monétaire, en raison d'une inflation qui ralentit mais reste au-dessus de sa cible. Le taux de dépôt ne bouge pas. La décision était largement attendue, et les valeurs bancaires ont fini en légère hausse.",
-			},
-			{
-				topic: "Technologie",
-				minutes: 4,
-				headline: "L'Europe fixe un cadre pour l'intelligence artificielle",
-				body: "Les législateurs européens sont parvenus à un accord provisoire sur l'AI Act, qui classe les systèmes selon leur niveau de risque. Les usages jugés les plus sensibles devront faire l'objet d'une évaluation avant leur mise sur le marché. Le texte doit encore être approuvé formellement par chaque État membre.",
-			},
-			{
-				topic: "International",
-				minutes: 5,
-				headline: "Les céréales repartent par le corridor de la mer Noire",
-				body: "Trois cargos ont quitté Odessa mardi dans le cadre d'un arrangement négocié à Ankara, les premiers départs depuis l'été. Kiev estime que le corridor peut acheminer quatre millions de tonnes par mois si l'accord sur la navigation tient jusqu'à l'automne.",
-			},
-			{
-				topic: "Sciences",
-				minutes: 3,
-				headline:
-					"Les premières traces de vie vieillissent de 200 millions d'années",
-				body: "À partir d'échantillons de roches d'Australie-Occidentale, une équipe date des structures microbiennes de 3,7 milliards d'années, soit environ 200 millions d'années avant le chiffre retenu jusqu'ici. Deux laboratoires indépendants tentent de reproduire la mesure.",
-			},
-		],
-		unpublished: {
-			title: "Le brief du jour n'est pas encore paru",
-			body: "Il est en préparation et sera là avant 7 h. Le brief d'hier reste disponible.",
-			cta: "Lire le brief d'hier",
+		seeAll: "Voir tous les briefs",
+		empty: {
+			title: "Aucun brief n'a encore été publié",
+			body: "Les premiers arrivent dès qu'un sujet passe par la génération du matin.",
 		},
-		moreTopics: {
-			body: "Vous n'avez pas sélectionné d'autres sujets.",
-			cta: "Gérer mes sujets",
+		loadError: "Les briefs n'ont pas pu être chargés.",
+	},
+	briefs: {
+		nav: "Briefs",
+		title: "Tous les briefs",
+		lead: "Tous les briefs publiés jusqu'ici, du plus récent au plus ancien.",
+		empty: {
+			title: "Rien de publié pour le moment",
+			body: "Les briefs apparaissent ici dès que la génération du matin produit le premier.",
+		},
+		loadError: "Les briefs n'ont pas pu être chargés.",
+		pagination: {
+			previous: "Précédent",
+			next: "Suivant",
+			position: (page: number, pageCount: number) =>
+				`Page ${page} sur ${pageCount}`,
+		},
+		detail: {
+			back: "Retour à tous les briefs",
+			publishedOn: (date: string) => `Publié le ${date}`,
+			listenTitle: "Écouter",
+			download: "Télécharger l'audio",
+			downloadLabel: (name: string) => `Télécharger l'audio du brief ${name}`,
+			noAudio: "L'audio de ce brief n'est pas disponible.",
+			sourcesTitle: "Sources",
+			sourcesLead:
+				"Les articles à partir desquels ce brief a été écrit, dans l'ordre où il les traite.",
+			sourceLabel: (title: string, provider: string) =>
+				`${title} — ${provider}, ouvre un nouvel onglet`,
+			notFound: {
+				title: "Ce brief n'existe pas",
+				body: "Il n'a peut-être jamais été publié, ou il a été supprimé avec son sujet.",
+				cta: "Voir tous les briefs",
+			},
 		},
 	},
 	topics: {

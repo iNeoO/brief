@@ -1,6 +1,7 @@
 import { createDb } from "@brief/drizzle";
 import { createRedis } from "@brief/infra/redis";
 import {
+	BriefsService,
 	CategoriesService,
 	ProvidersService,
 	S3Service,
@@ -36,6 +37,7 @@ const createContainer = () => {
 				adminUserIds: env.ADMIN_USER_IDS,
 			},
 		}),
+		briefsService: new BriefsService(db),
 		categoriesService: new CategoriesService(db),
 		providersService: new ProvidersService(db),
 		subscriptionsService: new SubscriptionsService(db),

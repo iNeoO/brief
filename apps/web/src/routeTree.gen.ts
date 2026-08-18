@@ -19,6 +19,9 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ValidateEmailRouteImport } from './routes/validate-email'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
+import { Route as BriefsIndexRouteImport } from './routes/briefs/index'
+import { Route as BriefsIdRouteImport } from './routes/briefs/$id'
+import { Route as ApiBriefsAudioFileIdRouteImport } from './routes/api/briefs.audio.$fileId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +73,21 @@ const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const BriefsIndexRoute = BriefsIndexRouteImport.update({
+  id: '/briefs/',
+  path: '/briefs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BriefsIdRoute = BriefsIdRouteImport.update({
+  id: '/briefs/$id',
+  path: '/briefs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBriefsAudioFileIdRoute = ApiBriefsAudioFileIdRouteImport.update({
+  id: '/api/briefs/audio/$fileId',
+  path: '/api/briefs/audio/$fileId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -81,7 +99,10 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/briefs/': typeof BriefsIndexRoute
+  '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,7 +113,10 @@ export interface FileRoutesByTo {
   '/sign-up': typeof SignUpRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/briefs/$id': typeof BriefsIdRoute
   '/admin': typeof AdminIndexRoute
+  '/briefs': typeof BriefsIndexRoute
+  '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,7 +129,10 @@ export interface FileRoutesById {
   '/sign-up': typeof SignUpRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/briefs/': typeof BriefsIndexRoute
+  '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,7 +146,10 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/validate-email'
     | '/admin/categories'
+    | '/briefs/$id'
     | '/admin/'
+    | '/briefs/'
+    | '/api/briefs/audio/$fileId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,7 +160,10 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/validate-email'
     | '/admin/categories'
+    | '/briefs/$id'
     | '/admin'
+    | '/briefs'
+    | '/api/briefs/audio/$fileId'
   id:
     | '__root__'
     | '/'
@@ -142,7 +175,10 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/validate-email'
     | '/admin/categories'
+    | '/briefs/$id'
     | '/admin/'
+    | '/briefs/'
+    | '/api/briefs/audio/$fileId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,6 +190,9 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ValidateEmailRoute: typeof ValidateEmailRoute
+  BriefsIdRoute: typeof BriefsIdRoute
+  BriefsIndexRoute: typeof BriefsIndexRoute
+  ApiBriefsAudioFileIdRoute: typeof ApiBriefsAudioFileIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -228,6 +267,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriesRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/briefs/': {
+      id: '/briefs/'
+      path: '/briefs'
+      fullPath: '/briefs/'
+      preLoaderRoute: typeof BriefsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/briefs/$id': {
+      id: '/briefs/$id'
+      path: '/briefs/$id'
+      fullPath: '/briefs/$id'
+      preLoaderRoute: typeof BriefsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/briefs/audio/$fileId': {
+      id: '/api/briefs/audio/$fileId'
+      path: '/api/briefs/audio/$fileId'
+      fullPath: '/api/briefs/audio/$fileId'
+      preLoaderRoute: typeof ApiBriefsAudioFileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -254,6 +314,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ValidateEmailRoute: ValidateEmailRoute,
+  BriefsIdRoute: BriefsIdRoute,
+  BriefsIndexRoute: BriefsIndexRoute,
+  ApiBriefsAudioFileIdRoute: ApiBriefsAudioFileIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

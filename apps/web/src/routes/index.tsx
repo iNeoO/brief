@@ -1,24 +1,29 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Closing } from "#/components/home/closing";
-import { DailyBrief } from "#/components/home/daily-brief";
 import { Hero } from "#/components/home/hero";
 import { HowItWorks } from "#/components/home/how-it-works";
+import { LatestBriefs } from "#/components/home/latest-briefs";
 import { Topics } from "#/components/home/topics";
 import { SiteShell } from "#/components/layout/site-shell";
-import { useI18n } from "#/libs/i18n/context";
+import { latestBriefsQueryOptions } from "#/libs/api/briefs";
 
-export const Route = createFileRoute("/")({ component: Landing });
-
-const SAMPLE_BRIEF_DATE = new Date("2026-08-10T05:00:00.000Z");
+export const Route = createFileRoute("/")({
+	// Awaited even on the client: the briefs are the point of the page, and a
+	// section that pops in after the fold reads as a layout bug.
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData(latestBriefsQueryOptions()),
+	component: Landing,
+});
 
 function Landing() {
-	const { t } = useI18n();
+	const briefs = useQuery(latestBriefsQueryOptions());
 
 	return (
 		<SiteShell>
 			<Hero />
 			<HowItWorks />
-			<DailyBrief date={SAMPLE_BRIEF_DATE} items={t.brief.items} />
+			<LatestBriefs briefs={briefs.data ?? []} failed={briefs.isError} />
 			<Topics />
 			<Closing />
 		</SiteShell>

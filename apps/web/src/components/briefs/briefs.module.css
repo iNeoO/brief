@@ -1,0 +1,212 @@
+.page {
+	padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+
+.header {
+	margin-bottom: 2.5rem;
+}
+
+.title {
+	margin: 0 0 0.5rem;
+	letter-spacing: -0.02em;
+}
+
+.lead {
+	margin: 0;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+}
+
+.backLink {
+	display: inline-block;
+	margin-bottom: 1.5rem;
+	color: var(--brief-muted);
+	font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------- list */
+
+.list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--brief-line);
+}
+
+.item {
+	padding-block: 1.75rem;
+	border-bottom: 1px solid var(--brief-line);
+}
+
+.itemMeta {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.8rem;
+}
+
+.topic {
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.date {
+	color: var(--brief-muted);
+}
+
+.itemExcerpt {
+	margin: 0.5rem 0 1rem;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+}
+
+.itemActions {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.pagination {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 2rem;
+}
+
+.paginationPosition {
+	color: var(--brief-muted);
+	font-size: 0.9rem;
+}
+
+/* ----------------------------------------------------------------- detail */
+
+.script {
+	max-width: var(--brief-measure);
+}
+
+.paragraph {
+	margin: 0 0 1.25rem;
+	line-height: 1.75;
+}
+
+/* The opening sentence of the script, used as the standfirst it already is. */
+.lede {
+	margin: 0 0 1.75rem;
+	font-size: 1.2rem;
+	line-height: 1.6;
+	color: var(--brief-text);
+}
+
+.headlines {
+	margin: 0 0 2rem;
+	padding: 1rem 1.25rem;
+	border-left: 3px solid var(--brief-line-strong);
+	background-color: var(--brief-surface);
+	line-height: 1.7;
+	color: var(--brief-muted);
+}
+
+.story {
+	margin-bottom: 1.75rem;
+}
+
+.storySource {
+	display: block;
+	font-size: 0.85rem;
+	color: var(--brief-muted);
+}
+
+.storyProvider {
+	color: var(--brief-faint);
+}
+
+.closing {
+	margin: 2rem 0 0;
+	padding-top: 1.5rem;
+	border-top: 1px solid var(--brief-line);
+	line-height: 1.75;
+	color: var(--brief-muted);
+	font-style: italic;
+}
+
+.player {
+	margin-block: 2rem;
+	padding: 1.25rem;
+	border: 1px solid var(--brief-line);
+	border-radius: 10px;
+	background-color: var(--brief-surface);
+}
+
+.playerTitle {
+	margin: 0 0 0.75rem;
+	font-size: 0.8rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.audio {
+	width: 100%;
+}
+
+.playerActions {
+	margin-top: 0.75rem;
+}
+
+.sources {
+	margin-top: 3rem;
+	padding-top: 2rem;
+	border-top: 1px solid var(--brief-line);
+}
+
+.sourcesTitle {
+	margin: 0 0 0.5rem;
+}
+
+.sourcesLead {
+	margin: 0 0 1.25rem;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+	font-size: 0.9rem;
+}
+
+.sourceList {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: 0.75rem;
+}
+
+.sourceItem {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+.sourceProvider {
+	color: var(--brief-faint);
+	font-size: 0.8rem;
+}
+
+.notice {
+	padding: 2rem;
+	border: 1px solid var(--brief-line);
+	border-radius: 10px;
+	background-color: var(--brief-surface);
+	text-align: center;
+}
+
+.noticeTitle {
+	margin: 0 0 0.5rem;
+	font-weight: 600;
+}
+
+.noticeBody {
+	margin: 0;
+	color: var(--brief-muted);
+}
