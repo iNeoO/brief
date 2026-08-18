@@ -22,5 +22,6 @@ export * from "./modules/s3/s3.service.js";
 export * from "./modules/s3/s3.type.js";
 export * from "./modules/scheduler/scheduler.service.js";
 export * from "./modules/scheduler/scheduler.type.js";
+export * from "./modules/subscriptions/subscriptions.helper.js";
 export * from "./modules/subscriptions/subscriptions.service.js";
 export * from "./modules/subscriptions/subscriptions.type.js";
