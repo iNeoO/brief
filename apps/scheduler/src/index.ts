@@ -10,7 +10,9 @@ const cron = Cron.make({
 	hours: [7],
 	days: [],
 	months: [],
-	weekdays: [0, 1, 2, 3, 4, 5],
+	// Monday to Friday: no brief on the weekend. Effect matches on `getUTCDay`,
+	// so 0 is Sunday and 6 is Saturday.
+	weekdays: [1, 2, 3, 4, 5],
 	tz: DateTime.zoneUnsafeMakeNamed("Europe/Paris"),
 });
 
