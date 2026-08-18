@@ -13,14 +13,25 @@
 		"drizzle:migrate": "dotenv -e .env -- pnpm --filter @brief/drizzle migrate",
 		"drizzle:push": "dotenv -e .env -- pnpm --filter @brief/drizzle push",
 		"drizzle:build": "pnpm --filter @brief/drizzle build",
+		"drizzle:seed": "dotenv -e .env -- pnpm --filter @brief/drizzle seed",
 		"category:run": "dotenv -e .env -- pnpm --filter @brief/category-worker job:run",
+		"scheduler:dev": "dotenv -e .env -- pnpm --filter @brief/scheduler dev",
+		"scheduler:run": "dotenv -e .env -- pnpm --filter @brief/scheduler job:run",
+		"providerFetch-worker:dev": "dotenv -e .env -- pnpm --filter @brief/providerFetch-worker dev",
+		"category-worker:dev": "dotenv -e .env -- pnpm --filter @brief/category-worker dev",
+		"message-worker:dev": "dotenv -e .env -- pnpm --filter @brief/message-worker dev",
+		"workers:dev": "concurrently -n fetch,category,message \"pnpm providerFetch-worker:dev\" \"pnpm category-worker:dev\" \"pnpm message-worker:dev\"",
 		"garage:init": "dotenv -e .env -- sh garage/init.sh",
-		"dev": "pnpm run dev:libs:build && pnpm run web:dev"
+		"dev": "pnpm run dev:libs:build && pnpm run web:dev",
+		"dev:all": "pnpm run dev:libs:build && concurrently -n web,workers,scheduler \"pnpm web:dev\" \"pnpm workers:dev\" \"pnpm scheduler:dev\""
 	},
 	"type": "module",
 	"version": "1.0.0",
 	"packageManager": "pnpm@11.10.0",
 	"dependencies": {
 		"dotenv-cli": "^11.0.0"
+	},
+	"devDependencies": {
+		"concurrently": "^9.2.1"
 	}
 }
