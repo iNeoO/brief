@@ -191,6 +191,20 @@ function CategoryForm({
 			: labels.form.providersDisabled(provider.name),
 	}));
 
+	// An empty picker looks like a free-text field, so say why it has nothing
+	// to offer instead of leaving the user typing into it.
+	const hasNoProvider = !providers.isPending && providerOptions.length === 0;
+
+	const providersDescription = providers.isError
+		? undefined
+		: hasNoProvider
+			? labels.form.providersNone
+			: form.getValues().providerIds.length === 0
+				? // Only a warning while it is true: a category with no source
+					// silently produces an empty brief.
+					labels.form.providersEmpty
+				: undefined;
+
 	return (
 		<form onSubmit={form.onSubmit((values) => save.mutate(values))}>
 			<Stack gap="md">
@@ -231,19 +245,20 @@ function CategoryForm({
 
 				<MultiSelect
 					label={labels.form.providers}
-					placeholder={labels.form.providersPlaceholder}
+					placeholder={
+						hasNoProvider
+							? labels.form.providersNonePlaceholder
+							: labels.form.providersPlaceholder
+					}
 					data={providerOptions}
-					disabled={providers.isPending}
+					disabled={providers.isPending || hasNoProvider}
 					searchable
 					clearable
-					// Only a warning while it is true: a category with no source
-					// silently produces an empty brief.
-					description={
-						form.getValues().providerIds.length === 0
-							? labels.form.providersEmpty
-							: undefined
-					}
+					description={providersDescription}
 					{...form.getInputProps("providerIds")}
+					// After the spread: the field has no validation rule of its own,
+					// so `getInputProps` would otherwise clear this back to undefined.
+					error={providers.isError ? labels.form.providersLoadError : undefined}
 				/>
 
 				<Switch

@@ -373,6 +373,12 @@ export const en = {
 					providersEmpty:
 						"No source is attached: this category will produce nothing.",
 					providersDisabled: (name: string) => `${name} (disabled)`,
+					// Without providers the picker is an empty combobox, which reads
+					// as a free-text field: say why nothing can be picked.
+					providersNonePlaceholder: "No source available",
+					providersNone:
+						"No source is registered yet. Run `pnpm drizzle:seed` to install the supported media.",
+					providersLoadError: "The sources could not be loaded.",
 					isEnable: "Active",
 					isEnableHelp: "A disabled category produces no brief.",
 					submitCreate: "Create",

@@ -368,6 +368,12 @@ export const fr: Dictionary = {
 					providersEmpty:
 						"Aucune source rattachée : cette catégorie ne produira rien.",
 					providersDisabled: (name: string) => `${name} (désactivée)`,
+					// Sans provider, le picker est un combobox vide qui ressemble à un
+					// champ libre : dire pourquoi il n'y a rien à choisir.
+					providersNonePlaceholder: "Aucune source disponible",
+					providersNone:
+						"Aucune source n'est enregistrée. Lancez `pnpm drizzle:seed` pour installer les médias supportés.",
+					providersLoadError: "Les sources n'ont pas pu être chargées.",
 					isEnable: "Active",
 					isEnableHelp: "Une catégorie désactivée ne produit aucun brief.",
 					submitCreate: "Créer",
