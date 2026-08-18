@@ -7,7 +7,9 @@ services:
       POSTGRES_USER: ${PG_USER}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
     ports:
-      - "127.0.0.1:5432:5432"
+      # Offset like Garage below: another project's Postgres commonly holds
+      # 5432, and binding it here silently sends the app to that one instead.
+      - "127.0.0.1:5433:5432"
     volumes:
       # postgres 18 keeps its data in a subdirectory of this path: mounting
       # /var/lib/postgresql/data instead makes the container refuse to start.
@@ -27,6 +29,23 @@ services:
       - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    container_name: brief-rabbitmq-dev
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "127.0.0.1:5672:5672"
+      # Management UI, on http://localhost:15672 with guest/guest.
+      - "127.0.0.1:15672:15672"
+    volumes:
+      # The queues are declared durable, so persisting them keeps the jobs
+      # published before a restart instead of dropping them on the floor.
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -55,5 +74,6 @@ services:
 volumes:
   pgdata:
   redisdata:
+  rabbitmqdata:
   garage-meta:
   garage-data:
