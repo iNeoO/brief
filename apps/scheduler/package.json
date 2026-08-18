@@ -3,6 +3,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch --clear-screen=false src/index.ts",
+		"job:run": "tsx src/index.ts --now",
 		"lint": "biome check",
 		"build": "rm -rf dist && tsc",
 		"start": "node dist/index.js"

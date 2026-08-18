@@ -57,8 +57,13 @@ const handler = Effect.gen(function* () {
 	yield* job.pipe(withLogger(logger));
 });
 
-const program = Effect.schedule(handler, schedule).pipe(
-	Effect.provide(ContainerService.Default),
+// `--now` plans one run immediately and exits, instead of waiting for the next
+// 7am. The daily jobs are idempotent per date, so replaying it is harmless.
+const runNow = process.argv.includes("--now");
+
+const program = Effect.provide(
+	runNow ? handler : Effect.schedule(handler, schedule),
+	ContainerService.Default,
 );
 
 NodeRuntime.runMain(program);
