@@ -135,7 +135,13 @@ export class S3Service {
 		return row;
 	}
 
-	async getFile(id: string) {
+	/**
+	 * `range` is forwarded verbatim to S3 as the `Range` header, so a browser
+	 * seeking in an audio track pulls one slice instead of the whole object.
+	 * When it is set, the response carries `contentRange` and the caller is
+	 * expected to answer 206 rather than 200.
+	 */
+	async getFile(id: string, range?: string) {
 		const row = await this.db.query.files.findFirst({ where: { id } });
 		if (!row) {
 			throw new InternalError({
@@ -146,7 +152,11 @@ export class S3Service {
 
 		try {
 			const object = await this.client.send(
-				new GetObjectCommand({ Bucket: row.bucket, Key: row.objectKey }),
+				new GetObjectCommand({
+					Bucket: row.bucket,
+					Key: row.objectKey,
+					Range: range,
+				}),
 			);
 			if (!object.Body) {
 				getLoggerStore().error(
@@ -158,7 +168,12 @@ export class S3Service {
 					message: `S3 object "${row.objectKey}" has no body`,
 				});
 			}
-			return { file: row, body: object.Body.transformToWebStream() };
+			return {
+				file: row,
+				body: object.Body.transformToWebStream(),
+				contentLength: object.ContentLength ?? null,
+				contentRange: object.ContentRange ?? null,
+			};
 		} catch (err) {
 			if (err instanceof InternalError) throw err;
 			getLoggerStore().error(
