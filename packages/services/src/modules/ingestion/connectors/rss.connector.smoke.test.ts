@@ -1,13 +1,9 @@
+import { SEED_PROVIDERS } from "@brief/common/constants";
 import { describe, expect, it } from "vitest";
 import { RssConnector } from "./rss.connector.js";
 
-const FEEDS = [
-	{ label: "France Info", url: "https://www.franceinfo.fr/titres.rss" },
-	{ label: "France 24", url: "https://www.france24.com/fr/france/rss" },
-	{ label: "Huffpost", url: "https://www.huffingtonpost.fr/rss/all_full.xml" },
-	{ label: "RFI", url: "https://www.rfi.fr/fr/france/rss" },
-	{ label: "20 Minutes", url: "https://www.20minutes.fr/feeds/rss-une.xml" },
-];
+// The media the seed installs: what runs in production is what is tested here.
+const FEEDS = SEED_PROVIDERS.map(({ name, url }) => ({ label: name, url }));
 
 describe.skipIf(!process.env.SMOKE)("RssConnector (network)", () => {
 	it.each(FEEDS)("ingests real articles from $label", async ({
