@@ -12,6 +12,9 @@ export const en = {
 	},
 	nav: {
 		topics: "Topics",
+		// Signed-in counterparts: the page to manage them, and the reading page.
+		myTopics: "My topics",
+		myBriefs: "My briefs",
 		howItWorks: "How it works",
 		signIn: "Sign in",
 		signUp: "Sign up",

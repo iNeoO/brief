@@ -14,6 +14,8 @@ export const fr: Dictionary = {
 	},
 	nav: {
 		topics: "Sujets",
+		myTopics: "Mes sujets",
+		myBriefs: "Mes briefs",
 		howItWorks: "Comment ça marche",
 		signIn: "Se connecter",
 		signUp: "S'inscrire",

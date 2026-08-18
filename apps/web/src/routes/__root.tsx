@@ -15,6 +15,7 @@ import {
 	HeadContent,
 	Scripts,
 } from "@tanstack/react-router";
+import { sessionQueryOptions } from "#/libs/api/auth";
 import { DEFAULT_LOCALE } from "#/libs/i18n/config";
 import { I18nProvider } from "#/libs/i18n/context";
 import { DICTIONARIES } from "#/libs/i18n/dictionaries";
@@ -26,7 +27,15 @@ import appCss from "../styles.css?url";
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
 }>()({
-	loader: () => ({ locale: readStoredLocale() }),
+	// The site header greets a signed-in reader with their own links, so the
+	// session has to be in the cache before the first render. Better Auth reads
+	// it from its cookie cache, and a visitor without a cookie never reaches the
+	// database.
+	loader: async ({ context }) => {
+		await context.queryClient.ensureQueryData(sessionQueryOptions());
+
+		return { locale: readStoredLocale() };
+	},
 	head: ({ loaderData }) => {
 		const locale = loaderData?.locale ?? DEFAULT_LOCALE;
 		const dictionary = DICTIONARIES[locale];
