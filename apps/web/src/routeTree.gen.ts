@@ -16,6 +16,7 @@ import { Route as HomeRouteImport } from './routes/home'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as ValidateEmailRouteImport } from './routes/validate-email'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
@@ -58,6 +59,11 @@ const SignUpRoute = SignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TopicsRoute = TopicsRouteImport.update({
+  id: '/topics',
+  path: '/topics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ValidateEmailRoute = ValidateEmailRouteImport.update({
   id: '/validate-email',
   path: '/validate-email',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/topics': typeof TopicsRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/briefs/$id': typeof BriefsIdRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/topics': typeof TopicsRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/briefs/$id': typeof BriefsIdRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/topics': typeof TopicsRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/briefs/$id': typeof BriefsIdRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/topics'
     | '/validate-email'
     | '/admin/categories'
     | '/briefs/$id'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/topics'
     | '/validate-email'
     | '/admin/categories'
     | '/briefs/$id'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/topics'
     | '/validate-email'
     | '/admin/categories'
     | '/briefs/$id'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  TopicsRoute: typeof TopicsRoute
   ValidateEmailRoute: typeof ValidateEmailRoute
   BriefsIdRoute: typeof BriefsIdRoute
   BriefsIndexRoute: typeof BriefsIndexRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/topics': {
+      id: '/topics'
+      path: '/topics'
+      fullPath: '/topics'
+      preLoaderRoute: typeof TopicsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/validate-email': {
@@ -313,6 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  TopicsRoute: TopicsRoute,
   ValidateEmailRoute: ValidateEmailRoute,
   BriefsIdRoute: BriefsIdRoute,
   BriefsIndexRoute: BriefsIndexRoute,

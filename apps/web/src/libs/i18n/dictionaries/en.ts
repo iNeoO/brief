@@ -228,6 +228,64 @@ export const en = {
 			adminArea: "Admin area",
 			signOut: "Sign out",
 		},
+		topics: {
+			title: "Your topics",
+			lead: "Follow a topic and its brief joins your daily email. Unfollow whenever you like.",
+			back: "Back to my briefs",
+			loadError: "The topics could not be loaded.",
+			pagination: (page: number, pageCount: number) =>
+				`Page ${page} of ${pageCount}`,
+			card: {
+				created: (date: string) => `Added ${date}`,
+				briefs: (count: number) =>
+					count === 1 ? "1 brief published" : `${count} briefs published`,
+				subscribed: (date: string) => `Followed since ${date}`,
+				// A topic an administrator took out of the catalogue: no new brief
+				// until it comes back, and the reader can still unsubscribe.
+				paused: "Paused",
+			},
+			subscribed: {
+				title: "Topics you follow",
+				lead: "Most recently followed first.",
+				action: "Unsubscribe",
+				search: {
+					label: "Search the topics you follow",
+					placeholder: "Search a name or a description",
+					clear: "Clear the search",
+				},
+				empty: {
+					title: "You follow no topic yet",
+					body: "Pick one below, and your first brief on it arrives tomorrow at 7:00.",
+				},
+				noResults: {
+					title: "No match",
+					body: (term: string) =>
+						`None of the topics you follow matches “${term}”.`,
+				},
+			},
+			available: {
+				title: "Available topics",
+				lead: "Most recently added first.",
+				action: "Subscribe",
+				search: {
+					label: "Search the available topics",
+					placeholder: "Search a name or a description",
+					clear: "Clear the search",
+				},
+				empty: {
+					title: "Nothing left to follow",
+					body: "You already follow every topic we cover. New ones show up here.",
+				},
+				noResults: {
+					title: "No match",
+					body: (term: string) => `No available topic matches “${term}”.`,
+				},
+			},
+			notifications: {
+				subscribed: (name: string) => `You now follow ${name}.`,
+				unsubscribed: (name: string) => `You no longer follow ${name}.`,
+			},
+		},
 		admin: {
 			title: "Administration",
 			lead: "Reserved for administrators.",

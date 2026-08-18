@@ -44,7 +44,7 @@ function HomePage() {
 				<p className={classes.appPlaceholder}>{t.auth.home.placeholder}</p>
 
 				<div className={classes.appActions}>
-					<Anchor component={Link} to={ROUTES.preferences} underline="always">
+					<Anchor component={Link} to={ROUTES.topics} underline="always">
 						{t.auth.home.manageTopics}
 					</Anchor>
 

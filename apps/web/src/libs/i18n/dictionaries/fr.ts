@@ -227,6 +227,61 @@ export const fr: Dictionary = {
 			adminArea: "Espace admin",
 			signOut: "Se déconnecter",
 		},
+		topics: {
+			title: "Vos sujets",
+			lead: "Abonnez-vous à un sujet et son brief rejoint votre email quotidien. Désabonnez-vous quand vous voulez.",
+			back: "Retour à mes briefs",
+			loadError: "Les sujets n'ont pas pu être chargés.",
+			pagination: (page, pageCount) => `Page ${page} sur ${pageCount}`,
+			card: {
+				created: (date) => `Ajouté le ${date}`,
+				briefs: (count) =>
+					count === 1 ? "1 brief publié" : `${count} briefs publiés`,
+				subscribed: (date) => `Abonné depuis le ${date}`,
+				paused: "En pause",
+			},
+			subscribed: {
+				title: "Vos abonnements",
+				lead: "Les abonnements les plus récents en premier.",
+				action: "Se désabonner",
+				search: {
+					label: "Rechercher parmi vos abonnements",
+					placeholder: "Rechercher un nom ou une description",
+					clear: "Effacer la recherche",
+				},
+				empty: {
+					title: "Aucun abonnement pour l'instant",
+					body: "Choisissez un sujet ci-dessous, et votre premier brief arrive demain à 7h00.",
+				},
+				noResults: {
+					title: "Aucun résultat",
+					body: (term) =>
+						`Aucun de vos abonnements ne correspond à « ${term} ».`,
+				},
+			},
+			available: {
+				title: "Sujets disponibles",
+				lead: "Les sujets les plus récents en premier.",
+				action: "S'abonner",
+				search: {
+					label: "Rechercher parmi les sujets disponibles",
+					placeholder: "Rechercher un nom ou une description",
+					clear: "Effacer la recherche",
+				},
+				empty: {
+					title: "Plus rien à suivre",
+					body: "Vous êtes abonné à tous les sujets que nous couvrons. Les nouveaux apparaîtront ici.",
+				},
+				noResults: {
+					title: "Aucun résultat",
+					body: (term) => `Aucun sujet disponible ne correspond à « ${term} ».`,
+				},
+			},
+			notifications: {
+				subscribed: (name) => `Vous êtes abonné à ${name}.`,
+				unsubscribed: (name) => `Vous n'êtes plus abonné à ${name}.`,
+			},
+		},
 		admin: {
 			title: "Administration",
 			lead: "Réservé aux administrateurs.",
