@@ -10,6 +10,7 @@
 		"pull": "drizzle-kit pull",
 		"reset": "drizzle-kit push --force",
 		"drop": "drizzle-kit drop",
+		"seed": "tsx src/scripts/seedProviders.ts",
 		"lint": "biome check"
 	},
 	"exports": {
