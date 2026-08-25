@@ -1,3 +1,4 @@
+import { WHATSAPP_PAIRING_STATUS } from "@brief/common/constants";
 import type { TopicCard as Topic } from "@brief/services";
 import { Anchor, Title } from "@mantine/core";
 import {
@@ -6,7 +7,7 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { SiteShell } from "#/components/layout/site-shell";
 import classes from "#/components/shell/shell.module.css";
@@ -22,6 +23,7 @@ import {
 	topicsSearchSchema,
 	unsubscribe,
 } from "#/libs/api/topics";
+import { whatsappPairingQueryOptions } from "#/libs/api/whatsapp";
 import { requireUser } from "#/libs/auth/guards";
 import { useI18n } from "#/libs/i18n/context";
 import { localisedHead } from "#/libs/i18n/route-head";
@@ -49,6 +51,9 @@ function TopicsPage() {
 	const labels = t.auth.topics;
 	const search = Route.useSearch();
 	const navigate = Route.useNavigate();
+	// Leaving this route needs the router's own navigate: `Route.useNavigate` is
+	// bound to /topics and its search params.
+	const leaveTo = useNavigate();
 	const queryClient = useQueryClient();
 
 	const subscribed = useQuery({
@@ -60,6 +65,8 @@ function TopicsPage() {
 		...availableTopicsQueryOptions(search),
 		placeholderData: keepPreviousData,
 	});
+
+	const whatsapp = useQuery(whatsappPairingQueryOptions());
 
 	const patchSearch = useCallback(
 		(patch: Partial<typeof search>, replace = false) =>
@@ -77,9 +84,25 @@ function TopicsPage() {
 
 	const subscribeToTopic = useMutation({
 		mutationFn: (topic: Topic) => subscribe({ data: { categoryId: topic.id } }),
-		onSuccess: async (_result, topic) => {
+		// Read before the lists refresh, so it answers "was this their first?".
+		onMutate: () => ({ wasFirst: (subscribed.data?.total ?? 0) === 0 }),
+		onSuccess: async (_result, topic, context) => {
 			await refreshLists();
 			notifySuccess(labels.notifications.subscribed(topic.name));
+
+			// Subscribing is never refused. But a first subscription is the moment a
+			// brief finally has somewhere to be delivered, so it is the moment the
+			// ask makes sense — and the only one where it is not an interruption.
+			const isPaired =
+				whatsapp.data?.pairing?.status === WHATSAPP_PAIRING_STATUS.VERIFIED;
+
+			if (context.wasFirst && !isPaired) {
+				notifySuccess(labels.notifications.pairingNeeded);
+				await leaveTo({
+					to: ROUTES.profile,
+					search: { redirect: ROUTES.topics },
+				});
+			}
 		},
 		onError: () => notifyError(t.auth.genericError),
 	});
