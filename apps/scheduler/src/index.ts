@@ -22,7 +22,7 @@ const job = Effect.gen(function* () {
 	const container = yield* ContainerService;
 	const today = new Date();
 
-	const categories = yield* container.getCategories({ isEnable: true });
+	const categories = yield* container.getCategories({ isEnabled: true });
 	const providerIds = [
 		...new Set(
 			categories.flatMap(({ providers }) => providers.map(({ id }) => id)),

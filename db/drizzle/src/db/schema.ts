@@ -35,7 +35,7 @@ export const categories = pgTable("categories", {
 	description: text("description").notNull(),
 	// Language every brief of this category is written and voiced in.
 	language: language("language").notNull().default(DEFAULT_LANGUAGE),
-	isEnable: boolean("is_enable").default(true),
+	isEnabled: boolean("is_enabled").notNull().default(true),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.notNull()
 		.defaultNow(),
