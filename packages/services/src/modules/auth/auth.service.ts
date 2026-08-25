@@ -4,6 +4,7 @@ import type { MailService } from "../mail/mail.service.js";
 import { type AppAuth, createAuth } from "./auth.js";
 import type {
 	AuthConfig,
+	ChangePasswordInput,
 	GetSessionInput,
 	RequestPasswordResetInput,
 	ResetPasswordInput,
@@ -11,6 +12,7 @@ import type {
 	SignInWithEmailAndPasswordInput,
 	SignOutInput,
 	SignUpWithEmailAndPasswordInput,
+	UpdateUserInput,
 	VerifyEmailInput,
 } from "./auth.type.js";
 
@@ -62,6 +64,27 @@ export class AuthService {
 
 	getSession({ headers }: GetSessionInput) {
 		return this.auth.api.getSession({ headers });
+	}
+
+	updateUser({ name, headers }: UpdateUserInput) {
+		return this.auth.api.updateUser({
+			body: { name },
+			headers,
+			returnHeaders: true,
+		});
+	}
+
+	changePassword({
+		currentPassword,
+		newPassword,
+		revokeOtherSessions,
+		headers,
+	}: ChangePasswordInput) {
+		return this.auth.api.changePassword({
+			body: { currentPassword, newPassword, revokeOtherSessions },
+			headers,
+			returnHeaders: true,
+		});
 	}
 
 	requestPasswordReset({

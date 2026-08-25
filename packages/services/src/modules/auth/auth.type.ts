@@ -25,6 +25,16 @@ export type SignUpWithEmailAndPasswordInput = WithHeaders & {
 
 export type SignOutInput = WithHeaders;
 
+export type UpdateUserInput = WithHeaders & {
+	name: string;
+};
+
+export type ChangePasswordInput = WithHeaders & {
+	currentPassword: string;
+	newPassword: string;
+	revokeOtherSessions?: boolean;
+};
+
 export type GetSessionInput = WithHeaders;
 
 export type RequestPasswordResetInput = WithHeaders & {
