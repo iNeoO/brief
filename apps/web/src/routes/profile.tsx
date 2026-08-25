@@ -12,8 +12,10 @@ import {
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { SiteShell } from "#/components/layout/site-shell";
 import classes from "#/components/profile/profile.module.css";
+import { WhatsappSection } from "#/components/profile/whatsapp-section";
 import shellClasses from "#/components/shell/shell.module.css";
 import topicClasses from "#/components/topics/topics.module.css";
 import { ROUTES } from "#/config/routes";
@@ -27,6 +29,7 @@ import {
 import { unwrap } from "#/libs/api/unwrap";
 import { resolveErrorMessage } from "#/libs/auth/error-message";
 import { requireUser } from "#/libs/auth/guards";
+import { safeRedirectPath } from "#/libs/auth/redirect";
 import { formatDate } from "#/libs/format/date";
 import { useI18n } from "#/libs/i18n/context";
 import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
@@ -34,7 +37,12 @@ import { notifyError, notifySuccess } from "#/libs/notify";
 
 const MIN_PASSWORD_LENGTH = 8;
 
+const profileSearchSchema = z.object({ redirect: z.string().optional() });
+
 export const Route = createFileRoute("/profile")({
+	// Set when a reader is sent here mid-task — after a first subscription, which
+	// is the point at which a brief has somewhere to be delivered.
+	validateSearch: profileSearchSchema,
 	loader: localeLoader,
 	head: localisedHead((t) => ({
 		title: t.auth.profile.title,
@@ -49,6 +57,7 @@ export const Route = createFileRoute("/profile")({
 function ProfilePage() {
 	const { t } = useI18n();
 	const labels = t.auth.profile;
+	const { redirect } = Route.useSearch();
 	const { data: session } = useQuery(sessionQueryOptions());
 	const user = session?.user;
 
@@ -71,6 +80,9 @@ function ProfilePage() {
 				{user ? (
 					<div className={classes.sections}>
 						<AccountSummary user={user} />
+						<WhatsappSection
+							returnTo={redirect ? safeRedirectPath(redirect) : undefined}
+						/>
 						<NameForm name={user.name} />
 						<PasswordForm email={user.email} />
 					</div>

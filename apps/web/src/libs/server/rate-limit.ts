@@ -28,6 +28,13 @@ const RULES = {
 		ip: { limit: 20, windowSeconds: 3600 },
 		email: { limit: 10, windowSeconds: 900 },
 	},
+	// Each link mints a pairing code that stays live for its whole window, so a
+	// loop would leave hundreds of them valid at once. Pairing is something a
+	// reader does once, and retries a handful of times at worst.
+	createWhatsappPairingLink: {
+		ip: { limit: 20, windowSeconds: 3600 },
+		email: { limit: 10, windowSeconds: 3600 },
+	},
 } as const satisfies Record<string, { ip: Rule; email: Rule }>;
 
 export type RateLimitedAction = keyof typeof RULES;
