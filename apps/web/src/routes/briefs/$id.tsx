@@ -1,27 +1,160 @@
-import type { BriefScript } from "@brief/services";
+import type { Language } from "@brief/common/types";
+import type { BriefDetail, BriefScript } from "@brief/services";
 import { Anchor, Button, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import classes from "#/components/briefs/briefs.module.css";
-import { formatBriefDate } from "#/components/home/latest-briefs";
 import { SiteShell } from "#/components/layout/site-shell";
+import { Notice } from "#/components/notice";
 import { ROUTES } from "#/config/routes";
 import { briefAudioUrl, briefQueryOptions } from "#/libs/api/briefs";
+import { formatCalendarDate } from "#/libs/format/date";
 import { useI18n } from "#/libs/i18n/context";
 import { readStoredLocale } from "#/libs/i18n/locale-cookie";
-import { localisedTitle } from "#/libs/i18n/route-head";
+import { headDictionary } from "#/libs/i18n/route-head";
+import {
+	breadcrumbJsonLd,
+	organizationId,
+	websiteId,
+} from "#/libs/seo/json-ld";
+import {
+	HEADLINE_MAX_LENGTH,
+	pageHead,
+	truncateForMeta,
+} from "#/libs/seo/page-head";
+import { absoluteUrl } from "#/libs/seo/site";
 
 export const Route = createFileRoute("/briefs/$id")({
 	loader: async ({ context, params }) => {
-		await context.queryClient.ensureQueryData(
+		const brief = await context.queryClient.ensureQueryData(
 			briefQueryOptions(Number(params.id)),
 		);
 
-		return { locale: readStoredLocale() };
+		return { locale: readStoredLocale(), brief };
 	},
-	head: localisedTitle((d) => d.briefs.title),
+	head: ({ loaderData, params }) => {
+		const { locale, t } = headDictionary(loaderData);
+		const brief = loaderData?.brief;
+		const path = `${ROUTES.briefs}/${params.id}`;
+
+		// An id nobody published still renders a page, with the notice below. It
+		// must not be indexed: a search result promising a brief that does not
+		// exist is what Google counts as a soft 404.
+		if (!brief) {
+			return pageHead({
+				title: t.briefs.detail.notFound.title,
+				path,
+				locale,
+				noindex: true,
+			});
+		}
+
+		const date = formatCalendarDate(brief.targetDate, locale, "long");
+		const title = t.seo.brief.title(brief.categoryName, date);
+		const publishedAt = new Date(brief.publishedAt).toISOString();
+		// The opening sentence is written to stand alone, which is exactly what a
+		// search result needs. The first story carries it when a single-story brief
+		// has no opening, and the generic line is the last resort.
+		const description = truncateForMeta(
+			brief.script.opening ??
+				brief.script.stories[0]?.paragraph ??
+				t.seo.brief.description(brief.categoryName, date),
+		);
+
+		return pageHead({
+			title,
+			description,
+			path,
+			locale,
+			type: "article",
+			publishedTime: publishedAt,
+			modifiedTime: publishedAt,
+			jsonLd: [
+				briefJsonLd({ brief, path, title, description, publishedAt }),
+				breadcrumbJsonLd([
+					{ name: t.a11y.homeLink, path: ROUTES.landing },
+					{ name: t.seo.briefs.title, path: ROUTES.briefs },
+					{ name: title },
+				]),
+			],
+		});
+	},
 	component: BriefPage,
 });
+
+/**
+ * The brief as a `NewsArticle`. Author and publisher are references into the
+ * graph the root route lays down, rather than a second description of the
+ * brand: a crawler resolves them site-wide, and repeating them per page is how
+ * one publisher turns into hundreds.
+ */
+const briefJsonLd = ({
+	brief,
+	path,
+	title,
+	description,
+	publishedAt,
+}: {
+	brief: BriefDetail;
+	path: string;
+	title: string;
+	description: string;
+	publishedAt: string;
+}): Record<string, unknown> => {
+	const url = absoluteUrl(path);
+
+	return {
+		"@context": "https://schema.org",
+		"@type": "NewsArticle",
+		"@id": `${url}#article`,
+		url,
+		headline: truncateForMeta(title, HEADLINE_MAX_LENGTH),
+		description,
+		datePublished: publishedAt,
+		// A replay rewrites the script behind the same address, and `finishedAt`
+		// moves with it, so the two dates are the same value by construction.
+		dateModified: publishedAt,
+		articleSection: brief.categoryName,
+		// The brief's own language, not the reader's: the script is written in the
+		// language of its topic whatever the site is set to.
+		inLanguage: brief.language,
+		timeRequired: `PT${brief.readingMinutes}M`,
+		mainEntityOfPage: { "@type": "WebPage", "@id": url },
+		isPartOf: { "@id": websiteId() },
+		publisher: { "@id": organizationId() },
+		author: { "@id": organizationId() },
+		...(brief.sources.length > 0
+			? {
+					citation: brief.sources.map((source) => ({
+						"@type": "CreativeWork",
+						name: source.title,
+						url: source.url,
+						...(source.providerName
+							? {
+									publisher: {
+										"@type": "Organization",
+										name: source.providerName,
+									},
+								}
+							: {}),
+					})),
+				}
+			: {}),
+		...(brief.audio
+			? {
+					associatedMedia: {
+						"@type": "AudioObject",
+						contentUrl: absoluteUrl(briefAudioUrl(brief.audio.id)),
+						encodingFormat: brief.audio.mimeType,
+						contentSize: String(brief.audio.size),
+					},
+				}
+			: {}),
+	};
+};
+
+/** `targetDate` is a calendar day, so `datetime` carries the day and no clock. */
+const toIsoDay = (date: Date) => new Date(date).toISOString().slice(0, 10);
 
 function BriefPage() {
 	const { id } = Route.useParams();
@@ -32,21 +165,16 @@ function BriefPage() {
 		return (
 			<SiteShell>
 				<div className={`brief-shell ${classes.page}`}>
-					<div className={classes.notice}>
-						<p className={classes.noticeTitle}>
-							{brief.isError
+					<Notice
+						title={
+							brief.isError
 								? t.briefs.loadError
-								: t.briefs.detail.notFound.title}
-						</p>
-						{brief.isError ? null : (
-							<p className={classes.noticeBody}>
-								{t.briefs.detail.notFound.body}
-							</p>
-						)}
-						<p>
-							<Link to={ROUTES.briefs}>{t.briefs.detail.notFound.cta}</Link>
-						</p>
-					</div>
+								: t.briefs.detail.notFound.title
+						}
+						body={brief.isError ? undefined : t.briefs.detail.notFound.body}
+					>
+						<Link to={ROUTES.briefs}>{t.briefs.detail.notFound.cta}</Link>
+					</Notice>
 				</div>
 			</SiteShell>
 		);
@@ -63,21 +191,30 @@ function BriefPage() {
 
 				<header className={classes.header}>
 					<div className={classes.itemMeta}>
-						<span className={classes.topic}>{detail.categoryName}</span>
 						<span className={classes.date}>
 							{t.brief.readTime(detail.readingMinutes)}
 						</span>
 					</div>
 
+					{/*
+					 * The topic belongs in the heading, not only in the chip above it:
+					 * a date on its own says nothing about what the page is, to a
+					 * reader scanning tabs or to a crawler reading the outline.
+					 */}
 					<Title order={1} className={classes.title}>
-						{formatBriefDate(detail.targetDate, locale)}
+						{detail.categoryName}
+						<span className={classes.titleDate}>
+							<time dateTime={toIsoDay(detail.targetDate)}>
+								{formatCalendarDate(detail.targetDate, locale, "long")}
+							</time>
+						</span>
 					</Title>
 					<p className={classes.lead}>{detail.categoryDescription}</p>
 				</header>
 
 				<Player audio={detail.audio} categoryName={detail.categoryName} />
 
-				<Script script={detail.script} />
+				<Script script={detail.script} language={detail.language} />
 
 				{/* Only as a fallback: when the paragraphs line up with the sources,
 				    every link already sits under the story it belongs to. */}
@@ -122,11 +259,22 @@ function BriefPage() {
  * closing sentence. That shape is what gets styled here, with no formatting
  * pass and no second model call.
  */
-function Script({ script }: { script: BriefScript }) {
+function Script({
+	script,
+	language,
+}: {
+	script: BriefScript;
+	/*
+	 * The topic's language, not the reader's: the script is written in the
+	 * language of its category whatever the site chrome is set to, and a screen
+	 * reader or a translation tool needs to be told where the switch happens.
+	 */
+	language: Language;
+}) {
 	const { t } = useI18n();
 
 	return (
-		<div className={classes.script}>
+		<div className={classes.script} lang={language}>
 			{script.opening ? <p className={classes.lede}>{script.opening}</p> : null}
 
 			{script.headlines ? (
@@ -176,7 +324,7 @@ function Player({
 
 	return (
 		<section id="listen" className={classes.player}>
-			<p className={classes.playerTitle}>{t.briefs.detail.listenTitle}</p>
+			<h2 className={classes.playerTitle}>{t.briefs.detail.listenTitle}</h2>
 
 			{audio ? (
 				<>
@@ -202,7 +350,7 @@ function Player({
 					</div>
 				</>
 			) : (
-				<p className={classes.noticeBody}>{t.briefs.detail.noAudio}</p>
+				<p className={classes.noAudio}>{t.briefs.detail.noAudio}</p>
 			)}
 		</section>
 	);

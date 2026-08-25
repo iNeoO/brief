@@ -1,5 +1,5 @@
 import { Title } from "@mantine/core";
-import { PlainBar } from "#/components/shell/plain-bar";
+import { SiteShell } from "#/components/layout/site-shell";
 import classes from "#/components/shell/shell.module.css";
 
 export function AuthCard({
@@ -14,10 +14,8 @@ export function AuthCard({
 	footer?: React.ReactNode;
 }) {
 	return (
-		<div className={classes.page}>
-			<PlainBar />
-
-			<main id="main" className={`brief-shell ${classes.centered}`}>
+		<SiteShell>
+			<div className={`brief-shell ${classes.centered}`}>
 				<div className={classes.card}>
 					<Title order={1} className={classes.cardTitle}>
 						{title}
@@ -29,27 +27,7 @@ export function AuthCard({
 
 					{footer ? <p className={classes.cardFooter}>{footer}</p> : null}
 				</div>
-			</main>
-		</div>
-	);
-}
-
-export function AuthNotice({
-	title,
-	body,
-	children,
-}: {
-	title: string;
-	body: string;
-	children?: React.ReactNode;
-}) {
-	return (
-		<div className={classes.notice}>
-			<p className={classes.noticeTitle}>{title}</p>
-			<p className={classes.noticeBody}>{body}</p>
-			{children ? (
-				<div className={classes.noticeActions}>{children}</div>
-			) : null}
-		</div>
+			</div>
+		</SiteShell>
 	);
 }

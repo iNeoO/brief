@@ -1,10 +1,18 @@
 import { Button, Title } from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { ROUTES } from "#/config/routes";
+import { sessionQueryOptions } from "#/libs/api/auth";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./home.module.css";
 
 export function Closing() {
 	const { t } = useI18n();
+	const { data: session } = useQuery(sessionQueryOptions());
+	const isSignedIn = Boolean(session?.user);
+
+	const copy = isSignedIn ? t.closing.signedIn : t.closing;
+	const to = isSignedIn ? ROUTES.topics : ROUTES.signUp;
 
 	return (
 		<section
@@ -12,17 +20,17 @@ export function Closing() {
 		>
 			<div className="brief-shell">
 				<Title order={2} className={classes.sectionTitle}>
-					{t.closing.title}
+					{copy.title}
 				</Title>
 
-				<p className={classes.sectionLead}>{t.closing.body}</p>
+				<p className={classes.sectionLead}>{copy.body}</p>
 
 				<div className={classes.closingActions}>
-					<Button component="a" href={ROUTES.signUp} size="md" radius="sm">
-						{t.closing.cta}
+					<Button component={Link} to={to} size="md" radius="sm">
+						{copy.cta}
 					</Button>
 
-					<p className={classes.closingNote}>{t.closing.note}</p>
+					<p className={classes.closingNote}>{copy.note}</p>
 				</div>
 			</div>
 		</section>

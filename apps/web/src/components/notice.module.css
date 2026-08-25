@@ -1,0 +1,62 @@
+/*
+ * The frame every notice shares. Only the edge and the alignment change
+ * between variants; the title, body and actions are the same everywhere.
+ */
+.notice {
+	padding: 1.75rem 1.5rem;
+	border: 1px solid var(--brief-line-strong);
+	border-radius: var(--mantine-radius-md);
+	text-wrap: pretty;
+}
+
+/* A status panel sitting in a column of prose: it stays left-aligned with it. */
+.panel {
+	text-align: start;
+}
+
+/* Nothing to show yet, or a load that failed. The dashed edge reads as a
+   placeholder rather than as a panel with something in it. */
+.empty {
+	border-style: dashed;
+	text-align: center;
+}
+
+/* For a container that already draws its own edge — an admin table, a card. */
+.bare {
+	border: 0;
+	text-align: center;
+}
+
+.title {
+	margin: 0 0 0.5rem;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.body {
+	margin: 0;
+	max-width: 44ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+}
+
+.actions {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-top: 1.25rem;
+}
+
+/* `text-align` centres the lines; the blocks themselves need their own rule. */
+.empty .body,
+.bare .body {
+	margin-inline: auto;
+}
+
+.empty .actions,
+.bare .actions {
+	justify-content: center;
+}

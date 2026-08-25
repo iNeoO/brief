@@ -1,3 +1,4 @@
+import { USER_NAME_MAX_LENGTH } from "@brief/common/constants";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -6,7 +7,10 @@ import {
 	mergeSetCookieHeadersIntoRequestHeaders,
 	setResponseCookies,
 } from "#/libs/server/headers";
-import { containerMiddleware } from "#/libs/server/middleware";
+import {
+	authedMiddleware,
+	containerMiddleware,
+} from "#/libs/server/middleware";
 import { enforceAuthRateLimit } from "#/libs/server/rate-limit";
 import { attempt } from "#/libs/server/result";
 
@@ -45,6 +49,15 @@ const verifyEmailInput = z.object({
 const sendVerificationEmailInput = z.object({
 	email: emailSchema,
 	callbackURL: z.string().optional(),
+});
+
+const updateProfileInput = z.object({
+	name: z.string().trim().min(1).max(USER_NAME_MAX_LENGTH),
+});
+
+const changePasswordInput = z.object({
+	currentPassword: z.string().min(1),
+	newPassword: passwordSchema,
 });
 
 export const signInWithEmailAndPassword = createServerFn({ method: "POST" })
@@ -177,6 +190,47 @@ export const sendVerificationEmail = createServerFn({ method: "POST" })
 				...data,
 				headers: getRequestHeadersAsHeaders(),
 			});
+
+			return { success: true };
+		}),
+	);
+
+export const updateProfile = createServerFn({ method: "POST" })
+	.middleware([authedMiddleware])
+	.validator(updateProfileInput)
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			const { headers } = await context.container.authService.updateUser({
+				name: data.name,
+				headers: getRequestHeadersAsHeaders(),
+			});
+
+			setResponseCookies(headers);
+
+			return context.container.authService.getSession({
+				headers: mergeSetCookieHeadersIntoRequestHeaders(headers),
+			});
+		}),
+	);
+
+export const changePassword = createServerFn({ method: "POST" })
+	.middleware([authedMiddleware])
+	.validator(changePasswordInput)
+	.handler(({ data, context }) =>
+		attempt(async () => {
+			await enforceAuthRateLimit(
+				context.container.redis,
+				"changePassword",
+				context.user.email,
+			);
+
+			const { headers } = await context.container.authService.changePassword({
+				...data,
+				revokeOtherSessions: true,
+				headers: getRequestHeadersAsHeaders(),
+			});
+
+			setResponseCookies(headers);
 
 			return { success: true };
 		}),

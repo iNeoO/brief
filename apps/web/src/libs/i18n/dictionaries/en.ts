@@ -4,6 +4,29 @@ export const en = {
 		description:
 			"One short summary per topic you follow, every morning. Read it or listen to it in a few minutes.",
 	},
+	seo: {
+		briefs: {
+			title: "Brief archive",
+			description:
+				"Every brief published so far: one short, factual summary per topic, newest first, each with the articles it was written from.",
+		},
+		brief: {
+			title: (topic: string, date: string) => `${topic} — brief of ${date}`,
+			description: (topic: string, date: string) =>
+				`The ${topic} brief of ${date}: a short, factual summary of the day's articles, to read or to listen to.`,
+		},
+		howItWorks: {
+			title: "How your daily brief is made",
+			description:
+				"You choose your topics once. Every morning we read their press sources, write one short summary per topic, and deliver it at 7:00 — to read or to listen to.",
+		},
+		signUp: {
+			title: "Create your account",
+			description:
+				"Choose your topics and get your first brief tomorrow at 7:00. One email a day, and unsubscribing takes one click.",
+		},
+		page: (page: number) => `page ${page}`,
+	},
 	a11y: {
 		skipToContent: "Skip to content",
 		mainNavigation: "Main navigation",
@@ -11,13 +34,17 @@ export const en = {
 		homeLink: "Home",
 	},
 	nav: {
-		topics: "Topics",
-		// Signed-in counterparts: the page to manage them, and the reading page.
 		myTopics: "My topics",
 		myBriefs: "My briefs",
 		howItWorks: "How it works",
 		signIn: "Sign in",
 		signUp: "Sign up",
+		account: {
+			trigger: (name: string) => `Account: ${name}`,
+			profile: "My profile",
+			admin: "Admin area",
+			signOut: "Sign out",
+		},
 	},
 	colorScheme: {
 		toDark: "Switch to dark mode",
@@ -35,6 +62,39 @@ export const en = {
 	},
 	method: {
 		title: "How it works",
+		seeMore: "See the whole flow",
+		page: {
+			title: "How it works",
+			lead: "You choose your topics once. Every morning after that, we do the reading and the writing, and your brief is waiting for you at 7:00.",
+			diagramLabel:
+				"The path of a brief: your topics, the sources we read, the summary written from them, and the delivery at 7:00.",
+			caption:
+				"The same four steps run every morning, for each topic you follow.",
+			flow: [
+				{ title: "Your topics", meta: "You, once" },
+				{ title: "The sources", meta: "Every morning" },
+				{ title: "The summary", meta: "One per topic" },
+				{ title: "Your brief", meta: "At 7:00" },
+			],
+			details: [
+				{
+					title: "You choose your topics",
+					body: "Follow a topic and its brief joins your morning email. Unfollow it and it stops the next day — you can change your mind any morning.",
+				},
+				{
+					title: "We read the sources",
+					body: "Each topic has its own set of press sources. Every morning we collect the articles they published, and keep the ones that matter for that topic.",
+				},
+				{
+					title: "One summary per topic",
+					body: "Those articles become a single short, factual summary, in the language of the topic. Every brief lists the articles it was written from, so you can go and read the original.",
+				},
+				{
+					title: "It arrives at 7:00",
+					body: "Read the summary, or listen to its audio version — the same brief, voiced. One email a day, nothing else, and unsubscribing takes one click.",
+				},
+			],
+		},
 		steps: [
 			{
 				title: "You choose your topics",
@@ -117,6 +177,12 @@ export const en = {
 		body: "Choose your topics, and your first brief arrives at 7:00.",
 		cta: "Create my account",
 		note: "One email a day. Unsubscribe in one click.",
+		signedIn: {
+			title: "Tomorrow morning, at 7:00.",
+			body: "Follow one more topic and it joins your next brief.",
+			cta: "Manage my topics",
+			note: "Unfollow whenever you like — it stops the next day.",
+		},
 	},
 	footer: {
 		about: "About",
@@ -125,12 +191,19 @@ export const en = {
 		contact: "Contact",
 		rights: (year: number, brand: string) => `© ${year} ${brand}`,
 	},
+	notFound: {
+		title: "This page does not exist",
+		lead: "The address may be mistyped, or the page moved since the link was written.",
+		home: "Back to the home page",
+		briefs: "See every brief",
+	},
 	auth: {
 		backToSite: "Back to the site",
 		fields: {
 			name: "Name",
 			email: "Email address",
 			password: "Password",
+			currentPassword: "Current password",
 			newPassword: "New password",
 			confirmPassword: "Confirm new password",
 			passwordHint: "At least 8 characters.",
@@ -179,7 +252,6 @@ export const en = {
 			lead: "Enter your email address and we will send you a link.",
 			submit: "Send the link",
 			backToSignIn: "Back to sign in",
-			// Deliberately says nothing about whether the account exists.
 			sent: {
 				title: "Check your inbox",
 				body: "If an account exists for that address, a reset link is on its way.",
@@ -203,8 +275,6 @@ export const en = {
 			},
 		},
 		validateEmail: {
-			// Stable heading for every outcome, so the page title and the notice
-			// below it never say the same sentence twice.
 			pageTitle: "Email confirmation",
 			pending: "Confirming your email address…",
 			done: {
@@ -224,12 +294,39 @@ export const en = {
 		},
 		home: {
 			title: "Your briefs",
-			greeting: (name: string) => `Signed in as ${name}`,
-			placeholder:
-				"This is where your daily brief will live. The reading layout comes next.",
-			manageTopics: "Manage my topics",
-			adminArea: "Admin area",
-			signOut: "Sign out",
+			lead: "Every brief of the topics you follow, newest first.",
+			empty: {
+				title: "No brief for your topics yet",
+				body: "Follow a topic and its briefs appear here — the ones already published, and the one that arrives tomorrow at 7:00.",
+				cta: "Choose my topics",
+			},
+		},
+		profile: {
+			title: "Your profile",
+			lead: "Your account and your password.",
+			back: "Back to my briefs",
+			account: {
+				title: "Account",
+				email: "Email address",
+				emailVerified: "Verified",
+				emailUnverified: "Not verified",
+				role: "Role",
+				roles: { user: "Reader", admin: "Administrator" },
+				memberSince: "Member since",
+			},
+			identity: {
+				title: "Your name",
+				lead: "The name your briefs greet you with. Your email address cannot be changed here: it is where your briefs are sent.",
+				submit: "Save",
+				success: "Your name has been saved.",
+			},
+			password: {
+				title: "Password",
+				lead: "Changing your password signs out your other devices. This one stays signed in.",
+				submit: "Change my password",
+				success: "Your password has been changed.",
+				incorrect: "That is not your current password.",
+			},
 		},
 		topics: {
 			title: "Your topics",
@@ -243,8 +340,6 @@ export const en = {
 				briefs: (count: number) =>
 					count === 1 ? "1 brief published" : `${count} briefs published`,
 				subscribed: (date: string) => `Followed since ${date}`,
-				// A topic an administrator took out of the catalogue: no new brief
-				// until it comes back, and the reader can still unsubscribe.
 				paused: "Paused",
 			},
 			subscribed: {
@@ -319,7 +414,6 @@ export const en = {
 					active: "Active",
 					inactive: "Inactive",
 				},
-				// Wording of the job statuses, seen on the last brief of a category.
 				jobStatus: {
 					waiting_for_providers: "Waiting for sources",
 					pending: "Queued",
@@ -327,7 +421,6 @@ export const en = {
 					finished: "Finished",
 					failed: "Failed",
 				},
-				// Shown where a category has never produced a brief.
 				noBrief: "None yet",
 				sort: {
 					ascending: "Sort ascending",
@@ -369,18 +462,15 @@ export const en = {
 						"Every brief of this category is written and voiced in it.",
 					providers: "Sources",
 					providersPlaceholder: "Pick the sources to read",
-					// A category with no source produces an empty brief, silently.
 					providersEmpty:
 						"No source is attached: this category will produce nothing.",
 					providersDisabled: (name: string) => `${name} (disabled)`,
-					// Without providers the picker is an empty combobox, which reads
-					// as a free-text field: say why nothing can be picked.
 					providersNonePlaceholder: "No source available",
 					providersNone:
 						"No source is registered yet. Run `pnpm drizzle:seed` to install the supported media.",
 					providersLoadError: "The sources could not be loaded.",
-					isEnable: "Active",
-					isEnableHelp: "A disabled category produces no brief.",
+					isEnabled: "Active",
+					isEnabledHelp: "A disabled category produces no brief.",
 					submitCreate: "Create",
 					submitEdit: "Save",
 					cancel: "Cancel",

@@ -2,14 +2,15 @@ import { Anchor, Button, PasswordInput, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AuthCard, AuthNotice } from "#/components/auth/auth-card";
+import { AuthCard } from "#/components/auth/auth-card";
 import { FormError } from "#/components/auth/form-feedback";
+import { Notice } from "#/components/notice";
 import { ROUTES } from "#/config/routes";
 import { resetPassword } from "#/libs/api/auth";
 import { unwrap } from "#/libs/api/unwrap";
 import { getErrorStatus, resolveErrorMessage } from "#/libs/auth/error-message";
 import { useI18n } from "#/libs/i18n/context";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
 import { notifyError } from "#/libs/notify";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -21,7 +22,11 @@ const isSpentToken = (error: unknown) =>
 
 export const Route = createFileRoute("/reset-password")({
 	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.resetPassword.title),
+	head: localisedHead((t) => ({
+		title: t.auth.resetPassword.title,
+		path: ROUTES.resetPassword,
+		noindex: true,
+	})),
 	validateSearch: (search: Record<string, unknown>) => ({
 		token: typeof search.token === "string" ? search.token : undefined,
 	}),
@@ -39,14 +44,15 @@ function MissingToken() {
 
 	return (
 		<AuthCard title={t.auth.resetPassword.title}>
-			<AuthNotice
+			<Notice
+				variant="panel"
 				title={t.auth.resetPassword.missingToken.title}
 				body={t.auth.resetPassword.missingToken.body}
 			>
 				<Anchor component={Link} to={ROUTES.forgotPassword} underline="always">
 					{t.auth.resetPassword.requestNew}
 				</Anchor>
-			</AuthNotice>
+			</Notice>
 		</AuthCard>
 	);
 }
@@ -88,14 +94,15 @@ function ResetPasswordForm({ token }: { token: string }) {
 	if (reset.isSuccess) {
 		return (
 			<AuthCard title={t.auth.resetPassword.title}>
-				<AuthNotice
+				<Notice
+					variant="panel"
 					title={t.auth.resetPassword.done.title}
 					body={t.auth.resetPassword.done.body}
 				>
 					<Button component={Link} to={ROUTES.signIn} size="sm">
 						{t.auth.resetPassword.done.cta}
 					</Button>
-				</AuthNotice>
+				</Notice>
 			</AuthCard>
 		);
 	}

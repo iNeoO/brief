@@ -6,6 +6,29 @@ export const fr: Dictionary = {
 		description:
 			"Un résumé court par sujet suivi, chaque matin. À lire ou à écouter en quelques minutes.",
 	},
+	seo: {
+		briefs: {
+			title: "Archive des briefs",
+			description:
+				"Tous les briefs publiés à ce jour : un résumé court et factuel par sujet, du plus récent au plus ancien, avec les articles dont il est tiré.",
+		},
+		brief: {
+			title: (topic: string, date: string) => `${topic} — brief du ${date}`,
+			description: (topic: string, date: string) =>
+				`Le brief ${topic} du ${date} : un résumé court et factuel des articles du jour, à lire ou à écouter.`,
+		},
+		howItWorks: {
+			title: "Comment votre brief quotidien est fabriqué",
+			description:
+				"Vous choisissez vos sujets une fois. Chaque matin, nous lisons leurs sources de presse, écrivons un résumé court par sujet et vous le livrons à 7 h — à lire ou à écouter.",
+		},
+		signUp: {
+			title: "Créer votre compte",
+			description:
+				"Choisissez vos sujets et recevez votre premier brief demain à 7 h. Un e-mail par jour, et un clic suffit pour se désinscrire.",
+		},
+		page: (page: number) => `page ${page}`,
+	},
 	a11y: {
 		skipToContent: "Aller au contenu",
 		mainNavigation: "Navigation principale",
@@ -13,12 +36,17 @@ export const fr: Dictionary = {
 		homeLink: "Accueil",
 	},
 	nav: {
-		topics: "Sujets",
 		myTopics: "Mes sujets",
 		myBriefs: "Mes briefs",
 		howItWorks: "Comment ça marche",
 		signIn: "Se connecter",
 		signUp: "S'inscrire",
+		account: {
+			trigger: (name: string) => `Compte : ${name}`,
+			profile: "Mon profil",
+			admin: "Espace admin",
+			signOut: "Se déconnecter",
+		},
 	},
 	colorScheme: {
 		toDark: "Passer en mode sombre",
@@ -36,6 +64,39 @@ export const fr: Dictionary = {
 	},
 	method: {
 		title: "Comment ça marche",
+		seeMore: "Voir tout le parcours",
+		page: {
+			title: "Comment ça marche",
+			lead: "Vous choisissez vos sujets une fois. Chaque matin ensuite, nous lisons et rédigeons pour vous, et votre brief vous attend à 7 h.",
+			diagramLabel:
+				"Le parcours d'un brief : vos sujets, les sources que nous lisons, le résumé qui en est tiré, et l'envoi à 7 h.",
+			caption:
+				"Les mêmes quatre étapes se rejouent chaque matin, pour chaque sujet suivi.",
+			flow: [
+				{ title: "Vos sujets", meta: "Vous, une fois" },
+				{ title: "Les sources", meta: "Chaque matin" },
+				{ title: "Le résumé", meta: "Un par sujet" },
+				{ title: "Votre brief", meta: "À 7 h" },
+			],
+			details: [
+				{
+					title: "Vous choisissez vos sujets",
+					body: "Suivez un sujet et son brief rejoint votre envoi du matin. Ne le suivez plus et il s'arrête dès le lendemain : vous pouvez changer d'avis n'importe quel matin.",
+				},
+				{
+					title: "Nous lisons les sources",
+					body: "Chaque sujet a ses propres sources de presse. Chaque matin, nous récupérons les articles qu'elles ont publiés et gardons ceux qui comptent pour ce sujet.",
+				},
+				{
+					title: "Un résumé par sujet",
+					body: "Ces articles deviennent un seul résumé court et factuel, dans la langue du sujet. Chaque brief liste les articles dont il est tiré, pour aller lire l'original.",
+				},
+				{
+					title: "Il arrive à 7 h",
+					body: "Lisez le résumé, ou écoutez sa version audio : le même brief, en voix. Un envoi par jour, rien d'autre, et le désabonnement tient en un clic.",
+				},
+			],
+		},
 		steps: [
 			{
 				title: "Vous choisissez vos sujets",
@@ -117,6 +178,12 @@ export const fr: Dictionary = {
 		body: "Choisissez vos sujets, et votre premier brief arrive à 7 h.",
 		cta: "Créer mon compte",
 		note: "Un envoi par jour. Désinscription en un clic.",
+		signedIn: {
+			title: "Demain matin, à 7 h.",
+			body: "Suivez un sujet de plus et il rejoint votre prochain brief.",
+			cta: "Gérer mes sujets",
+			note: "Ne le suivez plus quand vous voulez : il s'arrête dès le lendemain.",
+		},
 	},
 	footer: {
 		about: "À propos",
@@ -125,12 +192,19 @@ export const fr: Dictionary = {
 		contact: "Contact",
 		rights: (year: number, brand: string) => `© ${year} ${brand}`,
 	},
+	notFound: {
+		title: "Cette page n'existe pas",
+		lead: "L'adresse est peut-être mal écrite, ou la page a changé depuis que le lien a été écrit.",
+		home: "Retour à l'accueil",
+		briefs: "Voir tous les briefs",
+	},
 	auth: {
 		backToSite: "Retour au site",
 		fields: {
 			name: "Nom",
 			email: "Adresse e-mail",
 			password: "Mot de passe",
+			currentPassword: "Mot de passe actuel",
 			newPassword: "Nouveau mot de passe",
 			confirmPassword: "Confirmer le nouveau mot de passe",
 			passwordHint: "Au moins 8 caractères.",
@@ -179,7 +253,6 @@ export const fr: Dictionary = {
 			lead: "Indiquez votre adresse e-mail et nous vous envoyons un lien.",
 			submit: "Envoyer le lien",
 			backToSignIn: "Retour à la connexion",
-			// Ne dit rien sur l'existence du compte, volontairement.
 			sent: {
 				title: "Consultez votre boîte de réception",
 				body: "Si un compte existe pour cette adresse, un lien de réinitialisation est en route.",
@@ -222,12 +295,39 @@ export const fr: Dictionary = {
 		},
 		home: {
 			title: "Vos briefs",
-			greeting: (name: string) => `Connecté en tant que ${name}`,
-			placeholder:
-				"C'est ici que votre brief quotidien apparaîtra. La mise en page de lecture arrive ensuite.",
-			manageTopics: "Gérer mes sujets",
-			adminArea: "Espace admin",
-			signOut: "Se déconnecter",
+			lead: "Tous les briefs des sujets que vous suivez, du plus récent au plus ancien.",
+			empty: {
+				title: "Aucun brief pour vos sujets",
+				body: "Suivez un sujet et ses briefs apparaissent ici — ceux déjà publiés, et celui qui arrive demain à 7h00.",
+				cta: "Choisir mes sujets",
+			},
+		},
+		profile: {
+			title: "Votre profil",
+			lead: "Votre compte et votre mot de passe.",
+			back: "Retour à mes briefs",
+			account: {
+				title: "Compte",
+				email: "Adresse email",
+				emailVerified: "Vérifiée",
+				emailUnverified: "Non vérifiée",
+				role: "Rôle",
+				roles: { user: "Lecteur", admin: "Administrateur" },
+				memberSince: "Membre depuis",
+			},
+			identity: {
+				title: "Votre nom",
+				lead: "Le nom avec lequel vos briefs vous accueillent. Votre adresse email ne se change pas ici : c'est là que vos briefs arrivent.",
+				submit: "Enregistrer",
+				success: "Votre nom a été enregistré.",
+			},
+			password: {
+				title: "Mot de passe",
+				lead: "Changer votre mot de passe déconnecte vos autres appareils. Celui-ci reste connecté.",
+				submit: "Changer mon mot de passe",
+				success: "Votre mot de passe a été changé.",
+				incorrect: "Ce n'est pas votre mot de passe actuel.",
+			},
 		},
 		topics: {
 			title: "Vos sujets",
@@ -314,7 +414,6 @@ export const fr: Dictionary = {
 					active: "Active",
 					inactive: "Inactive",
 				},
-				// Libellés des statuts de job, affichés sur le dernier brief.
 				jobStatus: {
 					waiting_for_providers: "En attente des sources",
 					pending: "En file",
@@ -322,7 +421,6 @@ export const fr: Dictionary = {
 					finished: "Terminé",
 					failed: "Échec",
 				},
-				// Affiché quand la catégorie n'a encore produit aucun brief.
 				noBrief: "Aucun",
 				sort: {
 					ascending: "Trier par ordre croissant",
@@ -364,18 +462,15 @@ export const fr: Dictionary = {
 						"Tous les briefs de cette catégorie sont écrits et lus dans cette langue.",
 					providers: "Sources",
 					providersPlaceholder: "Choisissez les sources à dépouiller",
-					// Une catégorie sans source produit un brief vide, sans rien signaler.
 					providersEmpty:
 						"Aucune source rattachée : cette catégorie ne produira rien.",
 					providersDisabled: (name: string) => `${name} (désactivée)`,
-					// Sans provider, le picker est un combobox vide qui ressemble à un
-					// champ libre : dire pourquoi il n'y a rien à choisir.
 					providersNonePlaceholder: "Aucune source disponible",
 					providersNone:
 						"Aucune source n'est enregistrée. Lancez `pnpm drizzle:seed` pour installer les médias supportés.",
 					providersLoadError: "Les sources n'ont pas pu être chargées.",
-					isEnable: "Active",
-					isEnableHelp: "Une catégorie désactivée ne produit aucun brief.",
+					isEnabled: "Active",
+					isEnabledHelp: "Une catégorie désactivée ne produit aucun brief.",
 					submitCreate: "Créer",
 					submitEdit: "Enregistrer",
 					cancel: "Annuler",

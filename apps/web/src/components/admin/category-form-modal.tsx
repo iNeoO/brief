@@ -23,10 +23,10 @@ import {
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-	ADMIN_CATEGORIES_KEY,
 	adminCategoryQueryOptions,
 	type CategoryFormValues,
 	createCategory,
+	refreshCategories,
 	updateCategory,
 } from "#/libs/api/admin-categories";
 import { adminProvidersQueryOptions } from "#/libs/api/admin-providers";
@@ -43,7 +43,7 @@ const EMPTY_VALUES: CategoryFormValues = {
 	name: "",
 	description: "",
 	language: DEFAULT_LANGUAGE,
-	isEnable: true,
+	isEnabled: true,
 	providerIds: [],
 };
 
@@ -109,7 +109,7 @@ const toFormValues = (detail: AdminCategoryDetail): CategoryFormValues => ({
 	name: detail.name,
 	description: detail.description,
 	language: detail.language,
-	isEnable: detail.isEnable,
+	isEnabled: detail.isEnabled,
 	providerIds: detail.providerIds,
 });
 
@@ -165,7 +165,7 @@ function CategoryForm({
 			await createCategory({ data: values });
 		},
 		onSuccess: async (_result, values) => {
-			await queryClient.invalidateQueries({ queryKey: ADMIN_CATEGORIES_KEY });
+			await refreshCategories(queryClient);
 
 			if (categoryId) {
 				await queryClient.invalidateQueries({
@@ -191,8 +191,6 @@ function CategoryForm({
 			: labels.form.providersDisabled(provider.name),
 	}));
 
-	// An empty picker looks like a free-text field, so say why it has nothing
-	// to offer instead of leaving the user typing into it.
 	const hasNoProvider = !providers.isPending && providerOptions.length === 0;
 
 	const providersDescription = providers.isError
@@ -200,9 +198,7 @@ function CategoryForm({
 		: hasNoProvider
 			? labels.form.providersNone
 			: form.getValues().providerIds.length === 0
-				? // Only a warning while it is true: a category with no source
-					// silently produces an empty brief.
-					labels.form.providersEmpty
+				? labels.form.providersEmpty
 				: undefined;
 
 	return (
@@ -256,15 +252,13 @@ function CategoryForm({
 					clearable
 					description={providersDescription}
 					{...form.getInputProps("providerIds")}
-					// After the spread: the field has no validation rule of its own,
-					// so `getInputProps` would otherwise clear this back to undefined.
 					error={providers.isError ? labels.form.providersLoadError : undefined}
 				/>
 
 				<Switch
-					label={labels.form.isEnable}
-					description={labels.form.isEnableHelp}
-					{...form.getInputProps("isEnable", { type: "checkbox" })}
+					label={labels.form.isEnabled}
+					description={labels.form.isEnabledHelp}
+					{...form.getInputProps("isEnabled", { type: "checkbox" })}
 				/>
 
 				<Group justify="flex-end" gap="sm">

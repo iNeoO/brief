@@ -7,7 +7,6 @@ import {
 	Badge,
 	Box,
 	Button,
-	CloseButton,
 	Group,
 	LoadingOverlay,
 	Menu,
@@ -15,7 +14,6 @@ import {
 	Select,
 	Table,
 	Text,
-	TextInput,
 	Tooltip,
 } from "@mantine/core";
 import {
@@ -29,15 +27,16 @@ import {
 	tableFeatures,
 	useTable,
 } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { DebouncedSearchInput } from "#/components/debounced-search-input";
 import { ChevronDownIcon, DotsIcon, PlusIcon } from "#/components/icons";
+import { Notice } from "#/components/notice";
 import type { AdminCategoriesSearch } from "#/libs/api/admin-categories";
+import { formatCalendarDate, formatDate } from "#/libs/format/date";
 import type { Locale } from "#/libs/i18n/config";
 import { useI18n } from "#/libs/i18n/context";
 import type { Dictionary } from "#/libs/i18n/dictionaries";
 import classes from "./admin.module.css";
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * Sorting and pagination are registered so the table exposes their state and
@@ -58,19 +57,6 @@ const NUMERIC_COLUMN_IDS: readonly string[] = [
 
 const isCategorySort = (id: string): id is CategorySort =>
 	(Object.values(CATEGORY_SORT) as string[]).includes(id);
-
-const formatTimestamp = (date: Date, locale: Locale) =>
-	new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
-
-/**
- * A brief's target date is a calendar day, stored without a time zone. Read it
- * in UTC, otherwise a reader west of Greenwich sees the day before.
- */
-const formatTargetDate = (date: Date, locale: Locale) =>
-	new Intl.DateTimeFormat(locale, {
-		dateStyle: "medium",
-		timeZone: "UTC",
-	}).format(date);
 
 const buildColumns = (
 	t: Dictionary,
@@ -109,8 +95,8 @@ const buildColumns = (
 				);
 			},
 		}),
-		columnHelper.accessor("isEnable", {
-			id: "isEnable",
+		columnHelper.accessor("isEnabled", {
+			id: "isEnabled",
 			header: labels.columns.state,
 			enableSorting: false,
 			cell: (info) =>
@@ -127,7 +113,7 @@ const buildColumns = (
 		columnHelper.accessor("createdAt", {
 			id: CATEGORY_SORT.CREATED_AT,
 			header: labels.columns.createdAt,
-			cell: (info) => formatTimestamp(info.getValue(), locale),
+			cell: (info) => formatDate(info.getValue(), locale),
 		}),
 		columnHelper.accessor("briefsCount", {
 			id: CATEGORY_SORT.BRIEFS_COUNT,
@@ -149,7 +135,7 @@ const buildColumns = (
 
 				return (
 					<Group gap="xs" wrap="nowrap">
-						<span>{formatTargetDate(lastBrief.targetDate, locale)}</span>
+						<span>{formatCalendarDate(lastBrief.targetDate, locale)}</span>
 						<Badge
 							size="sm"
 							variant="light"
@@ -210,7 +196,7 @@ function RowActionsMenu({
 				</Menu.Item>
 
 				<Menu.Item onClick={() => actions.onToggleEnabled(category)}>
-					{category.isEnable ? labels.disable : labels.enable}
+					{category.isEnabled ? labels.disable : labels.enable}
 				</Menu.Item>
 
 				<Menu.Divider />
@@ -326,10 +312,11 @@ export function CategoriesTable({
 	return (
 		<div className={classes.page}>
 			<div className={classes.toolbar}>
-				<CategorySearchInput
+				<DebouncedSearchInput
 					value={search.q}
-					onSearchChange={onSearchChange}
+					onCommit={(q) => onSearchChange({ q, page: 1 })}
 					labels={labels.search}
+					className={classes.search}
 				/>
 
 				<Button leftSection={<PlusIcon size={16} />} onClick={onCreate}>
@@ -432,29 +419,29 @@ export function CategoriesTable({
 					</Table>
 				</div>
 
+				{/* The table already draws the edge around this, hence `bare`. */}
 				{rows.length === 0 && !isError ? (
-					<div className={classes.empty}>
-						{search.q ? (
-							<>
-								<p className={classes.emptyTitle}>{labels.noResults.title}</p>
-								<p className={classes.emptyBody}>
-									{labels.noResults.body(search.q)}
-								</p>
-								<Button
-									variant="default"
-									size="sm"
-									onClick={() => onSearchChange({ q: undefined, page: 1 })}
-								>
-									{labels.noResults.clear}
-								</Button>
-							</>
-						) : (
-							<>
-								<p className={classes.emptyTitle}>{labels.empty.title}</p>
-								<p className={classes.emptyBody}>{labels.empty.body}</p>
-							</>
-						)}
-					</div>
+					search.q ? (
+						<Notice
+							variant="bare"
+							title={labels.noResults.title}
+							body={labels.noResults.body(search.q)}
+						>
+							<Button
+								variant="default"
+								size="sm"
+								onClick={() => onSearchChange({ q: undefined, page: 1 })}
+							>
+								{labels.noResults.clear}
+							</Button>
+						</Notice>
+					) : (
+						<Notice
+							variant="bare"
+							title={labels.empty.title}
+							body={labels.empty.body}
+						/>
+					)
 				) : null}
 			</Box>
 
@@ -487,63 +474,5 @@ export function CategoriesTable({
 				</div>
 			) : null}
 		</div>
-	);
-}
-
-function CategorySearchInput({
-	value,
-	onSearchChange,
-	labels,
-}: {
-	value: string | undefined;
-	onSearchChange: (patch: Partial<AdminCategoriesSearch>) => void;
-	labels: Dictionary["auth"]["admin"]["categories"]["search"];
-}) {
-	const [term, setTerm] = useState(value ?? "");
-	// What we last pushed to the URL. Without it, the echo of our own update
-	// would overwrite the characters typed while the debounce was running.
-	const committed = useRef(value ?? "");
-
-	useEffect(() => {
-		const next = value ?? "";
-
-		if (next === committed.current) {
-			return;
-		}
-
-		committed.current = next;
-		setTerm(next);
-	}, [value]);
-
-	useEffect(() => {
-		if (term === committed.current) {
-			return;
-		}
-
-		const timeout = setTimeout(() => {
-			committed.current = term;
-			onSearchChange({ q: term.trim() || undefined, page: 1 });
-		}, SEARCH_DEBOUNCE_MS);
-
-		return () => clearTimeout(timeout);
-	}, [term, onSearchChange]);
-
-	return (
-		<TextInput
-			className={classes.search}
-			aria-label={labels.label}
-			placeholder={labels.placeholder}
-			value={term}
-			onChange={(event) => setTerm(event.currentTarget.value)}
-			rightSection={
-				term ? (
-					<CloseButton
-						size="sm"
-						aria-label={labels.clear}
-						onClick={() => setTerm("")}
-					/>
-				) : null
-			}
-		/>
 	);
 }

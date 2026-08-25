@@ -3,8 +3,9 @@ import { Anchor, Button, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AuthCard, AuthNotice } from "#/components/auth/auth-card";
+import { AuthCard } from "#/components/auth/auth-card";
 import { FormNote } from "#/components/auth/form-feedback";
+import { Notice } from "#/components/notice";
 import { ROUTES } from "#/config/routes";
 import {
 	sendVerificationEmail,
@@ -14,14 +15,19 @@ import { unwrap } from "#/libs/api/unwrap";
 import { resolveErrorMessage } from "#/libs/auth/error-message";
 import { redirectIfAuthenticated } from "#/libs/auth/guards";
 import { useI18n } from "#/libs/i18n/context";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
 import { notifyError } from "#/libs/notify";
 
 const MIN_PASSWORD_LENGTH = 8;
 
 export const Route = createFileRoute("/sign-up")({
 	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.signUp.title),
+	// The one page behind the sign-in wall worth a search result: someone
+	// looking for the service by name should land on the form that starts it.
+	head: localisedHead((t) => ({
+		...t.seo.signUp,
+		path: ROUTES.signUp,
+	})),
 	beforeLoad: ({ context }) =>
 		redirectIfAuthenticated({
 			queryClient: context.queryClient,
@@ -90,7 +96,8 @@ function SignUpPage() {
 
 		return (
 			<AuthCard title={t.auth.signUp.title}>
-				<AuthNotice
+				<Notice
+					variant="panel"
 					title={t.auth.signUp.checkInbox.title}
 					body={t.auth.signUp.checkInbox.body(email)}
 				>
@@ -110,7 +117,7 @@ function SignUpPage() {
 					<Anchor component={Link} to={ROUTES.signIn} underline="always">
 						{t.auth.signUp.signIn}
 					</Anchor>
-				</AuthNotice>
+				</Notice>
 			</AuthCard>
 		);
 	}

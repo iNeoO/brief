@@ -115,38 +115,3 @@
 .cardAction {
 	flex: 0 0 auto;
 }
-
-/* ------------------------------------------------------- states & paging */
-
-.notice {
-	padding: 1.75rem;
-	border: 1px dashed var(--brief-line-strong);
-	border-radius: 10px;
-	color: var(--brief-muted);
-	text-wrap: pretty;
-}
-
-.noticeTitle {
-	margin: 0 0 0.375rem;
-	color: var(--brief-text);
-	font-weight: 600;
-}
-
-.noticeBody {
-	margin: 0;
-	font-size: var(--mantine-font-size-sm);
-}
-
-.pagination {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	flex-wrap: wrap;
-	margin-top: 1.5rem;
-}
-
-.paginationPosition {
-	color: var(--brief-muted);
-	font-size: 0.9rem;
-}

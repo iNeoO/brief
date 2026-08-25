@@ -17,6 +17,20 @@
 	color: var(--brief-muted);
 }
 
+.title:has(.titleDate) {
+	margin-bottom: 1.125rem;
+}
+
+.titleDate {
+	display: block;
+	margin-top: 0.4rem;
+	color: var(--brief-muted);
+	font-family: var(--mantine-font-family);
+	font-size: 0.4em;
+	font-weight: 400;
+	letter-spacing: 0;
+}
+
 .backLink {
 	display: inline-block;
 	margin-bottom: 1.5rem;
@@ -67,19 +81,6 @@
 	align-items: center;
 	gap: 1rem;
 	flex-wrap: wrap;
-}
-
-.pagination {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	margin-top: 2rem;
-}
-
-.paginationPosition {
-	color: var(--brief-muted);
-	font-size: 0.9rem;
 }
 
 /* ----------------------------------------------------------------- detail */
@@ -193,20 +194,9 @@
 	font-size: 0.8rem;
 }
 
-.notice {
-	padding: 2rem;
-	border: 1px solid var(--brief-line);
-	border-radius: 10px;
-	background-color: var(--brief-surface);
-	text-align: center;
-}
-
-.noticeTitle {
-	margin: 0 0 0.5rem;
-	font-weight: 600;
-}
-
-.noticeBody {
+/* The brief has text but no audio: a quiet line where the player would be. */
+.noAudio {
 	margin: 0;
 	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
 }

@@ -8,12 +8,12 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { PlainBar } from "#/components/shell/plain-bar";
+import { SiteShell } from "#/components/layout/site-shell";
 import classes from "#/components/shell/shell.module.css";
-import { SignOutButton } from "#/components/shell/sign-out-button";
 import topicClasses from "#/components/topics/topics.module.css";
 import { TopicsSection } from "#/components/topics/topics-section";
 import { ROUTES } from "#/config/routes";
+import { queryLoader } from "#/libs/api/query-loader";
 import {
 	availableTopicsQueryOptions,
 	subscribe,
@@ -24,8 +24,7 @@ import {
 } from "#/libs/api/topics";
 import { requireUser } from "#/libs/auth/guards";
 import { useI18n } from "#/libs/i18n/context";
-import { readStoredLocale } from "#/libs/i18n/locale-cookie";
-import { localisedTitle } from "#/libs/i18n/route-head";
+import { localisedHead } from "#/libs/i18n/route-head";
 import { notifyError, notifySuccess } from "#/libs/notify";
 
 export const Route = createFileRoute("/topics")({
@@ -33,27 +32,15 @@ export const Route = createFileRoute("/topics")({
 	loaderDeps: ({ search }) => search,
 	beforeLoad: ({ context, location }) =>
 		requireUser({ queryClient: context.queryClient, href: location.href }),
-	loader: async ({ context, deps }) => {
-		const subscribedOptions = subscribedTopicsQueryOptions(deps);
-		const availableOptions = availableTopicsQueryOptions(deps);
-
-		if (import.meta.env.SSR) {
-			// First render: wait, so both lists arrive in the HTML and the
-			// component finds them in the cache on hydration.
-			await Promise.all([
-				context.queryClient.ensureQueryData(subscribedOptions),
-				context.queryClient.ensureQueryData(availableOptions),
-			]);
-		} else {
-			// Paging and searching only warm the cache: blocking would freeze the
-			// section on its previous page instead of showing its loading overlay.
-			void context.queryClient.prefetchQuery(subscribedOptions);
-			void context.queryClient.prefetchQuery(availableOptions);
-		}
-
-		return { locale: readStoredLocale() };
-	},
-	head: localisedTitle((d) => d.auth.topics.title),
+	loader: queryLoader(
+		subscribedTopicsQueryOptions,
+		availableTopicsQueryOptions,
+	),
+	head: localisedHead((t) => ({
+		title: t.auth.topics.title,
+		path: ROUTES.topics,
+		noindex: true,
+	})),
 	component: TopicsPage,
 });
 
@@ -83,8 +70,6 @@ function TopicsPage() {
 		[navigate],
 	);
 
-	// Both lists change on every subscribe and unsubscribe: the topic leaves one
-	// and joins the other, and every following page shifts by one row.
 	const refreshLists = useCallback(
 		() => queryClient.invalidateQueries({ queryKey: TOPICS_QUERY_KEY }),
 		[queryClient],
@@ -116,8 +101,6 @@ function TopicsPage() {
 
 	const handleSubscribedTerm = useCallback(
 		(term: string | undefined) =>
-			// Typing must not leave one history entry per keystroke; paging stays
-			// navigable with the back button.
 			patchSearch({ subscribedQ: term, subscribedPage: 1 }, true),
 		[patchSearch],
 	);
@@ -144,12 +127,8 @@ function TopicsPage() {
 	);
 
 	return (
-		<div className={classes.page}>
-			<PlainBar>
-				<SignOutButton />
-			</PlainBar>
-
-			<main id="main" className={`brief-shell ${classes.appMain}`}>
+		<SiteShell>
+			<div className={`brief-shell ${classes.appMain}`}>
 				<Anchor
 					component={Link}
 					to={ROUTES.home}
@@ -199,7 +178,7 @@ function TopicsPage() {
 						}
 					/>
 				</div>
-			</main>
-		</div>
+			</div>
+		</SiteShell>
 	);
 }

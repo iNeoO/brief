@@ -1,11 +1,8 @@
 import type { TopicCard as Topic } from "@brief/services";
 import { Badge, Button } from "@mantine/core";
-import type { Locale } from "#/libs/i18n/config";
+import { formatDate } from "#/libs/format/date";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./topics.module.css";
-
-const formatDate = (date: Date, locale: Locale) =>
-	new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
 
 export function TopicCard({
 	topic,
@@ -30,7 +27,7 @@ export function TopicCard({
 				<div className={classes.cardTitle}>
 					<h3 className={classes.cardName}>{topic.name}</h3>
 
-					{topic.isEnable ? null : (
+					{topic.isEnabled ? null : (
 						<Badge color="gray" variant="light" size="sm">
 							{labels.card.paused}
 						</Badge>

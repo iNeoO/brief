@@ -2,20 +2,11 @@ import type { BriefCard } from "@brief/services";
 import { Title, VisuallyHidden } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { ClockIcon, PlayIcon } from "#/components/icons";
+import { Notice } from "#/components/notice";
 import { ROUTES } from "#/config/routes";
-import type { Locale } from "#/libs/i18n/config";
+import { formatCalendarDate } from "#/libs/format/date";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./home.module.css";
-
-export const formatBriefDate = (date: Date, locale: Locale) =>
-	new Intl.DateTimeFormat(locale, {
-		day: "numeric",
-		month: "long",
-		year: "numeric",
-		// The target date is a calendar day, stored without a time: reading it
-		// in the visitor's zone would shift it by one day west of Greenwich.
-		timeZone: "UTC",
-	}).format(date);
 
 export function LatestBriefs({
 	briefs,
@@ -41,7 +32,11 @@ export function LatestBriefs({
 					</div>
 
 					{briefs.length === 0 ? (
-						<EmptyNotice failed={failed} />
+						<Notice
+							className={classes.briefNotice}
+							title={failed ? t.brief.loadError : t.brief.empty.title}
+							body={failed ? undefined : t.brief.empty.body}
+						/>
 					) : (
 						<>
 							<ul className={classes.briefList}>
@@ -50,7 +45,7 @@ export function LatestBriefs({
 								))}
 							</ul>
 
-							<p className={classes.noticeLink}>
+							<p className={classes.sectionLink}>
 								<Link to={ROUTES.briefs}>{t.brief.seeAll}</Link>
 							</p>
 						</>
@@ -81,7 +76,7 @@ function BriefEntry({ brief }: { brief: BriefCard }) {
 			</div>
 
 			<Title order={3} className={classes.briefHeadline}>
-				{formatBriefDate(brief.targetDate, locale)}
+				{formatCalendarDate(brief.targetDate, locale, "long")}
 			</Title>
 
 			<p className={classes.briefBody}>{brief.excerpt}</p>
@@ -111,20 +106,5 @@ function BriefEntry({ brief }: { brief: BriefCard }) {
 				) : null}
 			</div>
 		</li>
-	);
-}
-
-function EmptyNotice({ failed }: { failed: boolean }) {
-	const { t } = useI18n();
-
-	return (
-		<div className={classes.notice}>
-			<p className={classes.noticeTitle}>
-				{failed ? t.brief.loadError : t.brief.empty.title}
-			</p>
-			{failed ? null : (
-				<p className={classes.noticeBody}>{t.brief.empty.body}</p>
-			)}
-		</div>
 	);
 }

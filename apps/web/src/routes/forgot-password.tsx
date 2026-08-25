@@ -2,18 +2,23 @@ import { Anchor, Button, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AuthCard, AuthNotice } from "#/components/auth/auth-card";
+import { AuthCard } from "#/components/auth/auth-card";
+import { Notice } from "#/components/notice";
 import { ROUTES } from "#/config/routes";
 import { requestPasswordReset } from "#/libs/api/auth";
 import { unwrap } from "#/libs/api/unwrap";
 import { resolveErrorMessage } from "#/libs/auth/error-message";
 import { useI18n } from "#/libs/i18n/context";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
 import { notifyError } from "#/libs/notify";
 
 export const Route = createFileRoute("/forgot-password")({
 	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.forgotPassword.title),
+	head: localisedHead((t) => ({
+		title: t.auth.forgotPassword.title,
+		path: ROUTES.forgotPassword,
+		noindex: true,
+	})),
 	component: ForgotPasswordPage,
 });
 
@@ -57,14 +62,15 @@ function ForgotPasswordPage() {
 	if (request.isSuccess) {
 		return (
 			<AuthCard title={t.auth.forgotPassword.title}>
-				<AuthNotice
+				<Notice
+					variant="panel"
 					title={t.auth.forgotPassword.sent.title}
 					body={t.auth.forgotPassword.sent.body}
 				>
 					<Anchor component={Link} to={ROUTES.signIn} underline="always">
 						{t.auth.forgotPassword.backToSignIn}
 					</Anchor>
-				</AuthNotice>
+				</Notice>
 			</AuthCard>
 		);
 	}

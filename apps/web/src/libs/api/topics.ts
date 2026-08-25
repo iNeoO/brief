@@ -1,10 +1,8 @@
-import {
-	CATEGORY_SEARCH_MAX_LENGTH,
-	PAGINATION,
-} from "@brief/common/constants";
+import { PAGINATION } from "@brief/common/constants";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { pageParam, searchParam } from "#/libs/api/search-params";
 import { authedMiddleware } from "#/libs/server/middleware";
 
 /**
@@ -13,17 +11,7 @@ import { authedMiddleware } from "#/libs/server/middleware";
  * is the catalogue minus what that user already follows.
  */
 
-const pageParam = z.coerce
-	.number()
-	.int()
-	.min(1)
-	.default(PAGINATION.DEFAULT_PAGE);
-
-const searchParam = z
-	.string()
-	.trim()
-	.max(CATEGORY_SEARCH_MAX_LENGTH)
-	.optional();
+const topicsPageParam = pageParam.default(PAGINATION.DEFAULT_PAGE);
 
 /**
  * Each section pages and searches on its own, so the two carry separate
@@ -31,9 +19,9 @@ const searchParam = z
  * halfway down the page.
  */
 export const topicsSearchSchema = z.object({
-	subscribedPage: pageParam,
+	subscribedPage: topicsPageParam,
 	subscribedQ: searchParam,
-	availablePage: pageParam,
+	availablePage: topicsPageParam,
 	availableQ: searchParam,
 });
 
@@ -43,7 +31,7 @@ export type TopicsSearch = z.output<typeof topicsSearchSchema>;
 export const TOPICS_QUERY_KEY = ["topics"] as const;
 
 const listInput = z.object({
-	page: pageParam,
+	page: topicsPageParam,
 	search: searchParam,
 });
 

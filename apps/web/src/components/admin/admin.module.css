@@ -101,19 +101,3 @@
 .pageSize {
 	width: 5.5rem;
 }
-
-.empty {
-	padding: 2.5rem 1rem;
-	text-align: center;
-}
-
-.emptyTitle {
-	margin: 0 0 0.35rem;
-	font-weight: 600;
-}
-
-.emptyBody {
-	margin: 0 0 1rem;
-	color: var(--brief-muted);
-	font-size: var(--mantine-font-size-sm);
-}

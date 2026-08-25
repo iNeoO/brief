@@ -1,11 +1,16 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { AdminShell } from "#/components/admin/admin-shell";
+import { ROUTES } from "#/config/routes";
 import { requireAdmin } from "#/libs/auth/guards";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
 
 export const Route = createFileRoute("/admin")({
 	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.admin.title),
+	head: localisedHead((t) => ({
+		title: t.auth.admin.title,
+		path: ROUTES.admin,
+		noindex: true,
+	})),
 	// Written once here: every admin page inherits the guard from the layout.
 	// It decides what gets rendered — the server functions carry their own
 	// `adminMiddleware`.

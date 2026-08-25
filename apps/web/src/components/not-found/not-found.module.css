@@ -1,0 +1,61 @@
+.page {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding-block: clamp(4rem, 12vw, 7rem);
+	text-align: center;
+}
+
+.code {
+	margin: 0 0 0.75rem;
+	font-family: var(--mantine-font-family-headings);
+	font-size: clamp(3.5rem, 12vw, 5.5rem);
+	font-weight: 600;
+	letter-spacing: -0.04em;
+	line-height: 1;
+	color: var(--brief-faint);
+}
+
+.title {
+	margin: 0 0 0.75rem;
+	letter-spacing: -0.03em;
+	text-wrap: balance;
+}
+
+.lead {
+	margin: 0;
+	max-width: 46ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-lg);
+	line-height: 1.6;
+	text-wrap: pretty;
+}
+
+.actions {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+	margin-top: 2rem;
+}
+
+@media (min-width: 36em) {
+	.actions {
+		flex-direction: row;
+		gap: 1.5rem;
+	}
+}
+
+.secondary {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	color: var(--brief-muted);
+	text-decoration: none;
+	text-underline-offset: 3px;
+}
+
+.secondary:hover {
+	color: var(--brief-text);
+	text-decoration: underline;
+}

@@ -14,40 +14,29 @@ import {
 	type CategoryDialog,
 	CategoryFormModal,
 } from "#/components/admin/category-form-modal";
+import { ROUTES } from "#/config/routes";
 import {
-	ADMIN_CATEGORIES_KEY,
 	type AdminCategoriesSearch,
 	adminCategoriesQueryOptions,
 	adminCategoriesSearchSchema,
 	deleteCategory,
+	refreshCategories,
 	setCategoryEnabled,
 } from "#/libs/api/admin-categories";
+import { queryLoader } from "#/libs/api/query-loader";
 import { useI18n } from "#/libs/i18n/context";
-import { readStoredLocale } from "#/libs/i18n/locale-cookie";
-import { localisedTitle } from "#/libs/i18n/route-head";
+import { localisedHead } from "#/libs/i18n/route-head";
 import { notifyError, notifySuccess } from "#/libs/notify";
 
 export const Route = createFileRoute("/admin/categories")({
 	validateSearch: adminCategoriesSearchSchema,
 	loaderDeps: ({ search }) => search,
-	loader: async ({ context, deps }) => {
-		const options = adminCategoriesQueryOptions(deps);
-
-		if (import.meta.env.SSR) {
-			// First render: wait, so the page arrives with its rows already in the
-			// HTML and the component finds them in the cache on hydration.
-			await context.queryClient.ensureQueryData(options);
-		} else {
-			// Paging, sorting and searching only warm the cache. Blocking here
-			// would hold the navigation back and leave the table frozen without
-			// its loading overlay, since the component would still be rendering
-			// the previous search.
-			void context.queryClient.prefetchQuery(options);
-		}
-
-		return { locale: readStoredLocale() };
-	},
-	head: localisedTitle((d) => d.auth.admin.categories.title),
+	loader: queryLoader(adminCategoriesQueryOptions),
+	head: localisedHead((t) => ({
+		title: t.auth.admin.categories.title,
+		path: ROUTES.adminCategories,
+		noindex: true,
+	})),
 	component: AdminCategoriesPage,
 });
 
@@ -64,8 +53,6 @@ function AdminCategoriesPage() {
 
 	const { data, isFetching, isError } = useQuery({
 		...adminCategoriesQueryOptions(search),
-		// Keeps the previous page on screen while the next one loads, instead of
-		// collapsing the table on every keystroke or page change.
 		placeholderData: keepPreviousData,
 	});
 
@@ -73,8 +60,6 @@ function AdminCategoriesPage() {
 		(patch: Partial<AdminCategoriesSearch>) => {
 			void navigate({
 				search: (previous) => ({ ...previous, ...patch }),
-				// Typing must not leave one history entry per keystroke; paging and
-				// sorting stay navigable with the back button.
 				replace: "q" in patch,
 			});
 		},
@@ -82,20 +67,20 @@ function AdminCategoriesPage() {
 	);
 
 	const refreshList = useCallback(
-		() => queryClient.invalidateQueries({ queryKey: ADMIN_CATEGORIES_KEY }),
+		() => refreshCategories(queryClient),
 		[queryClient],
 	);
 
 	const toggleEnabled = useMutation({
 		mutationFn: (category: AdminCategoryRow) =>
 			setCategoryEnabled({
-				data: { id: category.id, isEnable: !category.isEnable },
+				data: { id: category.id, isEnabled: !category.isEnabled },
 			}),
 		onSuccess: async (_result, category) => {
 			await refreshList();
 
 			notifySuccess(
-				category.isEnable
+				category.isEnabled
 					? labels.notifications.disabled(category.name)
 					: labels.notifications.enabled(category.name),
 			);

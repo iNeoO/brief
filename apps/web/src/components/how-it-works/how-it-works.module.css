@@ -1,0 +1,174 @@
+.page {
+	padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+
+.header {
+	text-align: center;
+}
+
+.title {
+	margin: 0 0 0.75rem;
+	letter-spacing: -0.03em;
+	text-wrap: balance;
+}
+
+.lead {
+	margin: 0 auto;
+	max-width: 52ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-lg);
+	line-height: 1.6;
+	text-wrap: pretty;
+}
+
+/* ----------------------------------------------------------------- diagram */
+
+.figure {
+	margin: 0;
+}
+
+.flow {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0;
+	margin: clamp(2.5rem, 6vw, 3.5rem) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.flowItem {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	max-width: 20rem;
+}
+
+.node {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 1.25rem 1rem;
+	border: 1px solid var(--brief-line-strong);
+	border-radius: var(--mantine-radius-md);
+	background-color: var(--brief-bg);
+	text-align: center;
+}
+
+.nodeIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 999px;
+	background-color: var(--brief-surface);
+	color: var(--mantine-primary-color-filled);
+}
+
+.nodeTitle {
+	margin: 0;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.nodeMeta {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.arrow {
+	flex: 0 0 auto;
+	color: var(--brief-faint);
+	transform: rotate(90deg);
+}
+
+@media (min-width: 48em) {
+	.flow {
+		flex-direction: row;
+		align-items: stretch;
+		gap: 2.25rem;
+	}
+
+	.flowItem {
+		position: relative;
+		flex: 1 1 0;
+		max-width: none;
+	}
+
+	.node {
+		height: 100%;
+		padding: 1.5rem 1rem;
+	}
+
+	.arrow {
+		position: absolute;
+		top: 50%;
+		left: 100%;
+		transform: translate(-50%, -50%);
+		margin-left: 1.125rem;
+	}
+}
+
+.caption {
+	margin: 1.75rem auto 0;
+	max-width: 48ch;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+	text-align: center;
+	text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------------ detail */
+
+.details {
+	margin: clamp(3rem, 8vw, 4.5rem) 0 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--brief-line);
+}
+
+.detail {
+	display: grid;
+	gap: 0.5rem 2rem;
+	padding-block: 1.75rem;
+	border-bottom: 1px solid var(--brief-line);
+}
+
+@media (min-width: 48em) {
+	.detail {
+		grid-template-columns: 14rem 1fr;
+	}
+}
+
+.detailTitle {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+	margin: 0;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.detailNumber {
+	color: var(--brief-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.detailBody {
+	margin: 0;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+	text-wrap: pretty;
+}

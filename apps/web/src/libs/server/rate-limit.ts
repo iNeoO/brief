@@ -24,6 +24,10 @@ const RULES = {
 		ip: { limit: 10, windowSeconds: 3600 },
 		email: { limit: 3, windowSeconds: 3600 },
 	},
+	changePassword: {
+		ip: { limit: 20, windowSeconds: 3600 },
+		email: { limit: 10, windowSeconds: 900 },
+	},
 } as const satisfies Record<string, { ip: Rule; email: Rule }>;
 
 export type RateLimitedAction = keyof typeof RULES;

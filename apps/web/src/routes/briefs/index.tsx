@@ -1,46 +1,63 @@
-import type { BriefCard } from "@brief/services";
-import { Pagination, Title } from "@mantine/core";
+import { PAGINATION } from "@brief/common/constants";
+import { Title } from "@mantine/core";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback } from "react";
 import classes from "#/components/briefs/briefs.module.css";
-import { formatBriefDate } from "#/components/home/latest-briefs";
+import { BriefsList } from "#/components/briefs/briefs-list";
 import { SiteShell } from "#/components/layout/site-shell";
 import { ROUTES } from "#/config/routes";
 import { briefsQueryOptions, briefsSearchSchema } from "#/libs/api/briefs";
+import { prefetchQueries } from "#/libs/api/query-loader";
 import { useI18n } from "#/libs/i18n/context";
 import { readStoredLocale } from "#/libs/i18n/locale-cookie";
-import { localisedTitle } from "#/libs/i18n/route-head";
+import { headDictionary } from "#/libs/i18n/route-head";
+import { pageHead } from "#/libs/seo/page-head";
 
 export const Route = createFileRoute("/briefs/")({
 	validateSearch: briefsSearchSchema,
 	loaderDeps: ({ search }) => search,
 	loader: async ({ context, deps }) => {
-		const options = briefsQueryOptions(deps);
+		await prefetchQueries(context.queryClient, [briefsQueryOptions(deps)]);
 
-		if (import.meta.env.SSR) {
-			await context.queryClient.ensureQueryData(options);
-		} else {
-			// Paging only warms the cache: blocking would freeze the list on the
-			// previous page until the new one lands.
-			void context.queryClient.prefetchQuery(options);
-		}
-
-		return { locale: readStoredLocale() };
+		return {
+			locale: readStoredLocale(),
+			page: deps.page ?? PAGINATION.DEFAULT_PAGE,
+		};
 	},
-	head: localisedTitle((d) => d.briefs.title),
+	head: ({ loaderData }) => {
+		const { locale, t } = headDictionary(loaderData);
+		const page = loaderData?.page ?? PAGINATION.DEFAULT_PAGE;
+		const isFirstPage = page === PAGINATION.DEFAULT_PAGE;
+
+		return pageHead({
+			title: isFirstPage
+				? t.seo.briefs.title
+				: `${t.seo.briefs.title} — ${t.seo.page(page)}`,
+			description: t.seo.briefs.description,
+			path: isFirstPage ? ROUTES.briefs : `${ROUTES.briefs}?page=${page}`,
+			locale,
+		});
+	},
 	component: BriefsPage,
 });
 
 function BriefsPage() {
 	const { t } = useI18n();
 	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
+	const page = search.page ?? PAGINATION.DEFAULT_PAGE;
 
 	const briefs = useQuery({
 		...briefsQueryOptions(search),
 		placeholderData: keepPreviousData,
 	});
 
-	const page = briefs.data;
+	const handlePageChange = useCallback(
+		(page: number) =>
+			void navigate({ search: (previous) => ({ ...previous, page }) }),
+		[navigate],
+	);
 
 	return (
 		<SiteShell>
@@ -52,89 +69,16 @@ function BriefsPage() {
 					<p className={classes.lead}>{t.briefs.lead}</p>
 				</header>
 
-				{briefs.isError ? (
-					<Notice title={t.briefs.loadError} />
-				) : page && page.items.length === 0 ? (
-					<Notice title={t.briefs.empty.title} body={t.briefs.empty.body} />
-				) : (
-					<>
-						<ul className={classes.list}>
-							{(page?.items ?? []).map((brief) => (
-								<BriefRow key={brief.id} brief={brief} />
-							))}
-						</ul>
-
-						{page ? (
-							<BriefsPagination page={page.page} pageCount={page.pageCount} />
-						) : null}
-					</>
-				)}
+				<BriefsList
+					label={t.briefs.title}
+					result={briefs.data}
+					isFetching={briefs.isFetching}
+					isError={briefs.isError}
+					page={page}
+					onPageChange={handlePageChange}
+					empty={t.briefs.empty}
+				/>
 			</div>
 		</SiteShell>
-	);
-}
-
-function BriefRow({ brief }: { brief: BriefCard }) {
-	const { locale, t } = useI18n();
-
-	return (
-		<li className={classes.item}>
-			<div className={classes.itemMeta}>
-				<span className={classes.topic}>{brief.categoryName}</span>
-				<span className={classes.date}>
-					{formatBriefDate(brief.targetDate, locale)}
-				</span>
-				<span className={classes.date}>
-					{t.brief.readTime(brief.readingMinutes)}
-				</span>
-			</div>
-
-			<p className={classes.itemExcerpt}>{brief.excerpt}</p>
-
-			<div className={classes.itemActions}>
-				<Link to={ROUTES.brief} params={{ id: String(brief.id) }}>
-					{t.brief.read}
-				</Link>
-			</div>
-		</li>
-	);
-}
-
-function BriefsPagination({
-	page,
-	pageCount,
-}: {
-	page: number;
-	pageCount: number;
-}) {
-	const { t } = useI18n();
-	const navigate = Route.useNavigate();
-
-	// Same shape as the admin table: the search param is the source of truth,
-	// and the control only navigates to it.
-	return (
-		<nav className={classes.pagination} aria-label={t.briefs.title}>
-			<Pagination
-				size="sm"
-				total={pageCount}
-				value={page}
-				onChange={(next) =>
-					void navigate({ search: (previous) => ({ ...previous, page: next }) })
-				}
-			/>
-
-			<span className={classes.paginationPosition}>
-				{t.briefs.pagination.position(page, pageCount)}
-			</span>
-		</nav>
-	);
-}
-
-function Notice({ title, body }: { title: string; body?: string }) {
-	return (
-		<div className={classes.notice}>
-			<p className={classes.noticeTitle}>{title}</p>
-			{body ? <p className={classes.noticeBody}>{body}</p> : null}
-		</div>
 	);
 }

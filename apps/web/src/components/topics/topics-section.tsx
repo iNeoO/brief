@@ -1,20 +1,13 @@
 import type { Paginated } from "@brief/common/types";
 import type { TopicCard as Topic } from "@brief/services";
-import {
-	Box,
-	CloseButton,
-	LoadingOverlay,
-	Pagination,
-	TextInput,
-	Title,
-} from "@mantine/core";
-import { useEffect, useRef, useState } from "react";
+import { Box, LoadingOverlay, Title } from "@mantine/core";
+import { DebouncedSearchInput } from "#/components/debounced-search-input";
+import { Notice } from "#/components/notice";
+import { PaginationFooter, usePageClamp } from "#/components/pagination-footer";
 import { useI18n } from "#/libs/i18n/context";
 import type { Dictionary } from "#/libs/i18n/dictionaries";
 import { TopicCard } from "./topic-card";
 import classes from "./topics.module.css";
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * The dictionary is the contract: both sections must offer the same labels,
@@ -55,14 +48,7 @@ export function TopicsSection({
 	const { t } = useI18n();
 	const hasSearch = Boolean(term);
 
-	// A page that no longer exists — the last subscription of page 3 was just
-	// removed, or the URL was hand-edited — sends the reader to the last one
-	// rather than showing an empty list.
-	useEffect(() => {
-		if (result && result.page > result.pageCount) {
-			onPageChange(result.pageCount);
-		}
-	}, [result, onPageChange]);
+	usePageClamp(result, onPageChange);
 
 	return (
 		<section className={classes.section}>
@@ -78,10 +64,10 @@ export function TopicsSection({
 
 			<p className={classes.sectionLead}>{labels.lead}</p>
 
-			<SearchInput
+			<DebouncedSearchInput
 				value={term}
-				onTermChange={onTermChange}
-				labels={labels}
+				onCommit={onTermChange}
+				labels={labels.search}
 				className={classes.search}
 			/>
 
@@ -121,89 +107,13 @@ export function TopicsSection({
 				</Box>
 			)}
 
-			{result && result.pageCount > 1 ? (
-				<nav className={classes.pagination} aria-label={labels.title}>
-					<Pagination
-						size="sm"
-						total={result.pageCount}
-						value={page}
-						onChange={onPageChange}
-					/>
-
-					<span className={classes.paginationPosition}>
-						{t.auth.topics.pagination(page, result.pageCount)}
-					</span>
-				</nav>
-			) : null}
+			<PaginationFooter
+				label={labels.title}
+				page={page}
+				pageCount={result?.pageCount}
+				position={t.auth.topics.pagination}
+				onPageChange={onPageChange}
+			/>
 		</section>
-	);
-}
-
-function SearchInput({
-	value,
-	onTermChange,
-	labels,
-	className,
-}: {
-	value: string | undefined;
-	onTermChange: (term: string | undefined) => void;
-	labels: TopicsSectionLabels;
-	className: string;
-}) {
-	const [term, setTerm] = useState(value ?? "");
-	// What we last pushed to the URL. Without it, the echo of our own update
-	// would overwrite the characters typed while the debounce was running.
-	const committed = useRef(value ?? "");
-
-	useEffect(() => {
-		const next = value ?? "";
-
-		if (next === committed.current) {
-			return;
-		}
-
-		committed.current = next;
-		setTerm(next);
-	}, [value]);
-
-	useEffect(() => {
-		if (term === committed.current) {
-			return;
-		}
-
-		const timeout = setTimeout(() => {
-			committed.current = term;
-			onTermChange(term.trim() || undefined);
-		}, SEARCH_DEBOUNCE_MS);
-
-		return () => clearTimeout(timeout);
-	}, [term, onTermChange]);
-
-	return (
-		<TextInput
-			className={className}
-			aria-label={labels.search.label}
-			placeholder={labels.search.placeholder}
-			value={term}
-			onChange={(event) => setTerm(event.currentTarget.value)}
-			rightSection={
-				term ? (
-					<CloseButton
-						size="sm"
-						aria-label={labels.search.clear}
-						onClick={() => setTerm("")}
-					/>
-				) : null
-			}
-		/>
-	);
-}
-
-function Notice({ title, body }: { title: string; body?: string }) {
-	return (
-		<div className={classes.notice}>
-			<p className={classes.noticeTitle}>{title}</p>
-			{body ? <p className={classes.noticeBody}>{body}</p> : null}
-		</div>
 	);
 }

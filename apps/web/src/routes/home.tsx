@@ -1,60 +1,81 @@
-import { USER_ROLE } from "@brief/common/constants";
-import { Anchor, Title } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
+import { PAGINATION } from "@brief/common/constants";
+import { Button, Title } from "@mantine/core";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PlainBar } from "#/components/shell/plain-bar";
+import { useCallback } from "react";
+import briefClasses from "#/components/briefs/briefs.module.css";
+import { BriefsList } from "#/components/briefs/briefs-list";
+import { SiteShell } from "#/components/layout/site-shell";
 import classes from "#/components/shell/shell.module.css";
-import { SignOutButton } from "#/components/shell/sign-out-button";
 import { ROUTES } from "#/config/routes";
-import { sessionQueryOptions } from "#/libs/api/auth";
+import {
+	briefsSearchSchema,
+	subscribedBriefsQueryOptions,
+} from "#/libs/api/briefs";
+import { queryLoader } from "#/libs/api/query-loader";
 import { requireUser } from "#/libs/auth/guards";
 import { useI18n } from "#/libs/i18n/context";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localisedHead } from "#/libs/i18n/route-head";
 
 export const Route = createFileRoute("/home")({
-	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.home.title),
+	validateSearch: briefsSearchSchema,
+	loaderDeps: ({ search }) => search,
 	beforeLoad: ({ context, location }) =>
 		requireUser({ queryClient: context.queryClient, href: location.href }),
+	loader: queryLoader(subscribedBriefsQueryOptions),
+	head: localisedHead((t) => ({
+		title: t.auth.home.title,
+		path: ROUTES.home,
+		noindex: true,
+	})),
 	component: HomePage,
 });
 
 function HomePage() {
 	const { t } = useI18n();
-	const { data: session } = useQuery(sessionQueryOptions());
-	const user = session?.user;
+	const labels = t.auth.home;
+	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
+
+	const briefs = useQuery({
+		...subscribedBriefsQueryOptions(search),
+		placeholderData: keepPreviousData,
+	});
+
+	const handlePageChange = useCallback(
+		(page: number) =>
+			void navigate({ search: (previous) => ({ ...previous, page }) }),
+		[navigate],
+	);
 
 	return (
-		<div className={classes.page}>
-			<PlainBar>
-				<SignOutButton />
-			</PlainBar>
+		<SiteShell>
+			<div className={`brief-shell ${classes.appMain}`}>
+				<header className={briefClasses.header}>
+					<Title order={1} className={briefClasses.title}>
+						{labels.title}
+					</Title>
+					<p className={briefClasses.lead}>{labels.lead}</p>
+				</header>
 
-			<main id="main" className={`brief-shell ${classes.appMain}`}>
-				<Title order={1} className={classes.appHeading}>
-					{t.auth.home.title}
-				</Title>
-
-				{user ? (
-					<p className={classes.appMeta}>
-						{t.auth.home.greeting(user.name || user.email)}
-					</p>
-				) : null}
-
-				<p className={classes.appPlaceholder}>{t.auth.home.placeholder}</p>
-
-				<div className={classes.appActions}>
-					<Anchor component={Link} to={ROUTES.topics} underline="always">
-						{t.auth.home.manageTopics}
-					</Anchor>
-
-					{user?.role === USER_ROLE.ADMIN ? (
-						<Anchor component={Link} to={ROUTES.admin} underline="always">
-							{t.auth.home.adminArea}
-						</Anchor>
-					) : null}
-				</div>
-			</main>
-		</div>
+				<BriefsList
+					label={labels.title}
+					result={briefs.data}
+					isFetching={briefs.isFetching}
+					isError={briefs.isError}
+					page={search.page ?? PAGINATION.DEFAULT_PAGE}
+					onPageChange={handlePageChange}
+					empty={{
+						title: labels.empty.title,
+						body: labels.empty.body,
+						action: (
+							<Button component={Link} to={ROUTES.topics} size="sm" radius="sm">
+								{labels.empty.cta}
+							</Button>
+						),
+					}}
+				/>
+			</div>
+		</SiteShell>
 	);
 }

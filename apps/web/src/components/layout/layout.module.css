@@ -19,6 +19,18 @@
 	text-decoration: none;
 }
 
+.shell {
+	display: flex;
+	flex-direction: column;
+	min-height: 100dvh;
+}
+
+.shellMain {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
 .header {
 	position: sticky;
 	top: 0;
@@ -110,6 +122,55 @@
 .languageTrigger:hover {
 	color: var(--brief-text);
 	background-color: var(--brief-surface);
+}
+
+/* ------------------------------------------------------------ account menu */
+
+/* An initial in a circle: the signed-in counterpart of the sign-in buttons,
+   which is why it sits at the same 44px touch height as the other actions. */
+.accountTrigger {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	margin-inline: 0.25rem;
+	padding: 0;
+	border: 1px solid var(--brief-line-strong);
+	border-radius: 50%;
+	background: transparent;
+	color: var(--brief-text);
+	cursor: pointer;
+}
+
+.accountTrigger:hover {
+	background-color: var(--brief-surface);
+	border-color: var(--mantine-primary-color-filled);
+}
+
+.accountInitial {
+	font-family: var(--mantine-font-family-headings);
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+	line-height: 1;
+}
+
+.accountIdentity {
+	padding: 0.625rem 0.75rem 0.5rem;
+}
+
+.accountName {
+	margin: 0;
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.accountEmail {
+	margin: 0.125rem 0 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+	overflow-wrap: anywhere;
 }
 
 .languageCode {

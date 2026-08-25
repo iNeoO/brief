@@ -1,4 +1,6 @@
 import { Title } from "@mantine/core";
+import { Link } from "@tanstack/react-router";
+import { ROUTES } from "#/config/routes";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./home.module.css";
 
@@ -26,6 +28,12 @@ export function HowItWorks() {
 						</div>
 					))}
 				</div>
+
+				<p className={classes.sectionMore}>
+					<Link to={ROUTES.howItWorks} className={classes.sectionLink}>
+						{t.method.seeMore}
+					</Link>
+				</p>
 			</div>
 		</section>
 	);

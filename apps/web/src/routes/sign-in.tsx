@@ -23,12 +23,16 @@ import { getErrorStatus, resolveErrorMessage } from "#/libs/auth/error-message";
 import { redirectIfAuthenticated } from "#/libs/auth/guards";
 import { safeRedirectPath } from "#/libs/auth/redirect";
 import { useI18n } from "#/libs/i18n/context";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
 import { notifyError } from "#/libs/notify";
 
 export const Route = createFileRoute("/sign-in")({
 	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.signIn.title),
+	head: localisedHead((t) => ({
+		title: t.auth.signIn.title,
+		path: ROUTES.signIn,
+		noindex: true,
+	})),
 	// Search params are untrusted: narrow to the one key this page reads.
 	validateSearch: (search: Record<string, unknown>) => ({
 		redirect: typeof search.redirect === "string" ? search.redirect : undefined,

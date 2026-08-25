@@ -1,16 +1,21 @@
 import { Button, Loader, Stack, Text } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AuthCard, AuthNotice } from "#/components/auth/auth-card";
+import { AuthCard } from "#/components/auth/auth-card";
+import { Notice } from "#/components/notice";
 import { ROUTES } from "#/config/routes";
 import { verifyEmail } from "#/libs/api/auth";
 import { unwrap } from "#/libs/api/unwrap";
 import { useI18n } from "#/libs/i18n/context";
-import { localeLoader, localisedTitle } from "#/libs/i18n/route-head";
+import { localeLoader, localisedHead } from "#/libs/i18n/route-head";
 
 export const Route = createFileRoute("/validate-email")({
 	loader: localeLoader,
-	head: localisedTitle((d) => d.auth.validateEmail.pageTitle),
+	head: localisedHead((t) => ({
+		title: t.auth.validateEmail.pageTitle,
+		path: ROUTES.validateEmail,
+		noindex: true,
+	})),
 	/*
 	 * The link better-auth mails out is
 	 * `/validate-email?token=<jwt>&callbackURL=%2F`. Only the token is read:
@@ -35,14 +40,15 @@ function MissingToken() {
 
 	return (
 		<AuthCard title={t.auth.validateEmail.pageTitle}>
-			<AuthNotice
+			<Notice
+				variant="panel"
 				title={t.auth.validateEmail.missingToken.title}
 				body={t.auth.validateEmail.missingToken.body}
 			>
 				<Button component={Link} to={ROUTES.signIn} size="sm" variant="default">
 					{t.auth.validateEmail.failed.cta}
 				</Button>
-			</AuthNotice>
+			</Notice>
 		</AuthCard>
 	);
 }
@@ -80,28 +86,30 @@ function VerifyToken({ token }: { token: string }) {
 	if (verification.isError) {
 		return (
 			<AuthCard title={t.auth.validateEmail.pageTitle}>
-				<AuthNotice
+				<Notice
+					variant="panel"
 					title={t.auth.validateEmail.failed.title}
 					body={t.auth.validateEmail.failed.body}
 				>
 					<Button component={Link} to={ROUTES.signIn} size="sm">
 						{t.auth.validateEmail.failed.cta}
 					</Button>
-				</AuthNotice>
+				</Notice>
 			</AuthCard>
 		);
 	}
 
 	return (
 		<AuthCard title={t.auth.validateEmail.pageTitle}>
-			<AuthNotice
+			<Notice
+				variant="panel"
 				title={t.auth.validateEmail.done.title}
 				body={t.auth.validateEmail.done.body}
 			>
 				<Button component={Link} to={ROUTES.signIn} size="sm">
 					{t.auth.validateEmail.done.cta}
 				</Button>
-			</AuthNotice>
+			</Notice>
 		</AuthCard>
 	);
 }

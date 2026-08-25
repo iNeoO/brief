@@ -1,32 +1,3 @@
-.page {
-	display: flex;
-	flex-direction: column;
-	/* dvh, so mobile browser chrome collapsing does not leave a short page. */
-	min-height: 100dvh;
-}
-
-.bar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 1rem;
-	min-height: 60px;
-	border-bottom: 1px solid var(--brief-line);
-}
-
-.barActions {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.wordmarkLink {
-	display: inline-flex;
-	align-items: center;
-	min-height: 44px;
-	text-decoration: none;
-}
-
 /* ------------------------------------------------------------- auth pages */
 
 .centered {
@@ -70,37 +41,7 @@
 	flex-wrap: wrap;
 }
 
-/* A short, calm status panel: used for "check your inbox" and friends. */
-.notice {
-	padding: 1.5rem 1.25rem;
-	border: 1px solid var(--brief-line-strong);
-	border-radius: var(--mantine-radius-md);
-}
-
-.noticeTitle {
-	margin: 0 0 0.5rem;
-	font-family: var(--mantine-font-family-headings);
-	font-size: 1.125rem;
-	font-weight: 600;
-	letter-spacing: -0.01em;
-}
-
-.noticeBody {
-	margin: 0;
-	color: var(--brief-muted);
-	font-size: var(--mantine-font-size-sm);
-	text-wrap: pretty;
-}
-
-.noticeActions {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	flex-wrap: wrap;
-	margin-top: 1.25rem;
-}
-
-/* --------------------------------------------------- signed-in placeholder */
+/* ----------------------------------------------------- signed-in pages */
 
 .appMain {
 	flex: 1;
@@ -116,21 +57,4 @@
 	margin: 0 0 2rem;
 	color: var(--brief-muted);
 	font-size: var(--mantine-font-size-sm);
-}
-
-.appPlaceholder {
-	max-width: var(--brief-measure);
-	padding: 1.75rem 1.5rem;
-	border: 1px dashed var(--brief-line-strong);
-	border-radius: var(--mantine-radius-md);
-	color: var(--brief-muted);
-	text-wrap: pretty;
-}
-
-.appActions {
-	display: flex;
-	align-items: center;
-	gap: 1.5rem;
-	flex-wrap: wrap;
-	margin-top: 2rem;
 }

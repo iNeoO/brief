@@ -1,10 +1,11 @@
 import { AppShell, Burger, Group, NavLink, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { AccountMenu } from "#/components/layout/account-menu";
 import { ColorSchemeToggle } from "#/components/layout/color-scheme-toggle";
+import { HeaderNav } from "#/components/layout/header-nav";
 import { LanguageMenu } from "#/components/layout/language-menu";
 import { Wordmark } from "#/components/layout/wordmark";
-import { SignOutButton } from "#/components/shell/sign-out-button";
 import { ROUTES } from "#/config/routes";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./admin.module.css";
@@ -44,17 +45,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 							aria-label={t.auth.admin.nav.toggle}
 						/>
 
-						<a
-							href={ROUTES.landing}
+						<Link
+							to={ROUTES.landing}
 							className={classes.wordmarkLink}
 							aria-label={t.a11y.homeLink}
 						>
 							<Wordmark />
-						</a>
+						</Link>
 					</Group>
 
+					<HeaderNav />
+
 					<Group gap="xs" wrap="nowrap">
-						<SignOutButton />
+						<AccountMenu />
 						<ColorSchemeToggle />
 						<LanguageMenu />
 					</Group>

@@ -104,3 +104,74 @@ export function CheckIcon({ size = 16, className }: IconProps) {
 		</Glyph>
 	);
 }
+
+export function ArrowRightIcon({ size = 20, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<path d="M4 12h15m-6-6 6 6-6 6" />
+		</Glyph>
+	);
+}
+
+export function ListIcon({ size = 20, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<path d="m3 6.5 2 2 3.5-3.5M3 17.5l2 2 3.5-3.5" />
+			<path d="M12 7h9M12 18h9" />
+		</Glyph>
+	);
+}
+
+export function NewspaperIcon({ size = 20, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<path d="M4 5h13v14H5.5A1.5 1.5 0 0 1 4 17.5Z" />
+			<path d="M17 9h3v8.5a1.5 1.5 0 0 1-3 0Z" />
+			<path d="M7 8.5h7M7 12h7M7 15.5h4" />
+		</Glyph>
+	);
+}
+
+export function SparkIcon({ size = 20, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<path d="M12 3.5c.9 3.6 2.4 5.1 6 6-3.6.9-5.1 2.4-6 6-.9-3.6-2.4-5.1-6-6 3.6-.9 5.1-2.4 6-6Z" />
+			<path d="M5 16.5c.4 1.6 1 2.2 2.5 2.6-1.5.4-2.1 1-2.5 2.6-.4-1.6-1-2.2-2.5-2.6 1.5-.4 2.1-1 2.5-2.6Z" />
+		</Glyph>
+	);
+}
+
+export function MailIcon({ size = 20, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<rect x="3" y="5.5" width="18" height="13" rx="2" />
+			<path d="m3.5 7 8.5 6 8.5-6" />
+		</Glyph>
+	);
+}
+
+export function UserIcon({ size = 18, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<circle cx="12" cy="8" r="3.75" />
+			<path d="M4.75 20a7.25 7.25 0 0 1 14.5 0" />
+		</Glyph>
+	);
+}
+
+export function ShieldIcon({ size = 18, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<path d="M12 3.25l7 2.5v5.5c0 4-2.9 7.6-7 9.5-4.1-1.9-7-5.5-7-9.5v-5.5Z" />
+		</Glyph>
+	);
+}
+
+export function SignOutIcon({ size = 18, className }: IconProps) {
+	return (
+		<Glyph size={size} className={className}>
+			<path d="M15 4.75H6.5v14.5H15" />
+			<path d="M12.5 12h8m0 0-3-3m3 3-3 3" />
+		</Glyph>
+	);
+}
