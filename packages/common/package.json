@@ -16,12 +16,6 @@
 				"default": "./dist/constants/index.js"
 			}
 		},
-		"./schemas": {
-			"import": {
-				"types": "./dist/schema/index.d.ts",
-				"default": "./dist/schema/index.js"
-			}
-		},
 		"./utils": {
 			"import": {
 				"types": "./dist/utils/index.d.ts",
@@ -32,6 +26,7 @@
 	"scripts": {
 		"build": "rm -rf dist && tsc",
 		"lint": "biome check",
+		"lint:fix": "biome check --write",
 		"typecheck": "tsc --noEmit"
 	},
 	"license": "MIT",
