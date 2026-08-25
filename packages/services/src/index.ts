@@ -25,3 +25,6 @@ export * from "./modules/scheduler/scheduler.type.js";
 export * from "./modules/subscriptions/subscriptions.helper.js";
 export * from "./modules/subscriptions/subscriptions.service.js";
 export * from "./modules/subscriptions/subscriptions.type.js";
+export * from "./modules/whatsapp/whatsapp.helper.js";
+export * from "./modules/whatsapp/whatsapp.service.js";
+export * from "./modules/whatsapp/whatsapp.type.js";
