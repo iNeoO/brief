@@ -49,13 +49,19 @@ export class RssConnector implements ArticleConnector {
 					return null;
 				}
 
+				// SPIP feeds — a large share of the independent French press —
+				// carry no `pubDate` and date their items with Dublin Core
+				// instead. `dc.dates` is the repeatable form; feedsmith's
+				// singular `dc.date` is deprecated.
+				const publishedAt = item.pubDate ?? item.dc?.dates?.[0];
+
 				return {
 					url,
 					title: item.title as string,
 					description: item.description,
 					content,
 					imageUrl: item.enclosures?.[0]?.url ?? null,
-					publishedAt: item.pubDate ? new Date(item.pubDate) : null,
+					publishedAt: publishedAt ? new Date(publishedAt) : null,
 				};
 			}),
 		);

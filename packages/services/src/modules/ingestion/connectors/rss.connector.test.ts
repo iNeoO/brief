@@ -33,6 +33,23 @@ const serve = (rss: string) =>
 		url === FEED_URL ? rss : `${url} body`,
 	);
 
+/** SPIP dates its items with Dublin Core and emits no `pubDate`. */
+const spipFeed = (items: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+	<channel>
+		<title>Example</title>
+		${items}
+	</channel>
+</rss>`;
+
+const dcItem = (extra = "") => `<item>
+	<title>Article 1</title>
+	<link>https://example.test/article-1</link>
+	<description>Description 1</description>
+	${extra}
+	<dc:date>2026-08-24T04:00:00Z</dc:date>
+</item>`;
+
 const fetchLatest = (limit = 10) =>
 	new RssConnector().fetchLatest({ url: FEED_URL, limit, label: "Example" });
 
@@ -108,6 +125,24 @@ describe("RssConnector", () => {
 			url: "https://example.test/article-1",
 			context: "Example article",
 		});
+	});
+
+	it("falls back to the Dublin Core date when an item has no pubDate", async () => {
+		serve(spipFeed(dcItem()));
+
+		const articles = await fetchLatest();
+
+		expect(articles[0]?.publishedAt).toEqual(new Date("2026-08-24T04:00:00Z"));
+	});
+
+	it("prefers pubDate over the Dublin Core date when both are present", async () => {
+		serve(spipFeed(dcItem("<pubDate>Mon, 03 Aug 2026 10:01:00 GMT</pubDate>")));
+
+		const articles = await fetchLatest();
+
+		expect(articles[0]?.publishedAt).toEqual(
+			new Date("Mon, 03 Aug 2026 10:01:00 GMT"),
+		);
 	});
 
 	it("throws CONNECTOR_PARSE_ERROR when the feed holds no items", async () => {
