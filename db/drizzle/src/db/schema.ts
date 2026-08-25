@@ -45,7 +45,10 @@ export const categories = pgTable("categories", {
 		.$onUpdate(() => new Date()),
 });
 
-export const connectorKind = pgEnum("connector_kind", [CONNECTOR_KIND.RSS]);
+export const connectorKind = pgEnum("connector_kind", [
+	CONNECTOR_KIND.RSS,
+	CONNECTOR_KIND.ATOM,
+]);
 
 export const providers = pgTable(
 	"providers",

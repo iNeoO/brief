@@ -1,76 +1,24 @@
-import { InternalError } from "@brief/infra/errors";
-import { getLoggerStore } from "@brief/infra/libs";
 import { parseRssFeed } from "feedsmith";
-import { extractArticle } from "../../../helpers/extractArticle.helper.js";
-import { fetchText } from "../../../helpers/fetchText.helper.js";
-import type {
-	ArticleConnector,
-	FetchLatestInput,
-	RawArticle,
-} from "../connector.port.js";
+import type { FeedItem } from "../connector.port.js";
+import { FeedConnector } from "./feed.connector.js";
 
-export class RssConnector implements ArticleConnector {
-	async fetchLatest({ url, limit, label }: FetchLatestInput) {
-		const rss = await fetchText({ url, context: `${label} feed` });
-		return this.parse(rss, { limit, label });
-	}
-
-	protected async parse(
-		rss: string,
-		{ limit, label }: { limit: number; label: string },
-	): Promise<RawArticle[]> {
+export class RssConnector extends FeedConnector {
+	protected async parseItems(rss: string, label: string): Promise<FeedItem[]> {
 		const parsed = await parseRssFeed(rss);
 		if (!parsed?.items || !Array.isArray(parsed.items)) {
-			const logger = getLoggerStore();
-			logger.error({ rss, label }, "Failed to parse RSS feed");
-			throw new InternalError({
-				message: "Failed to parse RSS feed",
-				code: "CONNECTOR_PARSE_ERROR",
-			});
+			this.parseError(rss, label, "Failed to parse RSS feed");
 		}
 
-		const items = parsed.items
-			.filter((item) => item.link && item.title)
-			.slice(0, limit);
-
-		const articles = await Promise.all(
-			items.map(async (item) => {
-				const url = item.link as string;
-
-				let content: string;
-				try {
-					content = await this.parseArticle(url, label);
-				} catch (err) {
-					const logger = getLoggerStore();
-					logger.warn(
-						{ err, url },
-						"Skipping article, failed to fetch content",
-					);
-					return null;
-				}
-
-				// SPIP feeds — a large share of the independent French press —
-				// carry no `pubDate` and date their items with Dublin Core
-				// instead. `dc.dates` is the repeatable form; feedsmith's
-				// singular `dc.date` is deprecated.
-				const publishedAt = item.pubDate ?? item.dc?.dates?.[0];
-
-				return {
-					url,
-					title: item.title as string,
-					description: item.description,
-					content,
-					imageUrl: item.enclosures?.[0]?.url ?? null,
-					publishedAt: publishedAt ? new Date(publishedAt) : null,
-				};
-			}),
-		);
-
-		return articles.filter((article) => article !== null);
-	}
-
-	protected async parseArticle(url: string, label: string) {
-		const html = await fetchText({ url, context: `${label} article` });
-		return extractArticle(html, url);
+		return parsed.items.map((item) => ({
+			title: item.title,
+			link: item.link,
+			description: item.description,
+			imageUrl: item.enclosures?.[0]?.url ?? null,
+			// SPIP feeds — a large share of the independent French press — carry
+			// no `pubDate` and date their items with Dublin Core instead.
+			// `dc.dates` is the repeatable form; the singular `dc.date` that
+			// feedsmith also exposes is deprecated.
+			publishedAt: item.pubDate ?? item.dc?.dates?.[0],
+		}));
 	}
 }
