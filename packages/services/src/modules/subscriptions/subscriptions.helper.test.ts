@@ -6,57 +6,38 @@ import {
 import { describe, expect, it } from "vitest";
 import { normalizeListTopicsInput } from "./subscriptions.helper.js";
 
+/**
+ * Paging and search are settled by `listQuery.helper`, which owns their edge
+ * cases; what matters here is that a topic list pages by its own fixed size,
+ * whatever the caller asks for.
+ */
 describe("normalizeListTopicsInput", () => {
 	it("falls back to the first page and no search when nothing is provided", () => {
 		expect(normalizeListTopicsInput({})).toEqual({
 			page: PAGINATION.DEFAULT_PAGE,
 			pageSize: TOPICS_PAGE_SIZE,
+			offset: 0,
 			searchPattern: undefined,
 		});
 	});
 
-	it("clamps a page below the first one", () => {
-		expect(normalizeListTopicsInput({ page: 0 }).page).toBe(
-			PAGINATION.DEFAULT_PAGE,
-		);
-		expect(normalizeListTopicsInput({ page: -3 }).page).toBe(
-			PAGINATION.DEFAULT_PAGE,
-		);
+	it("offsets by whole pages of its own size", () => {
+		expect(normalizeListTopicsInput({ page: 3 })).toMatchObject({
+			page: 3,
+			pageSize: TOPICS_PAGE_SIZE,
+			offset: 2 * TOPICS_PAGE_SIZE,
+		});
 	});
 
-	it("truncates a fractional page rather than rejecting it", () => {
-		expect(normalizeListTopicsInput({ page: 2.9 }).page).toBe(2);
-	});
-
-	it("falls back on a page that is not a finite number", () => {
-		expect(normalizeListTopicsInput({ page: Number.NaN }).page).toBe(
-			PAGINATION.DEFAULT_PAGE,
-		);
-	});
-
-	it("wraps the search term in an ILIKE pattern", () => {
+	it("turns the search term into an ILIKE pattern, capped", () => {
 		expect(
-			normalizeListTopicsInput({ search: "  climat " }).searchPattern,
-		).toBe("%climat%");
-	});
+			normalizeListTopicsInput({ search: "  100% climat " }),
+		).toMatchObject({ searchPattern: "%100\\% climat%" });
 
-	it("escapes the ILIKE wildcards of the search term", () => {
-		expect(normalizeListTopicsInput({ search: "100%" }).searchPattern).toBe(
-			"%100\\%%",
-		);
-	});
-
-	it("treats a blank search as no search", () => {
-		expect(normalizeListTopicsInput({ search: "   " }).searchPattern).toBe(
-			undefined,
-		);
-	});
-
-	it("caps the search length before building the pattern", () => {
-		const pattern = normalizeListTopicsInput({
+		const { searchPattern } = normalizeListTopicsInput({
 			search: "a".repeat(CATEGORY_SEARCH_MAX_LENGTH + 50),
-		}).searchPattern;
+		});
 
-		expect(pattern).toBe(`%${"a".repeat(CATEGORY_SEARCH_MAX_LENGTH)}%`);
+		expect(searchPattern).toBe(`%${"a".repeat(CATEGORY_SEARCH_MAX_LENGTH)}%`);
 	});
 });

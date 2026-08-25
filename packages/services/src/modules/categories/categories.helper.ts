@@ -3,10 +3,13 @@ import {
 	CATEGORY_SORT,
 	DEFAULT_CATEGORY_SORT,
 	DEFAULT_CATEGORY_SORT_ORDER,
-	PAGINATION,
-	SORT_ORDER,
 } from "@brief/common/constants";
-import type { CategorySort, SortOrder } from "@brief/common/types";
+import type { CategorySort } from "@brief/common/types";
+import {
+	normalizePage,
+	normalizeSort,
+	toSearchPattern,
+} from "../../helpers/listQuery.helper.js";
 import type {
 	ListAdminCategoriesInput,
 	NormalizedListAdminCategoriesInput,
@@ -15,28 +18,10 @@ import type {
 const CATEGORY_SORT_VALUES: readonly CategorySort[] =
 	Object.values(CATEGORY_SORT);
 
-const SORT_ORDER_VALUES: readonly SortOrder[] = Object.values(SORT_ORDER);
-
 /**
- * `%` and `_` are wildcards for ILIKE, and `\` escapes them. An admin typing
- * "100%" must search for that literal text, not for "100" followed by
- * anything.
- */
-export const escapeLikePattern = (value: string) =>
-	value.replace(/[\\%_]/g, "\\$&");
-
-const clamp = (value: number, min: number, max: number) =>
-	Math.min(Math.max(value, min), max);
-
-const toPositiveInteger = (value: number | undefined, fallback: number) =>
-	typeof value === "number" && Number.isFinite(value)
-		? Math.trunc(value)
-		: fallback;
-
-/**
- * Settles every input of the admin category list. Out-of-range values are
- * clamped and unknown ones fall back rather than throwing: these values reach
- * the service straight from the URL.
+ * Settles every input of the admin category list: the paging, the column the
+ * table is sorted by, and the search box. The admin picks the page size here,
+ * hence the default and the ceiling of `normalizePage`.
  */
 export const normalizeListAdminCategoriesInput = ({
 	page,
@@ -44,29 +29,15 @@ export const normalizeListAdminCategoriesInput = ({
 	sort,
 	order,
 	search,
-}: ListAdminCategoriesInput): NormalizedListAdminCategoriesInput => {
-	const trimmedSearch = search?.trim().slice(0, CATEGORY_SEARCH_MAX_LENGTH);
-
-	return {
-		page: Math.max(
-			toPositiveInteger(page, PAGINATION.DEFAULT_PAGE),
-			PAGINATION.DEFAULT_PAGE,
-		),
-		pageSize: clamp(
-			toPositiveInteger(pageSize, PAGINATION.DEFAULT_PAGE_SIZE),
-			1,
-			PAGINATION.MAX_PAGE_SIZE,
-		),
-		sort:
-			sort && CATEGORY_SORT_VALUES.includes(sort)
-				? sort
-				: DEFAULT_CATEGORY_SORT,
-		order:
-			order && SORT_ORDER_VALUES.includes(order)
-				? order
-				: DEFAULT_CATEGORY_SORT_ORDER,
-		searchPattern: trimmedSearch
-			? `%${escapeLikePattern(trimmedSearch)}%`
-			: undefined,
-	};
-};
+}: ListAdminCategoriesInput): NormalizedListAdminCategoriesInput => ({
+	...normalizePage({ page, pageSize }),
+	...normalizeSort(
+		{ sort, order },
+		{
+			values: CATEGORY_SORT_VALUES,
+			defaultSort: DEFAULT_CATEGORY_SORT,
+			defaultOrder: DEFAULT_CATEGORY_SORT_ORDER,
+		},
+	),
+	searchPattern: toSearchPattern(search, CATEGORY_SEARCH_MAX_LENGTH),
+});

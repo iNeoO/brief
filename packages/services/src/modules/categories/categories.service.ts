@@ -16,6 +16,7 @@ import {
 	sql,
 } from "@brief/drizzle";
 import { DomainError } from "@brief/infra/errors";
+import { toPage } from "../../helpers/listQuery.helper.js";
 import { normalizeListAdminCategoriesInput } from "./categories.helper.js";
 import type {
 	AdminCategoryDetail,
@@ -46,10 +47,10 @@ const subscribersCount = sql<number>`(
 export class CategoriesService {
 	constructor(private db: Database) {}
 
-	async getCategories({ isEnable }: { isEnable?: boolean }) {
+	async getCategories({ isEnabled }: { isEnabled?: boolean }) {
 		return await this.db.query.categories.findMany({
 			where: {
-				isEnable: isEnable,
+				isEnabled: isEnabled,
 			},
 			with: {
 				providers: true,
@@ -65,8 +66,8 @@ export class CategoriesService {
 	async listForAdmin(
 		input: ListAdminCategoriesInput = {},
 	): Promise<Paginated<AdminCategoryRow>> {
-		const { page, pageSize, sort, order, searchPattern } =
-			normalizeListAdminCategoriesInput(input);
+		const normalized = normalizeListAdminCategoriesInput(input);
+		const { sort, order, searchPattern } = normalized;
 
 		const where = searchPattern
 			? or(
@@ -106,7 +107,7 @@ export class CategoriesService {
 					id: schema.categories.id,
 					name: schema.categories.name,
 					description: schema.categories.description,
-					isEnable: schema.categories.isEnable,
+					isEnabled: schema.categories.isEnabled,
 					createdAt: schema.categories.createdAt,
 					briefsCount,
 					subscribersCount,
@@ -122,8 +123,8 @@ export class CategoriesService {
 					sql`${sortExpression} ${direction} nulls last`,
 					asc(schema.categories.id),
 				)
-				.limit(pageSize)
-				.offset((page - 1) * pageSize),
+				.limit(normalized.pageSize)
+				.offset(normalized.offset),
 
 			this.db
 				.select({ total: sql<number>`count(*)::int` })
@@ -131,16 +132,12 @@ export class CategoriesService {
 				.where(where),
 		]);
 
-		const total = totals?.total ?? 0;
-
-		return {
-			items: rows.map((row) => ({
+		return toPage(
+			rows.map((row) => ({
 				id: row.id,
 				name: row.name,
 				description: row.description,
-				// The column is nullable with a `true` default, so a row that never
-				// had the flag written reads as enabled.
-				isEnable: row.isEnable ?? true,
+				isEnabled: row.isEnabled,
 				createdAt: row.createdAt,
 				briefsCount: row.briefsCount,
 				subscribersCount: row.subscribersCount,
@@ -152,11 +149,9 @@ export class CategoriesService {
 							}
 						: null,
 			})),
-			total,
-			page,
-			pageSize,
-			pageCount: Math.max(1, Math.ceil(total / pageSize)),
-		};
+			totals?.total ?? 0,
+			normalized,
+		);
 	}
 
 	/** The category as the edit modal needs it, providers included. */
@@ -178,7 +173,7 @@ export class CategoriesService {
 			name: category.name,
 			description: category.description,
 			language: category.language,
-			isEnable: category.isEnable ?? true,
+			isEnabled: category.isEnabled,
 			providerIds: category.providers.map((provider) => provider.id),
 		};
 	}
@@ -191,7 +186,7 @@ export class CategoriesService {
 					name: input.name,
 					description: input.description,
 					language: input.language,
-					isEnable: input.isEnable,
+					isEnabled: input.isEnabled,
 				})
 				.returning({ id: schema.categories.id });
 
@@ -216,7 +211,7 @@ export class CategoriesService {
 					name: input.name,
 					description: input.description,
 					language: input.language,
-					isEnable: input.isEnable,
+					isEnabled: input.isEnabled,
 				})
 				.where(eq(schema.categories.id, id))
 				.returning({ id: schema.categories.id });
@@ -234,14 +229,14 @@ export class CategoriesService {
 
 	async setEnabled({
 		id,
-		isEnable,
+		isEnabled,
 	}: {
 		id: string;
-		isEnable: boolean;
+		isEnabled: boolean;
 	}): Promise<void> {
 		const [updated] = await this.db
 			.update(schema.categories)
-			.set({ isEnable })
+			.set({ isEnabled })
 			.where(eq(schema.categories.id, id))
 			.returning({ id: schema.categories.id });
 

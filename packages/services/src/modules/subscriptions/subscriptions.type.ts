@@ -1,3 +1,5 @@
+import type { PageWindow } from "../../helpers/listQuery.helper.js";
+
 export type SubscriptionTarget = {
 	userId: string;
 	categoryId: string;
@@ -14,9 +16,7 @@ export type ListTopicsInput = {
 };
 
 /** Same shape after normalisation, with every value settled. */
-export type NormalizedListTopicsInput = {
-	page: number;
-	pageSize: number;
+export type NormalizedListTopicsInput = PageWindow & {
 	/** Ready-to-use ILIKE pattern, or undefined when no search is active. */
 	searchPattern: string | undefined;
 };
@@ -27,7 +27,7 @@ export type TopicCard = {
 	description: string;
 	createdAt: Date;
 	/** A disabled topic produces no new brief until an admin re-enables it. */
-	isEnable: boolean;
+	isEnabled: boolean;
 	/** Briefs a reader can open: finished jobs that produced a script. */
 	briefsCount: number;
 	/** When this user subscribed. Null on the available list. */

@@ -4,6 +4,7 @@ import type {
 	Language,
 	SortOrder,
 } from "@brief/common/types";
+import type { PageWindow } from "../../helpers/listQuery.helper.js";
 
 export type ListAdminCategoriesInput = {
 	page?: number;
@@ -14,9 +15,7 @@ export type ListAdminCategoriesInput = {
 };
 
 /** Same shape after normalisation, with every value settled. */
-export type NormalizedListAdminCategoriesInput = {
-	page: number;
-	pageSize: number;
+export type NormalizedListAdminCategoriesInput = PageWindow & {
 	sort: CategorySort;
 	order: SortOrder;
 	/** Ready-to-use ILIKE pattern, or undefined when no search is active. */
@@ -32,7 +31,7 @@ export type AdminCategoryRow = {
 	id: string;
 	name: string;
 	description: string;
-	isEnable: boolean;
+	isEnabled: boolean;
 	createdAt: Date;
 	briefsCount: number;
 	subscribersCount: number;
@@ -46,7 +45,7 @@ export type AdminCategoryDetail = {
 	name: string;
 	description: string;
 	language: Language;
-	isEnable: boolean;
+	isEnabled: boolean;
 	providerIds: string[];
 };
 
@@ -54,7 +53,7 @@ export type CategoryWriteInput = {
 	name: string;
 	description: string;
 	language: Language;
-	isEnable: boolean;
+	isEnabled: boolean;
 	providerIds: string[];
 };
 

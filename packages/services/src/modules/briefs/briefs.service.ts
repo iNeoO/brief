@@ -2,7 +2,7 @@ import {
 	BRIEFS_PAGE_SIZE,
 	CATEGORY_JOB_STATUS,
 	FILE_KIND,
-	PAGINATION,
+	SITEMAP_MAX_BRIEFS,
 } from "@brief/common/constants";
 import type { Paginated } from "@brief/common/types";
 import {
@@ -15,31 +15,33 @@ import {
 	schema,
 	sql,
 } from "@brief/drizzle";
+import { normalizePage, toPage } from "../../helpers/listQuery.helper.js";
 import {
 	parseSourceLines,
 	readingMinutes,
 	toBriefScript,
 	toExcerpt,
 } from "./briefs.helper.js";
-import type { BriefCard, BriefDetail, ListBriefsInput } from "./briefs.type.js";
+import type {
+	BriefCard,
+	BriefDetail,
+	BriefSitemapEntry,
+	ListBriefsInput,
+	ListSubscribedBriefsInput,
+} from "./briefs.type.js";
 
-/**
- * A brief is a category job the pipeline carried all the way through. Anything
- * still running, failed, or finished without a script is not one — hence the
- * summary check next to the status: a job can reach `finished` with the report
- * step skipped on a replay.
- */
 const isPublished = and(
 	eq(schema.categoryJobs.status, CATEGORY_JOB_STATUS.FINISHED),
 	isNotNull(schema.categoryJobs.summary),
 );
 
-/**
- * Public read model over the pipeline's tables. It is deliberately separate
- * from `CategoryJobsService`, which owns the claim/retry/transition side: the
- * two never share a query, and mixing them would put unauthenticated reads in
- * the middle of the state machine.
- */
+const subscribedBy = (userId: string) => sql`exists (
+	select 1
+	from ${schema.subscriptions}
+	where ${schema.subscriptions.categoryId} = ${schema.categoryJobs.categoryId}
+		and ${schema.subscriptions.userId} = ${userId}
+)`;
+
 export class BriefsService {
 	constructor(private db: Database) {}
 
@@ -56,11 +58,6 @@ export class BriefsService {
 		};
 	}
 
-	/**
-	 * The audio row of the brief, in the category's own language. Left-joined:
-	 * a brief whose audio step failed is still readable, and hiding it would be
-	 * worse than showing it without a player.
-	 */
 	private get audioJoin() {
 		return and(
 			eq(schema.files.categoryJobId, schema.categoryJobs.id),
@@ -87,8 +84,6 @@ export class BriefsService {
 			categoryName: row.categoryName,
 			language: row.language,
 			targetDate: row.targetDate,
-			// `finished` implies a `finishedAt` at the database level; the fallback
-			// only satisfies the nullable column type.
 			publishedAt: row.publishedAt ?? row.targetDate,
 			excerpt: toExcerpt(summary),
 			readingMinutes: readingMinutes(summary),
@@ -96,7 +91,6 @@ export class BriefsService {
 		};
 	}
 
-	/** Newest briefs across every category, for the landing page. */
 	async listLatest(limit: number): Promise<BriefCard[]> {
 		const rows = await this.db
 			.select(this.cardColumns)
@@ -116,11 +110,53 @@ export class BriefsService {
 		return rows.map((row) => this.toCard(row));
 	}
 
-	/** The archive, newest first. */
-	async list({
-		page = PAGINATION.DEFAULT_PAGE,
-		pageSize = BRIEFS_PAGE_SIZE,
-	}: ListBriefsInput = {}): Promise<Paginated<BriefCard>> {
+	async list(input: ListBriefsInput = {}): Promise<Paginated<BriefCard>> {
+		return this.listPage(input);
+	}
+
+	async listSitemapEntries(
+		limit = SITEMAP_MAX_BRIEFS,
+	): Promise<BriefSitemapEntry[]> {
+		const rows = await this.db
+			.select({
+				id: schema.categoryJobs.id,
+				targetDate: schema.categoryJobs.targetDate,
+				publishedAt: schema.categoryJobs.finishedAt,
+			})
+			.from(schema.categoryJobs)
+			.innerJoin(
+				schema.categories,
+				eq(schema.categories.id, schema.categoryJobs.categoryId),
+			)
+			.where(isPublished)
+			.orderBy(
+				desc(schema.categoryJobs.targetDate),
+				desc(schema.categoryJobs.id),
+			)
+			.limit(limit);
+
+		return rows.map((row) => ({
+			id: row.id,
+			updatedAt: row.publishedAt ?? row.targetDate,
+		}));
+	}
+
+	async listSubscribed({
+		userId,
+		...input
+	}: ListSubscribedBriefsInput): Promise<Paginated<BriefCard>> {
+		return this.listPage(input, userId);
+	}
+
+	private async listPage(
+		input: ListBriefsInput,
+		userId?: string,
+	): Promise<Paginated<BriefCard>> {
+		const pageWindow = normalizePage(input, {
+			defaultPageSize: BRIEFS_PAGE_SIZE,
+		});
+		const where = userId ? and(isPublished, subscribedBy(userId)) : isPublished;
+
 		const [rows, [totals]] = await Promise.all([
 			this.db
 				.select(this.cardColumns)
@@ -130,38 +166,27 @@ export class BriefsService {
 					eq(schema.categories.id, schema.categoryJobs.categoryId),
 				)
 				.leftJoin(schema.files, this.audioJoin)
-				.where(isPublished)
-				// The id breaks ties: several categories publish on the same date,
-				// and without it a brief could swap pages and disappear.
+				.where(where)
 				.orderBy(
 					desc(schema.categoryJobs.targetDate),
 					desc(schema.categoryJobs.id),
 				)
-				.limit(pageSize)
-				.offset((page - 1) * pageSize),
+				.limit(pageWindow.pageSize)
+				.offset(pageWindow.offset),
 
 			this.db
 				.select({ total: sql<number>`count(*)::int` })
 				.from(schema.categoryJobs)
-				.where(isPublished),
+				.where(where),
 		]);
 
-		const total = totals?.total ?? 0;
-
-		return {
-			items: rows.map((row) => this.toCard(row)),
-			total,
-			page,
-			pageSize,
-			pageCount: Math.max(1, Math.ceil(total / pageSize)),
-		};
+		return toPage(
+			rows.map((row) => this.toCard(row)),
+			totals?.total ?? 0,
+			pageWindow,
+		);
 	}
 
-	/**
-	 * The audio row behind a published brief, or null. The join is the access
-	 * check: a file id alone must not stream anything, or a job still running
-	 * would be readable through its audio.
-	 */
 	async findPublishedAudio(fileId: string) {
 		const [row] = await this.db
 			.select({
@@ -191,7 +216,6 @@ export class BriefsService {
 		return row ?? null;
 	}
 
-	/** One brief with its script, its audio and the articles behind it. */
 	async getById(id: number): Promise<BriefDetail | null> {
 		const [row] = await this.db
 			.select({
@@ -235,9 +259,6 @@ export class BriefsService {
 
 		const { excerpt: _excerpt, ...card } = this.toCard(row);
 
-		// The writer lists what it actually used, in the order the script covers
-		// it; the rows above are the whole selection, which can be larger. Going
-		// through the URL is what gives each line back its provider name.
 		const sourceByUrl = new Map(sources.map((source) => [source.url, source]));
 		const usedSources = parseSourceLines(row.sourceLines)
 			.map(({ url }) => sourceByUrl.get(url))

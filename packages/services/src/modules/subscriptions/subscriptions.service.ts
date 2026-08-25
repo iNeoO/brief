@@ -16,10 +16,10 @@ import {
 	sql,
 } from "@brief/drizzle";
 import { DomainError } from "@brief/infra/errors";
+import { toPage } from "../../helpers/listQuery.helper.js";
 import { normalizeListTopicsInput } from "./subscriptions.helper.js";
 import type {
 	ListTopicsInput,
-	NormalizedListTopicsInput,
 	SubscriptionTarget,
 	TopicCard,
 } from "./subscriptions.type.js";
@@ -44,18 +44,9 @@ const topicColumns = {
 	name: schema.categories.name,
 	description: schema.categories.description,
 	createdAt: schema.categories.createdAt,
-	isEnable: schema.categories.isEnable,
+	isEnabled: schema.categories.isEnabled,
 	briefsCount: publishedBriefsCount,
 };
-
-/**
- * The column is nullable with a `true` default, so a row that never had the
- * flag written is enabled — the same reading as the admin list.
- */
-const isEnabled = or(
-	eq(schema.categories.isEnable, true),
-	isNull(schema.categories.isEnable),
-);
 
 const searchFilter = (pattern: string | undefined) =>
 	pattern
@@ -64,18 +55,6 @@ const searchFilter = (pattern: string | undefined) =>
 				ilike(schema.categories.description, pattern),
 			)
 		: undefined;
-
-const toPage = <TItem>(
-	items: TItem[],
-	total: number,
-	{ page, pageSize }: NormalizedListTopicsInput,
-): Paginated<TItem> => ({
-	items,
-	total,
-	page,
-	pageSize,
-	pageCount: Math.max(1, Math.ceil(total / pageSize)),
-});
 
 export class SubscriptionsService {
 	constructor(private db: Database) {}
@@ -111,7 +90,7 @@ export class SubscriptionsService {
 					asc(schema.categories.id),
 				)
 				.limit(normalized.pageSize)
-				.offset((normalized.page - 1) * normalized.pageSize),
+				.offset(normalized.offset),
 
 			this.db
 				.select({ total: sql<number>`count(*)::int` })
@@ -120,11 +99,7 @@ export class SubscriptionsService {
 				.where(where),
 		]);
 
-		return toPage(
-			rows.map((row) => ({ ...row, isEnable: row.isEnable ?? true })),
-			totals?.total ?? 0,
-			normalized,
-		);
+		return toPage(rows, totals?.total ?? 0, normalized);
 	}
 
 	/**
@@ -141,7 +116,7 @@ export class SubscriptionsService {
 		const normalized = normalizeListTopicsInput({ page, search });
 		const join = this.subscriptionOf(userId);
 		const where = and(
-			isEnabled,
+			eq(schema.categories.isEnabled, true),
 			isNull(schema.subscriptions.userId),
 			searchFilter(normalized.searchPattern),
 		);
@@ -154,7 +129,7 @@ export class SubscriptionsService {
 				.where(where)
 				.orderBy(desc(schema.categories.createdAt), asc(schema.categories.id))
 				.limit(normalized.pageSize)
-				.offset((normalized.page - 1) * normalized.pageSize),
+				.offset(normalized.offset),
 
 			this.db
 				.select({ total: sql<number>`count(*)::int` })
@@ -164,8 +139,7 @@ export class SubscriptionsService {
 		]);
 
 		return toPage(
-			// Every row here matched `isEnabled`, hence the flag without a fallback.
-			rows.map((row) => ({ ...row, isEnable: true, subscribedAt: null })),
+			rows.map((row) => ({ ...row, subscribedAt: null })),
 			totals?.total ?? 0,
 			normalized,
 		);
@@ -173,7 +147,7 @@ export class SubscriptionsService {
 
 	async subscribe({ userId, categoryId }: SubscriptionTarget) {
 		const category = await this.db.query.categories.findFirst({
-			columns: { id: true, isEnable: true },
+			columns: { id: true, isEnabled: true },
 			where: { id: categoryId },
 		});
 
@@ -184,10 +158,7 @@ export class SubscriptionsService {
 			});
 		}
 
-		// Explicitly `false`: the column is nullable with a `true` default, and a
-		// null reads as enabled everywhere else — including the list this call
-		// comes from, which would otherwise offer a topic it cannot subscribe to.
-		if (category.isEnable === false) {
+		if (!category.isEnabled) {
 			throw new DomainError({
 				code: DOMAIN_ERROR_CODE.SUBSCRIPTION_CATEGORY_DISABLED,
 				message: `Category ${categoryId} is disabled`,
