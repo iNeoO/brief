@@ -12,6 +12,7 @@
 		"preview": "vite preview",
 		"generate-routes": "tsr generate",
 		"lint": "biome check",
+		"lint:fix": "biome check --write",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

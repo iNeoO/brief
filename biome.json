@@ -10,8 +10,7 @@
 		"includes": [
 			"**",
 			"!apps/web/src/routeTree.gen.ts",
-			"!db/prisma/prisma/**/*.d.ts",
-			"!db/prisma/prisma/**/*.json"
+			"!db/drizzle/drizzle/**"
 		]
 	},
 	"formatter": {

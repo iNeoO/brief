@@ -2,6 +2,13 @@
 	"name": "brief",
 	"license": "MIT",
 	"scripts": {
+		"lint": "pnpm -r --no-bail lint",
+		"lint:fix": "pnpm -r lint:fix",
+		"format": "biome format --write",
+		"typecheck": "pnpm -r --no-bail typecheck",
+		"test": "pnpm -r --no-bail test",
+		"build": "pnpm -r build",
+		"check": "pnpm run lint && pnpm run build && pnpm run typecheck && pnpm run test",
 		"web:dev": "dotenv -e .env -- pnpm --filter @brief/web dev",
 		"web:build": "pnpm --filter @brief/web build",
 		"common:build": "pnpm --filter @brief/common build",

@@ -3,6 +3,8 @@
 	"type": "module",
 	"scripts": {
 		"lint": "biome check",
+		"lint:fix": "biome check --write",
+		"typecheck": "tsc --noEmit",
 		"build": "rm -rf dist && tsc -p tsconfig.build.json",
 		"test": "vitest run",
 		"test:smoke": "SMOKE=1 vitest run smoke"

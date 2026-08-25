@@ -4,6 +4,8 @@
 	"scripts": {
 		"dev": "tsx watch --clear-screen=false src/index.ts",
 		"lint": "biome check",
+		"lint:fix": "biome check --write",
+		"typecheck": "tsc --noEmit",
 		"build": "rm -rf dist && tsc",
 		"start": "node dist/index.js",
 		"job:run": "tsx src/scripts/runCategoryJob.ts"
