@@ -147,7 +147,7 @@ Auth secrets are parsed by `apps/web/src/config/env.ts` and injected through con
 
 The same boundary holds inside `packages/services`: `auth` and `mail` are **not** re-exported from `src/index.ts`. They live behind the `@brief/services/auth` and `@brief/services/mail` subpaths, because the barrel is what every worker imports, and `export *` there makes Node load `better-auth` and `resend` at boot just to reach a pipeline service. Only `apps/web` imports the subpaths.
 
-Some `packages/infra` modules (`factories`, `middlewares`, `schemas`, `helpers`, `types/api.type`) and the `hono*` dependencies are now orphaned by the removal of `apps/hono`. So is the `.claude/skills/create-hono-endpoint` skill, which documents a workflow this repo no longer has. Cleanup is pending.
+`packages/infra` is now only what more than one process needs: `amqp`, `configs`, `errors`, `libs` (pino), and `redis`. The HTTP-shaped modules that came with `apps/hono` — `factories`, `middlewares`, `schemas`, `helpers`, `types` — are gone, along with the `hono*` dependencies and the root barrel that re-exported them. Every consumer imports a subpath (`@brief/infra/errors`, `/libs`, `/amqp`, `/redis`, `/configs`), so the package deliberately has **no `.` export**: a barrel there would make a worker load every module to reach one. The `create-hono-endpoint` skill became `.claude/skills/create-server-function`, which documents the server-function workflow that replaced it.
 
 ## Current boundaries
 
