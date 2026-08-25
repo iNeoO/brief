@@ -14,3 +14,4 @@ export * from "./pagination.constant.js";
 export * from "./providers.constant.js";
 export * from "./seo.constant.js";
 export * from "./users.constant.js";
+export * from "./whatsapp.constant.js";

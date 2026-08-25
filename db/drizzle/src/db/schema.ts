@@ -8,6 +8,7 @@ import {
 	JOB_STATUS,
 	LANGUAGE,
 	USER_ROLE,
+	WHATSAPP_PAIRING_STATUS,
 } from "@brief/common/constants";
 import { defineRelations, sql } from "drizzle-orm";
 import {
@@ -482,6 +483,55 @@ export const subscriptions = pgTable(
 	],
 );
 
+export const whatsappPairingStatus = pgEnum("whatsapp_pairing_status", [
+	WHATSAPP_PAIRING_STATUS.VERIFIED,
+	WHATSAPP_PAIRING_STATUS.OPTED_OUT,
+]);
+
+/**
+ * One row per user who has authorised us to write to them on WhatsApp. A user
+ * with no row here has not paired: the waiting state is the pairing code sitting
+ * in Redis, not a row.
+ *
+ * The three `optIn*` columns are the evidence Meta can ask for. `optInText` is
+ * what the user actually sent, not the sentence we prefilled — the `wa.me`
+ * prefill is editable, so only what arrived is proof.
+ *
+ * `phoneNumber` is unique: one WhatsApp number belongs to one account. A number
+ * that pairs again from another account is transferred rather than refused, since
+ * sending the message proves present control of it — see `WhatsAppPairingService`.
+ */
+export const whatsappPairings = pgTable(
+	"whatsapp_pairings",
+	{
+		userId: text("user_id")
+			.primaryKey()
+			.references(() => user.id, { onDelete: "cascade" }),
+		// E.164 without the leading `+`, verbatim from the inbound `from` field.
+		// The user never types it, so there is nothing to normalise.
+		phoneNumber: text("phone_number").notNull(),
+		status: whatsappPairingStatus("status").notNull(),
+		optInAt: timestamp("opt_in_at", { withTimezone: true }).notNull(),
+		optInMessageId: text("opt_in_message_id").notNull(),
+		optInText: text("opt_in_text").notNull(),
+		optedOutAt: timestamp("opted_out_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(t) => [
+		unique("whatsapp_pairings_phone_number_unique").on(t.phoneNumber),
+		check(
+			"whatsapp_pairings_opted_out_at_matches_status",
+			sql`(${t.status} = ${WHATSAPP_PAIRING_STATUS.OPTED_OUT}) = (${t.optedOutAt} IS NOT NULL)`,
+		),
+	],
+);
+
 export const relations = defineRelations(
 	{
 		categories,
@@ -501,6 +551,7 @@ export const relations = defineRelations(
 		account,
 		verification,
 		subscriptions,
+		whatsappPairings,
 	},
 	(r) => ({
 		categories: {
@@ -620,6 +671,14 @@ export const relations = defineRelations(
 			categories: r.many.categories({
 				from: r.user.id.through(r.subscriptions.userId),
 				to: r.categories.id.through(r.subscriptions.categoryId),
+			}),
+			whatsappPairing: r.one.whatsappPairings(),
+		},
+
+		whatsappPairings: {
+			user: r.one.user({
+				from: r.whatsappPairings.userId,
+				to: r.user.id,
 			}),
 		},
 
