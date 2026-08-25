@@ -25,7 +25,7 @@ export const fr: Dictionary = {
 		signUp: {
 			title: "Créer votre compte",
 			description:
-				"Choisissez vos sujets et recevez votre premier brief demain à 7 h. Un e-mail par jour, et un clic suffit pour se désinscrire.",
+				"Choisissez vos sujets et recevez votre premier brief demain à 7 h. Un message WhatsApp par jour, et un clic suffit pour se désinscrire.",
 		},
 		page: (page: number) => `page ${page}`,
 	},
@@ -60,7 +60,7 @@ export const fr: Dictionary = {
 		title: "L'essentiel, sans le bruit.",
 		lead: "Un résumé court par sujet suivi, qui vous attend chaque matin.",
 		cta: "Commencer à lire",
-		rhythm: "Un envoi par matin, à 7 h. Rien d'autre.",
+		rhythm: "Un message WhatsApp chaque matin, à 7 h. Rien d'autre.",
 	},
 	method: {
 		title: "Comment ça marche",
@@ -81,7 +81,7 @@ export const fr: Dictionary = {
 			details: [
 				{
 					title: "Vous choisissez vos sujets",
-					body: "Suivez un sujet et son brief rejoint votre envoi du matin. Ne le suivez plus et il s'arrête dès le lendemain : vous pouvez changer d'avis n'importe quel matin.",
+					body: "Suivez un sujet et son brief rejoint votre message WhatsApp du matin. Ne le suivez plus et il s'arrête dès le lendemain : vous pouvez changer d'avis n'importe quel matin.",
 				},
 				{
 					title: "Nous lisons les sources",
@@ -93,7 +93,7 @@ export const fr: Dictionary = {
 				},
 				{
 					title: "Il arrive à 7 h",
-					body: "Lisez le résumé, ou écoutez sa version audio : le même brief, en voix. Un envoi par jour, rien d'autre, et le désabonnement tient en un clic.",
+					body: "Lisez le résumé, ou écoutez sa version audio : le même brief, en voix. Un message WhatsApp par jour, rien d'autre, et le désabonnement tient en un clic.",
 				},
 			],
 		},
@@ -177,7 +177,7 @@ export const fr: Dictionary = {
 		title: "Commencez demain matin.",
 		body: "Choisissez vos sujets, et votre premier brief arrive à 7 h.",
 		cta: "Créer mon compte",
-		note: "Un envoi par jour. Désinscription en un clic.",
+		note: "Un message WhatsApp par jour. Désinscription en un clic.",
 		signedIn: {
 			title: "Demain matin, à 7 h.",
 			body: "Suivez un sujet de plus et il rejoint votre prochain brief.",
@@ -317,7 +317,7 @@ export const fr: Dictionary = {
 			},
 			identity: {
 				title: "Votre nom",
-				lead: "Le nom avec lequel vos briefs vous accueillent. Votre adresse email ne se change pas ici : c'est là que vos briefs arrivent.",
+				lead: "Le nom avec lequel vos briefs vous accueillent. Votre adresse email ne se change pas ici : c'est avec elle que vous vous connectez.",
 				submit: "Enregistrer",
 				success: "Votre nom a été enregistré.",
 			},
@@ -328,10 +328,42 @@ export const fr: Dictionary = {
 				success: "Votre mot de passe a été changé.",
 				incorrect: "Ce n'est pas votre mot de passe actuel.",
 			},
+			whatsapp: {
+				title: "WhatsApp",
+				lead: "Là où vos briefs vous sont remis. Vous nous autorisez depuis WhatsApp, en nous envoyant un seul message.",
+				consentMessage: (code: string) =>
+					`J'autorise Brief à m'envoyer mes briefs quotidiens sur WhatsApp. Code : ${code}`,
+				acknowledgement:
+					"Merci, c'est noté. Vos briefs arriveront dans cette conversation.",
+				idle: {
+					body: "Ouvrez WhatsApp, envoyez le message que nous avons préparé, et c'est fait. Nous ne vous écrivons jamais en premier.",
+					action: "Autoriser WhatsApp",
+				},
+				waiting: {
+					open: "Ouvrir WhatsApp",
+					body: "Nous attendons votre message. Envoyez-le depuis WhatsApp, cette page se mettra à jour d'elle-même.",
+					manual: (number: string) =>
+						`Si WhatsApp ne s'est pas ouvert, envoyez ce message au ${number} :`,
+					restart: "Recommencer",
+				},
+				verified: {
+					badge: "Autorisé",
+					continue: "Reprendre où vous en étiez",
+					number: "Numéro autorisé",
+					since: "Autorisé le",
+					remove: "Retirer l'autorisation",
+					removed: "L'autorisation a été retirée.",
+				},
+				optedOut: {
+					badge: "Interrompu",
+					body: "Vous avez répondu STOP sur WhatsApp, plus rien n'y est envoyé. Vous pouvez autoriser à nouveau quand vous le souhaitez.",
+				},
+				error: "L'autorisation n'a pas pu être préparée. Veuillez réessayer.",
+			},
 		},
 		topics: {
 			title: "Vos sujets",
-			lead: "Abonnez-vous à un sujet et son brief rejoint votre email quotidien. Désabonnez-vous quand vous voulez.",
+			lead: "Abonnez-vous à un sujet et son brief rejoint votre message WhatsApp quotidien. Désabonnez-vous quand vous voulez.",
 			back: "Retour à mes briefs",
 			loadError: "Les sujets n'ont pas pu être chargés.",
 			pagination: (page, pageCount) => `Page ${page} sur ${pageCount}`,
@@ -380,6 +412,8 @@ export const fr: Dictionary = {
 				},
 			},
 			notifications: {
+				pairingNeeded:
+					"Encore une étape : autorisez WhatsApp pour recevoir ce brief.",
 				subscribed: (name) => `Vous êtes abonné à ${name}.`,
 				unsubscribed: (name) => `Vous n'êtes plus abonné à ${name}.`,
 			},

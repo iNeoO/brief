@@ -23,7 +23,7 @@ export const en = {
 		signUp: {
 			title: "Create your account",
 			description:
-				"Choose your topics and get your first brief tomorrow at 7:00. One email a day, and unsubscribing takes one click.",
+				"Choose your topics and get your first brief tomorrow at 7:00. One WhatsApp message a day, and unsubscribing takes one click.",
 		},
 		page: (page: number) => `page ${page}`,
 	},
@@ -58,7 +58,7 @@ export const en = {
 		title: "The essentials, without the noise.",
 		lead: "One short summary per topic you follow, waiting for you each morning.",
 		cta: "Start reading",
-		rhythm: "One email each morning, at 7:00. Nothing else.",
+		rhythm: "One WhatsApp message each morning, at 7:00. Nothing else.",
 	},
 	method: {
 		title: "How it works",
@@ -79,7 +79,7 @@ export const en = {
 			details: [
 				{
 					title: "You choose your topics",
-					body: "Follow a topic and its brief joins your morning email. Unfollow it and it stops the next day — you can change your mind any morning.",
+					body: "Follow a topic and its brief joins your morning WhatsApp message. Unfollow it and it stops the next day — you can change your mind any morning.",
 				},
 				{
 					title: "We read the sources",
@@ -91,7 +91,7 @@ export const en = {
 				},
 				{
 					title: "It arrives at 7:00",
-					body: "Read the summary, or listen to its audio version — the same brief, voiced. One email a day, nothing else, and unsubscribing takes one click.",
+					body: "Read the summary, or listen to its audio version — the same brief, voiced. One WhatsApp message a day, nothing else, and unsubscribing takes one click.",
 				},
 			],
 		},
@@ -176,7 +176,7 @@ export const en = {
 		title: "Start tomorrow morning.",
 		body: "Choose your topics, and your first brief arrives at 7:00.",
 		cta: "Create my account",
-		note: "One email a day. Unsubscribe in one click.",
+		note: "One WhatsApp message a day. Unsubscribe in one click.",
 		signedIn: {
 			title: "Tomorrow morning, at 7:00.",
 			body: "Follow one more topic and it joins your next brief.",
@@ -316,7 +316,7 @@ export const en = {
 			},
 			identity: {
 				title: "Your name",
-				lead: "The name your briefs greet you with. Your email address cannot be changed here: it is where your briefs are sent.",
+				lead: "The name your briefs greet you with. Your email address cannot be changed here: it is how you sign in.",
 				submit: "Save",
 				success: "Your name has been saved.",
 			},
@@ -327,10 +327,45 @@ export const en = {
 				success: "Your password has been changed.",
 				incorrect: "That is not your current password.",
 			},
+			whatsapp: {
+				title: "WhatsApp",
+				lead: "Where your briefs are delivered. You authorise us from WhatsApp itself, by sending us a single message.",
+				// The sentence the user sends us: it *is* the opt-in record, which is
+				// why it names Brief and says what will be sent. A bare code would
+				// prove the number and nothing else.
+				consentMessage: (code: string) =>
+					`I authorise Brief to send me my daily briefs on WhatsApp. Code: ${code}`,
+				acknowledgement:
+					"Thank you, it is noted. Your briefs will arrive in this conversation.",
+				idle: {
+					body: "Open WhatsApp, send the message we have prepared, and it is done. We never write to you first.",
+					action: "Authorise WhatsApp",
+				},
+				waiting: {
+					open: "Open WhatsApp",
+					body: "Waiting for your message. Send it from WhatsApp and this page will update on its own.",
+					manual: (number: string) =>
+						`If WhatsApp did not open, send this message to ${number}:`,
+					restart: "Start again",
+				},
+				verified: {
+					badge: "Authorised",
+					continue: "Continue where you left off",
+					number: "Authorised number",
+					since: "Authorised on",
+					remove: "Withdraw the authorisation",
+					removed: "The authorisation has been withdrawn.",
+				},
+				optedOut: {
+					badge: "Stopped",
+					body: "You replied STOP on WhatsApp, so nothing is sent there any more. You can authorise it again whenever you like.",
+				},
+				error: "The authorisation could not be prepared. Please try again.",
+			},
 		},
 		topics: {
 			title: "Your topics",
-			lead: "Follow a topic and its brief joins your daily email. Unfollow whenever you like.",
+			lead: "Follow a topic and its brief joins your daily WhatsApp message. Unfollow whenever you like.",
 			back: "Back to my briefs",
 			loadError: "The topics could not be loaded.",
 			pagination: (page: number, pageCount: number) =>
@@ -380,6 +415,8 @@ export const en = {
 				},
 			},
 			notifications: {
+				pairingNeeded:
+					"One more step: authorise WhatsApp to receive this brief.",
 				subscribed: (name: string) => `You now follow ${name}.`,
 				unsubscribed: (name: string) => `You no longer follow ${name}.`,
 			},
