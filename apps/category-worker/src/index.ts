@@ -1,4 +1,4 @@
-import { db } from "@brief/drizzle";
+import { createDb } from "@brief/drizzle";
 import { pinoLogger } from "@brief/infra/libs";
 import {
 	ArticlesService,
@@ -11,6 +11,7 @@ import { createS3Config } from "./config/s3.js";
 import { CategoryConsumer } from "./consumer.js";
 
 const main = async (id: string, url: string, queue: string) => {
+	const db = createDb(env.PG_URL);
 	const categoryJobsService = new CategoryJobsService(db);
 	const processingService = new ProcessingService(
 		new ArticlesService(db),

@@ -21,7 +21,7 @@ export class DatabaseService extends Effect.Service<DatabaseService>()(
 	{
 		scoped: Effect.gen(function* () {
 			const db = yield* Effect.acquireRelease(
-				Effect.sync(() => createDb()),
+				Effect.sync(() => createDb(env.PG_URL)),
 				(db) => Effect.promise(() => db.$client.end()),
 			);
 
@@ -59,7 +59,7 @@ export class ContainerService extends Effect.Service<ContainerService>()(
 			const categoriesService = new CategoriesService(db);
 			const schedulerService = new SchedulerService(db);
 
-			const getCategories = (args: { isEnable?: boolean }) =>
+			const getCategories = (args: { isEnabled?: boolean }) =>
 				Effect.tryPromise({
 					try: () => categoriesService.getCategories(args),
 					catch: (cause) => new CategoriesDbError({ cause }),

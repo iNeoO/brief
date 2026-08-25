@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-	AMQP_URL: z.string(),
-	PROVIDER_FETCH_QUEUE: z.string(),
+	PG_URL: z.string().min(1),
+	AMQP_URL: z.string().min(1),
+	PROVIDER_FETCH_QUEUE: z.string().min(1),
 });
 
 export const env = envSchema.parse(process.env);

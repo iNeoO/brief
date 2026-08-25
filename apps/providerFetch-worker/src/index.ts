@@ -1,4 +1,4 @@
-import { db } from "@brief/drizzle";
+import { createDb } from "@brief/drizzle";
 import { AmqpPublisher } from "@brief/infra/amqp";
 import { pinoLogger } from "@brief/infra/libs";
 import {
@@ -17,6 +17,7 @@ const main = async (
 	queue: string,
 	categoryQueue: string,
 ) => {
+	const db = createDb(env.PG_URL);
 	const providersService = new ProvidersService(db);
 	const articlesService = new ArticlesService(db);
 	const ingestionService = new IngestionService(

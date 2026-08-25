@@ -1,5 +1,5 @@
-import { env } from "@brief/infra/configs";
 import { defineConfig } from "drizzle-kit";
+import { env } from "./src/config/env.js";
 
 export default defineConfig({
 	out: "./drizzle",

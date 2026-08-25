@@ -1,12 +1,13 @@
 import { z } from "zod";
 
+/**
+ * Parsed at import time, so it must hold only what every importer genuinely
+ * needs — today that is the text-to-speech block and nothing else. Anything an
+ * app owns alone belongs in its own `config/env.ts`: a variable added here is a
+ * variable each of the four workers has to set before it will boot.
+ */
 const envSchema = z.object({
-	PG_DB: z.string(),
-	PG_USER: z.string(),
-	PG_PASSWORD: z.string(),
-	PG_URL: z.string(),
-	FRONTEND_URL: z.url(),
-	OPENAI_API_KEY: z.string(),
+	OPENAI_API_KEY: z.string().min(1),
 	// Voicing the brief. Both models read French; the mini one is the cheaper of
 	// the two and steerable through its own instructions.
 	TTS_MODEL: z

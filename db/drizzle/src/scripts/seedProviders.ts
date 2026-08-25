@@ -1,5 +1,8 @@
 import { SEED_PROVIDERS } from "@brief/common/constants";
-import { db, schema } from "../index.js";
+import { env } from "../config/env.js";
+import { createDb, schema } from "../index.js";
+
+const db = createDb(env.PG_URL);
 
 /**
  * Installs the supported media as providers. Idempotent through the unique

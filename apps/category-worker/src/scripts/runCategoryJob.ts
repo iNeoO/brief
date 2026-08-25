@@ -4,7 +4,7 @@ import {
 	CATEGORY_JOB_STATUS,
 } from "@brief/common/constants";
 import type { CategoryJobState } from "@brief/common/types";
-import { db, desc, eq, schema } from "@brief/drizzle";
+import { createDb, desc, eq, schema } from "@brief/drizzle";
 import { createCliLogger, wrapWithLogger } from "@brief/infra/libs";
 import {
 	ArticlesService,
@@ -12,7 +12,10 @@ import {
 	ProcessingService,
 	S3Service,
 } from "@brief/services";
+import { env } from "../config/env.js";
 import { createS3Config } from "../config/s3.js";
+
+const db = createDb(env.PG_URL);
 
 const STATES = Object.values(CATEGORY_JOB_STATE);
 

@@ -6,7 +6,14 @@ const envSchema = z.object({
 		.enum(["development", "test", "production"])
 		.default("development"),
 	BETTER_AUTH_URL: z.url(),
+	// The public origin the site is served from. Canonical URLs, the sitemap and
+	// the social-card metadata are absolute by specification, so this cannot be
+	// read off the incoming request: behind a proxy a crawler would be handed the
+	// internal host as the address to index. The trailing slash goes here rather
+	// than at every call site.
+	SITE_URL: z.url().transform((url) => url.replace(/\/+$/, "")),
 	BETTER_AUTH_SECRET: z.string().min(32),
+	PG_URL: z.string().min(1),
 	REDIS_URL: z.string().min(1),
 	BETTER_AUTH_REDIS_KEY_PREFIX: z.string().default("brief:auth:"),
 	RESEND_API_KEY: z.string().min(1),

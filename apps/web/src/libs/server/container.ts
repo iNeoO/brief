@@ -13,7 +13,7 @@ import { createServerOnlyFn } from "@tanstack/react-start";
 import { env } from "#/config/env";
 
 const createContainer = () => {
-	const db = createDb();
+	const db = createDb(env.PG_URL);
 	const redis = createRedis(env.REDIS_URL);
 
 	const mailService = new MailService({
