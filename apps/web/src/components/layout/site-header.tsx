@@ -1,3 +1,4 @@
+import { SIGNUP_ENABLED } from "@brief/common/constants";
 import { Button } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -42,9 +43,16 @@ export function SiteHeader() {
 								{t.nav.signIn}
 							</Link>
 
-							<Button component={Link} to={ROUTES.signUp} size="sm" radius="sm">
-								{t.nav.signUp}
-							</Button>
+							{SIGNUP_ENABLED ? (
+								<Button
+									component={Link}
+									to={ROUTES.signUp}
+									size="sm"
+									radius="sm"
+								>
+									{t.nav.signUp}
+								</Button>
+							) : null}
 						</>
 					)}
 

@@ -1,5 +1,5 @@
 import { redisStorage } from "@better-auth/redis-storage";
-import { AUTH_PATH, USER_ROLE } from "@brief/common/constants";
+import { AUTH_PATH, SIGNUP_ENABLED, USER_ROLE } from "@brief/common/constants";
 import { type Database, schema } from "@brief/drizzle";
 import type { RedisClient } from "@brief/infra/redis";
 import { betterAuth } from "better-auth";
@@ -64,6 +64,13 @@ export const createAuth = ({
 		},
 		emailAndPassword: {
 			enabled: true,
+			/**
+			 * The real gate. Hiding the form would leave the endpoint open, and
+			 * Better Auth rejects the sign-up request before reading its body.
+			 * Sign-in, password reset and the admin plugin's own user creation
+			 * are untouched.
+			 */
+			disableSignUp: !SIGNUP_ENABLED,
 			requireEmailVerification: true,
 			sendResetPassword: ({ user, url, token }) =>
 				mailService.sendResetPasswordEmail({

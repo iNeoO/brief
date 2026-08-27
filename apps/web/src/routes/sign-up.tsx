@@ -1,4 +1,8 @@
-import { USER_NAME_MAX_LENGTH } from "@brief/common/constants";
+import {
+	CONTACT_EMAIL,
+	SIGNUP_ENABLED,
+	USER_NAME_MAX_LENGTH,
+} from "@brief/common/constants";
 import { Anchor, Button, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
@@ -27,6 +31,9 @@ export const Route = createFileRoute("/sign-up")({
 	head: localisedHead((t) => ({
 		...t.seo.signUp,
 		path: ROUTES.signUp,
+		// A closed form is not worth a search result, and the sitemap drops the
+		// page for the same reason.
+		noindex: !SIGNUP_ENABLED,
 	})),
 	beforeLoad: ({ context }) =>
 		redirectIfAuthenticated({
@@ -36,7 +43,46 @@ export const Route = createFileRoute("/sign-up")({
 	component: SignUpPage,
 });
 
+/**
+ * Two components rather than an early return, so the form's hooks are not
+ * declared on a branch that never runs.
+ */
 function SignUpPage() {
+	return SIGNUP_ENABLED ? <SignUpForm /> : <SignUpClosed />;
+}
+
+/**
+ * The page still answers — an existing inbound link should explain itself
+ * rather than 404 — and it gives the reader the one way in that still works.
+ */
+function SignUpClosed() {
+	const { t } = useI18n();
+
+	return (
+		<AuthCard title={t.auth.signUp.title}>
+			<Notice
+				variant="panel"
+				title={t.auth.signUp.closed.title}
+				body={t.auth.signUp.closed.body}
+			>
+				<Button
+					component="a"
+					href={`mailto:${CONTACT_EMAIL}`}
+					variant="default"
+					size="sm"
+				>
+					{t.auth.signUp.closed.write}
+				</Button>
+
+				<Anchor component={Link} to={ROUTES.signIn} underline="always">
+					{t.auth.signUp.signIn}
+				</Anchor>
+			</Notice>
+		</AuthCard>
+	);
+}
+
+function SignUpForm() {
 	const { t } = useI18n();
 
 	const form = useForm({

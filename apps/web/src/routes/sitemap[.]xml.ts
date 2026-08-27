@@ -1,3 +1,4 @@
+import { SIGNUP_ENABLED } from "@brief/common/constants";
 import { createFileRoute } from "@tanstack/react-router";
 import { ROUTES } from "#/config/routes";
 import { absoluteUrl } from "#/libs/seo/site";
@@ -12,7 +13,9 @@ const STATIC_PATHS = [
 	ROUTES.landing,
 	ROUTES.briefs,
 	ROUTES.howItWorks,
-	ROUTES.signUp,
+	// Dropped while sign-up is closed: the page answers, but it is a notice
+	// rather than the form a crawler would be indexing it for.
+	...(SIGNUP_ENABLED ? [ROUTES.signUp] : []),
 ];
 
 /** `&`, `<` and `>` are the three that make a sitemap unparseable. */

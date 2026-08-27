@@ -239,6 +239,11 @@ export const en = {
 			hasAccount: "Already have an account?",
 			signIn: "Sign in",
 			emailTaken: "An account already exists with this email address.",
+			closed: {
+				title: "Sign-ups are closed for the moment",
+				body: "We are finishing WhatsApp delivery. Until then, write to us and we will create your account by hand.",
+				write: "Write to us",
+			},
 			checkInbox: {
 				title: "Confirm your email address",
 				body: (email: string) =>

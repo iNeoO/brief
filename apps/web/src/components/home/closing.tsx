@@ -1,3 +1,4 @@
+import { SIGNUP_ENABLED } from "@brief/common/constants";
 import { Button, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -12,7 +13,16 @@ export function Closing() {
 	const isSignedIn = Boolean(session?.user);
 
 	const copy = isSignedIn ? t.closing.signedIn : t.closing;
-	const to = isSignedIn ? ROUTES.topics : ROUTES.signUp;
+
+	// With sign-up closed, the one door left is the one an invited reader came
+	// through, so the call to action stops promising an account.
+	const signUpClosed = !isSignedIn && !SIGNUP_ENABLED;
+	const to = isSignedIn
+		? ROUTES.topics
+		: signUpClosed
+			? ROUTES.signIn
+			: ROUTES.signUp;
+	const cta = signUpClosed ? t.nav.signIn : copy.cta;
 
 	return (
 		<section
@@ -27,7 +37,7 @@ export function Closing() {
 
 				<div className={classes.closingActions}>
 					<Button component={Link} to={to} size="md" radius="sm">
-						{copy.cta}
+						{cta}
 					</Button>
 
 					<p className={classes.closingNote}>{copy.note}</p>

@@ -240,6 +240,11 @@ export const fr: Dictionary = {
 			hasAccount: "Vous avez déjà un compte ?",
 			signIn: "Se connecter",
 			emailTaken: "Un compte existe déjà avec cette adresse e-mail.",
+			closed: {
+				title: "Les inscriptions sont momentanément fermées",
+				body: "Nous terminons la livraison des briefs sur WhatsApp. D'ici là, écrivez-nous et nous créons votre compte à la main.",
+				write: "Nous écrire",
+			},
 			checkInbox: {
 				title: "Confirmez votre adresse e-mail",
 				body: (email: string) =>
