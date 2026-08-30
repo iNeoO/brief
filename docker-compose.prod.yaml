@@ -1,0 +1,113 @@
+name: brief-prod
+
+x-app: &app
+  image: brief-app:prod
+  build:
+    context: .
+    dockerfile: ./Dockerfile
+  env_file:
+    - ./.env.docker
+  environment:
+    NODE_ENV: production
+  restart: unless-stopped
+  networks:
+    - brief-network
+    - redis-network
+    - garage-network
+    - rabbitmq-network
+
+x-app-depends: &app-depends
+  postgres:
+    condition: service_healthy
+  db-migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: brief-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    volumes:
+      # postgres 18 keeps its data in a subdirectory of this path: mounting
+      # /var/lib/postgresql/data instead makes the container refuse to start.
+      - pgdata:/var/lib/postgresql
+    ports:
+      - "127.0.0.1:${PG_HOST_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - brief-network
+
+  db-migrate:
+    <<: *app
+    container_name: brief-db-migrate-prod
+    command:
+      - sh
+      - -c
+      - pnpm --filter @brief/drizzle migrate && pnpm --filter @brief/drizzle seed
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    container_name: brief-web-prod
+    command: ["pnpm", "--filter", "@brief/web", "preview"]
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT}:3000"
+    depends_on: *app-depends
+
+  scheduler:
+    <<: *app
+    container_name: brief-scheduler-prod
+    command: ["pnpm", "--filter", "@brief/scheduler", "start"]
+    depends_on: *app-depends
+
+  providerFetch-worker:
+    <<: *app
+    container_name: brief-providerFetch-worker-prod
+    command: ["pnpm", "--filter", "@brief/providerFetch-worker", "start"]
+    stop_grace_period: 180s
+    depends_on: *app-depends
+
+  category-worker:
+    <<: *app
+    container_name: brief-category-worker-prod
+    command: ["pnpm", "--filter", "@brief/category-worker", "start"]
+    # A brief in flight is bounded by its own deadlines: selection 5min,
+    # writing 10min, speech 5min.
+    stop_grace_period: 1200s
+    depends_on: *app-depends
+
+  message-worker:
+    <<: *app
+    container_name: brief-message-worker-prod
+    command: ["pnpm", "--filter", "@brief/message-worker", "start"]
+    stop_grace_period: 60s
+    depends_on: *app-depends
+
+volumes:
+  pgdata:
+    name: brief-pgdata-prod
+
+networks:
+  brief-network:
+    name: brief-network-prod
+    driver: bridge
+  redis-network:
+    name: ${REDIS_NETWORK:-redis-network}
+    external: true
+  garage-network:
+    name: ${GARAGE_NETWORK:-garage-network}
+    external: true
+  rabbitmq-network:
+    name: ${RABBITMQ_NETWORK:-rabbitmq-network}
+    external: true

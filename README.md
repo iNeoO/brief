@@ -63,6 +63,38 @@ The workspace packages are consumed as built `dist`, so rebuild them
 For the same reason `pnpm check` builds before it typechecks — running
 `pnpm typecheck` on a clean checkout fails until the libs have a `dist`.
 
+## Production
+
+`docker-compose.prod.yaml` runs the whole app: the web server, the scheduler,
+the three workers, and a `db-migrate` one-shot that applies the migrations and
+seeds the providers before the rest starts. They all share one image, built
+from the root `Dockerfile`.
+
+Postgres belongs to the stack. **Redis, RabbitMQ and S3 (Garage) are shared
+with the other projects on the host** — the stack joins their networks and
+addresses them by container name, so those networks must already exist, and
+brief needs its own Garage key and bucket and its own RabbitMQ user and vhost.
+
+```bash
+cp .env.docker.example .env.docker   # fill in — hostnames are container names
+make prod-up                         # build, migrate, start, wait for healthy
+```
+
+| Command | Description |
+| --- | --- |
+| `make prod-up` | Build, migrate and start the stack |
+| `make prod-down` | Stop it (volumes are kept) |
+| `make prod-logs` | Follow the logs |
+| `make prod-ps` | Show the containers |
+| `make prod-build` | Build the image alone |
+| `make prod-migrate` | Re-run the migrations and the provider seed |
+
+The web server listens on 3000 and is published on loopback only
+(`WEB_HOST_PORT`): TLS and the public hostname belong to the reverse proxy in
+front, which is what `SITE_URL` names. Register the Telegram webhook against it
+once per environment with
+`make telegram-webhook ENV_FILE=.env.docker TELEGRAM_WEBHOOK_URL=https://.../api/telegram/webhook`.
+
 ## Structure
 
 ```text
@@ -81,7 +113,9 @@ brief/
 │   └── services/               # business logic (classes taking a Database)
 ├── garage/                     # S3 bootstrap config
 ├── biome.json
-├── docker-compose.yaml
+├── Dockerfile                  # one image for every app
+├── docker-compose.yaml         # dev dependencies
+├── docker-compose.prod.yaml    # the deployed stack
 └── pnpm-workspace.yaml
 ```
 

@@ -4,6 +4,7 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help dev dev-all test check up down logs setup \
+	prod-build prod-up prod-down prod-logs prod-migrate prod-ps \
 	telegram-webhook telegram-webhook-info telegram-webhook-delete
 
 help: ## List the available targets
@@ -35,21 +36,48 @@ setup: up ## First-time setup: S3 bucket, schema, seed data
 	pnpm drizzle:push
 	pnpm drizzle:seed
 
+# --- Production ------------------------------------------------------------
+# `--env-file` makes .env.docker both what compose interpolates and what the
+# containers receive; without it compose silently interpolates the dev .env.
+
+PROD = docker compose --env-file .env.docker -f docker-compose.prod.yaml
+
+prod-build: ## Build the production image
+	$(PROD) build
+
+prod-up: ## Build, migrate and start the production stack
+	$(PROD) up -d --build --wait
+
+prod-down: ## Stop the production stack (volumes are kept)
+	$(PROD) down
+
+prod-logs: ## Follow the production logs
+	$(PROD) logs -f
+
+prod-ps: ## Show the production containers
+	$(PROD) ps
+
+prod-migrate: ## Re-run the migrations and the provider seed on their own
+	$(PROD) run --rm db-migrate
+
 # --- Telegram webhook ------------------------------------------------------
 # One-off per environment, and nobody remembers the curl. The token and the
-# secret come from .env; TELEGRAM_WEBHOOK_URL is the public HTTPS URL of
+# secret come from $(ENV_FILE) — .env in dev, `ENV_FILE=.env.docker` in prod,
+# since a bot has exactly one webhook and each environment claims it with its
+# own token. TELEGRAM_WEBHOOK_URL is the public HTTPS URL of
 # /api/telegram/webhook — Telegram accepts only ports 443, 80, 88 and 8443 and
 # requires a valid certificate, so in dev this is the tunnel. See
 # docs/telegram-pairing-testing.md.
 
-TG_TOKEN = $(shell sed -n 's/^TELEGRAM_BOT_TOKEN=//p' .env 2>/dev/null)
-TG_SECRET = $(shell sed -n 's/^TELEGRAM_WEBHOOK_SECRET=//p' .env 2>/dev/null)
+ENV_FILE ?= .env
+TG_TOKEN = $(shell sed -n 's/^TELEGRAM_BOT_TOKEN=//p' $(ENV_FILE) 2>/dev/null)
+TG_SECRET = $(shell sed -n 's/^TELEGRAM_WEBHOOK_SECRET=//p' $(ENV_FILE) 2>/dev/null)
 TG_API = https://api.telegram.org/bot$(TG_TOKEN)
-TG_REQUIRE_TOKEN = test -n "$(TG_TOKEN)" || { echo "TELEGRAM_BOT_TOKEN is missing from .env"; exit 1; }
+TG_REQUIRE_TOKEN = test -n "$(TG_TOKEN)" || { echo "TELEGRAM_BOT_TOKEN is missing from $(ENV_FILE)"; exit 1; }
 
 telegram-webhook: ## Register the webhook (needs TELEGRAM_WEBHOOK_URL=https://...)
 	@$(TG_REQUIRE_TOKEN)
-	@test -n "$(TG_SECRET)" || { echo "TELEGRAM_WEBHOOK_SECRET is missing from .env"; exit 1; }
+	@test -n "$(TG_SECRET)" || { echo "TELEGRAM_WEBHOOK_SECRET is missing from $(ENV_FILE)"; exit 1; }
 	@test -n "$(TELEGRAM_WEBHOOK_URL)" || { echo "TELEGRAM_WEBHOOK_URL is required"; exit 1; }
 	@curl -fsS -X POST "$(TG_API)/setWebhook" \
 		-H 'content-type: application/json' \
