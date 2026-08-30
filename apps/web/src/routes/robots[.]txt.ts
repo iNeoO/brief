@@ -19,6 +19,7 @@ const DISALLOWED = [
 	ROUTES.topics,
 	ROUTES.admin,
 	"/api/",
+	"/metrics",
 ];
 
 /**

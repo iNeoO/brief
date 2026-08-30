@@ -17,6 +17,7 @@ export * from "./modules/messageJobs/messageDelivery.service.js";
 export * from "./modules/messageJobs/messageJobs.helper.js";
 export * from "./modules/messageJobs/messageJobs.service.js";
 export * from "./modules/messageJobs/messageJobs.type.js";
+export * from "./modules/pipelineMetrics/pipelineMetrics.service.js";
 export * from "./modules/processing/processing.service.js";
 export * from "./modules/processing/processing.type.js";
 export * from "./modules/providerFetchJobs/providerFetchJobs.service.js";

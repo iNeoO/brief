@@ -95,6 +95,55 @@ front, which is what `SITE_URL` names. Register the Telegram webhook against it
 once per environment with
 `make telegram-webhook ENV_FILE=.env.docker TELEGRAM_WEBHOOK_URL=https://.../api/telegram/webhook`.
 
+## Observability
+
+The web app serves Prometheus metrics at `GET /metrics`, every series prefixed
+`brief_web_`:
+
+| Series | What it answers |
+| --- | --- |
+| `brief_web_process_*`, `brief_web_nodejs_*` | Is the process healthy — event loop lag, heap, GC, handles |
+| `brief_web_http_request_duration_seconds` | Wire-level latency and error rate, by `route`, `method` and `status_class` |
+| `brief_web_server_fn_requests_total` / `_duration_seconds` | Per-operation volume, outcome and latency of the server functions |
+| `brief_web_category_jobs` / `_provider_fetch_jobs` / `_message_jobs` | Today's pipeline, by job status — a `failed` above zero is the alert |
+| `brief_web_category_job_tokens` | What today's briefs cost in LLM tokens |
+
+The pipeline gauges are counted in SQL at scrape time, scoped to the current
+target date. A database that is down leaves them at their last value and logs a
+warning rather than failing the scrape, so the process metrics still say whether
+the app is up.
+
+`route` is a **bounded** label set: add every new route to `KNOWN_ROUTES` in
+[apps/web/src/libs/server/metrics.ts](apps/web/src/libs/server/metrics.ts) or it
+silently collapses into `other`. Renaming the `brief_web_` prefix orphans the
+Grafana dashboards — don't.
+
+### Scraping it
+
+There is no authentication on the endpoint. It is not meant to be reachable from
+the outside: the `web` container joins the external `monitoring-shared` network,
+and Prometheus scrapes it there, by container name.
+
+```yaml
+  - job_name: brief-web
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - brief-web-prod:3000
+```
+
+Two things must hold, and both fail silently:
+
+- **The reverse proxy must refuse `/metrics`.** It is published on loopback
+  along with the rest of the app, so a proxy that forwards everything exposes it.
+- **`WEB_ALLOWED_HOSTS` must contain `brief-web-prod`.** The scrape arrives with
+  that container name as its `Host`, which is not `SITE_URL`'s, and `vite preview`
+  answers a 403 that reads from Grafana like the app being down.
+
+The workers and the scheduler expose nothing of their own — they have no HTTP
+server. Their side of the pipeline is visible through the job gauges above, and
+through RabbitMQ's own `/metrics` on the shared broker.
+
 ## Structure
 
 ```text

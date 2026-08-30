@@ -14,6 +14,7 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as MetricsRouteImport } from './routes/metrics'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -52,6 +53,11 @@ const HomeRoute = HomeRouteImport.update({
 const HowItWorksRoute = HowItWorksRouteImport.update({
   id: '/how-it-works',
   path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetricsRoute = MetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/metrics': typeof MetricsRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/metrics': typeof MetricsRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/metrics': typeof MetricsRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/home'
     | '/how-it-works'
+    | '/metrics'
     | '/profile'
     | '/reset-password'
     | '/robots.txt'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/home'
     | '/how-it-works'
+    | '/metrics'
     | '/profile'
     | '/reset-password'
     | '/robots.txt'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/home'
     | '/how-it-works'
+    | '/metrics'
     | '/profile'
     | '/reset-password'
     | '/robots.txt'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HomeRoute: typeof HomeRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  MetricsRoute: typeof MetricsRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/how-it-works'
       fullPath: '/how-it-works'
       preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/metrics': {
+      id: '/metrics'
+      path: '/metrics'
+      fullPath: '/metrics'
+      preLoaderRoute: typeof MetricsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -431,6 +451,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   HomeRoute: HomeRoute,
   HowItWorksRoute: HowItWorksRoute,
+  MetricsRoute: MetricsRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,

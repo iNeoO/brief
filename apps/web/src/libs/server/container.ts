@@ -4,6 +4,7 @@ import {
 	BriefsService,
 	CategoriesService,
 	createS3Config,
+	PipelineMetricsService,
 	ProvidersService,
 	S3Service,
 	SubscriptionsService,
@@ -47,6 +48,7 @@ const createContainer = () => {
 		}),
 		briefsService: new BriefsService(db),
 		categoriesService: new CategoriesService(db),
+		pipelineMetricsService: new PipelineMetricsService(db),
 		providersService: new ProvidersService(db),
 		subscriptionsService: new SubscriptionsService(db),
 		telegramPairingService: new TelegramPairingService(

@@ -63,6 +63,17 @@ services:
     command: ["pnpm", "--filter", "@brief/web", "preview"]
     ports:
       - "127.0.0.1:${WEB_HOST_PORT}:3000"
+    # Repeats the anchor's list because an explicit key replaces it rather than
+    # extending it. The extra entry is `monitoring-shared`: Prometheus scrapes
+    # /metrics over that network, straight at the container, so the endpoint
+    # never has to be reachable through the public reverse proxy. Only the web
+    # container serves metrics, so only this service joins it.
+    networks:
+      - brief-network
+      - redis-network
+      - garage-network
+      - rabbitmq-network
+      - monitoring-shared
     depends_on: *app-depends
 
   scheduler:
@@ -110,4 +121,7 @@ networks:
     external: true
   rabbitmq-network:
     name: ${RABBITMQ_NETWORK:-rabbitmq-network}
+    external: true
+  monitoring-shared:
+    name: ${MONITORING_SHARED_NETWORK:-monitoring-shared}
     external: true

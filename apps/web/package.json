@@ -31,6 +31,7 @@
 		"@tanstack/react-router-ssr-query": "1.167.1",
 		"@tanstack/react-start": "1.168.38",
 		"@tanstack/react-table": "^9.1.2",
+		"prom-client": "^15.1.3",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0",
 		"zod": "catalog:"
