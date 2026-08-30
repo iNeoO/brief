@@ -5,3 +5,5 @@ dist/
 
 # Prisma generated client
 db/prisma/generated/
+.env.*
+!.env.example
