@@ -31,8 +31,7 @@ export class S3Service {
 				accessKeyId: config.accessKeyId,
 				secretAccessKey: config.secretAccessKey,
 			},
-			// Garage serves buckets by path (host/bucket/key), not by subdomain
-			forcePathStyle: true,
+			forcePathStyle: config.forcePathStyle,
 		});
 	}
 

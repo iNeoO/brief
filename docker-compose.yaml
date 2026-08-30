@@ -59,7 +59,7 @@ services:
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
       GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
     ports:
-      - "127.0.0.1:${S3_PORT}:3900"
+      - "127.0.0.1:3910:3900"
       - "127.0.0.1:3913:3903"
     volumes:
       - ./garage/garage.toml:/etc/garage.toml:ro

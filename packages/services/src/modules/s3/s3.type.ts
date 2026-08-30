@@ -8,6 +8,7 @@ export type S3ServiceConfig = {
 	bucket: string;
 	accessKeyId: string;
 	secretAccessKey: string;
+	forcePathStyle: boolean;
 };
 
 export type FileRow = typeof schema.files.$inferSelect;

@@ -3,6 +3,7 @@ import { createRedis } from "@brief/infra/redis";
 import {
 	BriefsService,
 	CategoriesService,
+	createS3Config,
 	ProvidersService,
 	S3Service,
 	SubscriptionsService,
@@ -54,13 +55,7 @@ const createContainer = () => {
 			telegramConfig,
 			new TelegramClient(telegramConfig),
 		),
-		s3Service: new S3Service(db, {
-			endpoint: `${env.S3_USE_SSL ? "https" : "http"}://${env.S3_ENDPOINT}:${env.S3_PORT}`,
-			region: env.S3_REGION,
-			bucket: env.S3_BUCKET,
-			accessKeyId: env.S3_ACCESS_KEY,
-			secretAccessKey: env.S3_SECRET_KEY,
-		}),
+		s3Service: new S3Service(db, createS3Config(env)),
 	};
 };
 

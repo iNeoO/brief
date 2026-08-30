@@ -21,13 +21,12 @@ const envSchema = z.object({
 	// Needed to purge the audio objects of a deleted category. Required, like
 	// every other block here: the app refuses to boot half-configured rather
 	// than discovering the gap on the first delete.
-	S3_ENDPOINT: z.string().min(1),
-	S3_PORT: z.coerce.number().int().positive(),
+	S3_ENDPOINT: z.url(),
 	S3_REGION: z.string().min(1),
-	S3_USE_SSL: z.stringbool().default(false),
 	S3_ACCESS_KEY: z.string().min(1),
 	S3_SECRET_KEY: z.string().min(1),
 	S3_BUCKET: z.string().min(1),
+	S3_FORCE_PATH_STYLE: z.stringbool().default(true),
 	// Telegram pairing. Deliberately here and not in `packages/infra`, whose env
 	// module parses at import time for every worker: a variable added there is a
 	// variable each of the four workers has to set before it will boot.

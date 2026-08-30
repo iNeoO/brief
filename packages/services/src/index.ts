@@ -22,6 +22,7 @@ export * from "./modules/processing/processing.type.js";
 export * from "./modules/providerFetchJobs/providerFetchJobs.service.js";
 export * from "./modules/providerFetchJobs/providerFetchJobs.type.js";
 export * from "./modules/providers/providers.service.js";
+export * from "./modules/s3/s3.config.js";
 export * from "./modules/s3/s3.service.js";
 export * from "./modules/s3/s3.type.js";
 export * from "./modules/scheduler/scheduler.service.js";
