@@ -73,12 +73,6 @@ export const SEED_PROVIDERS = [
 		kind: CONNECTOR_KIND.RSS,
 	},
 	{
-		name: "Euractiv FR",
-		slug: "euractiv-fr",
-		url: "https://euractiv.com/fr/feed/",
-		kind: CONNECTOR_KIND.RSS,
-	},
-	{
 		name: "Futura",
 		slug: "futura",
 		url: "https://www.futura-sciences.com/rss/actualites.xml",
