@@ -1,5 +1,9 @@
 import amqp from "amqplib";
-import { createWorkerLogger, type PinoLogger } from "../libs/index.js";
+import {
+	createWorkerLogger,
+	type PinoLogger,
+	wrapWithLogger,
+} from "../libs/index.js";
 import { assertQueueTopology } from "./topology.js";
 
 export type AmqpChannel = amqp.Channel;
@@ -163,7 +167,9 @@ export abstract class BaseAmqpConsumer {
 				}
 
 				this.trackTask(
-					Promise.resolve().then(() => this.handleMessage(channel, msg)),
+					Promise.resolve().then(() =>
+						wrapWithLogger(this.logger, () => this.handleMessage(channel, msg)),
+					),
 				);
 			});
 			this.consumerTag = consumer.consumerTag;
