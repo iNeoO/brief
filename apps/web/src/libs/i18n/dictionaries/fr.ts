@@ -435,6 +435,7 @@ export const fr: Dictionary = {
 				label: "Sections admin",
 				toggle: "Afficher ou masquer la navigation",
 				categories: "Catégories",
+				jobs: "Jobs",
 				backToBriefs: "Retour à mes briefs",
 			},
 			table: {
@@ -456,6 +457,11 @@ export const fr: Dictionary = {
 				finished: "Terminé",
 				failed: "Échec",
 				no_articles_selected: "Aucun article retenu",
+			},
+			jobState: {
+				creating_report: "Rédaction",
+				creating_audio: "Synthèse vocale",
+				sending_message: "Envoi",
 			},
 			categories: {
 				title: "Catégories",
@@ -542,6 +548,80 @@ export const fr: Dictionary = {
 					enabled: (name: string) => `« ${name} » est maintenant active.`,
 					disabled: (name: string) => `« ${name} » est maintenant inactive.`,
 					deleted: (name: string) => `Catégorie « ${name} » supprimée.`,
+				},
+			},
+			jobs: {
+				title: "Jobs du pipeline",
+				lead: "Chaque exécution du pipeline, la plus récente en premier.",
+				tabs: {
+					label: "Types de jobs",
+					category: "Jobs de catégorie",
+					fetch: "Jobs de collecte",
+				},
+				statusFilter: {
+					label: "Filtrer par statut",
+					all: "Tous les statuts",
+				},
+				category: {
+					search: {
+						label: "Rechercher une catégorie",
+						placeholder: "Rechercher un nom de catégorie",
+						clear: "Effacer la recherche",
+					},
+					columns: {
+						category: "Catégorie",
+						targetDate: "Jour",
+						status: "Statut",
+						state: "Étape",
+						retry: "Reprises",
+						articlesCount: "Articles",
+						totalTokens: "Tokens",
+						deliveries: "Envois",
+						duration: "Durée",
+						error: "Erreur",
+						createdAt: "Créé",
+						finishedAt: "Terminé",
+					},
+					deliveriesFailed: (count: number) =>
+						`${count} échec${count > 1 ? "s" : ""}`,
+					empty: {
+						title: "Aucun job de catégorie",
+						body: "Chaque brief produit par le pipeline apparaît ici.",
+					},
+					noResults: {
+						title: "Aucun résultat",
+						body: (term: string) =>
+							`Aucune catégorie ne correspond à « ${term} ».`,
+					},
+					error: "Les jobs de catégorie n'ont pas pu être chargés.",
+				},
+				fetch: {
+					search: {
+						label: "Rechercher une source",
+						placeholder: "Rechercher un nom de source",
+						clear: "Effacer la recherche",
+					},
+					columns: {
+						provider: "Source",
+						targetDate: "Jour",
+						status: "Statut",
+						retry: "Reprises",
+						articlesCount: "Articles",
+						duration: "Durée",
+						error: "Erreur",
+						createdAt: "Créé",
+						finishedAt: "Terminé",
+					},
+					empty: {
+						title: "Aucun job de collecte",
+						body: "Chaque lecture d'un flux de source apparaît ici.",
+					},
+					noResults: {
+						title: "Aucun résultat",
+						body: (term: string) =>
+							`Aucune source ne correspond à « ${term} ».`,
+					},
+					error: "Les jobs de collecte n'ont pas pu être chargés.",
 				},
 			},
 		},

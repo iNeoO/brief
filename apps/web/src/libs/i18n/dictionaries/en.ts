@@ -435,6 +435,7 @@ export const en = {
 				label: "Admin sections",
 				toggle: "Toggle navigation",
 				categories: "Categories",
+				jobs: "Jobs",
 				backToBriefs: "Back to my briefs",
 			},
 			table: {
@@ -456,6 +457,11 @@ export const en = {
 				finished: "Finished",
 				failed: "Failed",
 				no_articles_selected: "No article kept",
+			},
+			jobState: {
+				creating_report: "Writing",
+				creating_audio: "Voicing",
+				sending_message: "Sending",
 			},
 			categories: {
 				title: "Categories",
@@ -542,6 +548,77 @@ export const en = {
 					enabled: (name: string) => `“${name}” is now active.`,
 					disabled: (name: string) => `“${name}” is now inactive.`,
 					deleted: (name: string) => `Category “${name}” deleted.`,
+				},
+			},
+			jobs: {
+				title: "Pipeline jobs",
+				lead: "Every run of the pipeline, the most recent first.",
+				tabs: {
+					label: "Job kinds",
+					category: "Category jobs",
+					fetch: "Fetch jobs",
+				},
+				statusFilter: {
+					label: "Filter by status",
+					all: "Every status",
+				},
+				category: {
+					search: {
+						label: "Search categories",
+						placeholder: "Search a category name",
+						clear: "Clear the search",
+					},
+					columns: {
+						category: "Category",
+						targetDate: "Day",
+						status: "Status",
+						state: "Step",
+						retry: "Retries",
+						articlesCount: "Articles",
+						totalTokens: "Tokens",
+						deliveries: "Deliveries",
+						duration: "Duration",
+						error: "Error",
+						createdAt: "Created",
+						finishedAt: "Finished",
+					},
+					deliveriesFailed: (count: number) => `${count} failed`,
+					empty: {
+						title: "No category job yet",
+						body: "Every brief the pipeline produces shows up here.",
+					},
+					noResults: {
+						title: "No match",
+						body: (term: string) => `No category matches “${term}”.`,
+					},
+					error: "The category jobs could not be loaded.",
+				},
+				fetch: {
+					search: {
+						label: "Search sources",
+						placeholder: "Search a source name",
+						clear: "Clear the search",
+					},
+					columns: {
+						provider: "Source",
+						targetDate: "Day",
+						status: "Status",
+						retry: "Retries",
+						articlesCount: "Articles",
+						duration: "Duration",
+						error: "Error",
+						createdAt: "Created",
+						finishedAt: "Finished",
+					},
+					empty: {
+						title: "No fetch job yet",
+						body: "Every read of a source feed shows up here.",
+					},
+					noResults: {
+						title: "No match",
+						body: (term: string) => `No source matches “${term}”.`,
+					},
+					error: "The fetch jobs could not be loaded.",
 				},
 			},
 		},

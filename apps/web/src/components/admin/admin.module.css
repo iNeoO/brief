@@ -79,6 +79,20 @@
 	color: var(--brief-muted);
 }
 
+.errorText {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow: hidden;
+	max-width: 22rem;
+	color: var(--brief-muted);
+}
+
+.statusFilter {
+	width: 12rem;
+}
+
 .numeric {
 	font-variant-numeric: tabular-nums;
 	text-align: right;

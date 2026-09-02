@@ -22,6 +22,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 			label: t.auth.admin.nav.categories,
 			active: Boolean(matchRoute({ to: ROUTES.adminCategories, fuzzy: true })),
 		},
+		{
+			to: ROUTES.adminJobs,
+			label: t.auth.admin.nav.jobs,
+			active: Boolean(matchRoute({ to: ROUTES.adminJobs, fuzzy: true })),
+		},
 	];
 
 	return (

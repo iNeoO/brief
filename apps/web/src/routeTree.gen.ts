@@ -25,8 +25,12 @@ import { Route as TopicsRouteImport } from './routes/topics'
 import { Route as ValidateEmailRouteImport } from './routes/validate-email'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
+import { Route as AdminJobsRouteRouteImport } from './routes/admin/jobs/route'
 import { Route as BriefsIndexRouteImport } from './routes/briefs/index'
 import { Route as BriefsIdRouteImport } from './routes/briefs/$id'
+import { Route as AdminJobsIndexRouteImport } from './routes/admin/jobs/index'
+import { Route as AdminJobsCategoryRouteImport } from './routes/admin/jobs/category'
+import { Route as AdminJobsFetchRouteImport } from './routes/admin/jobs/fetch'
 import { Route as ApiTelegramWebhookRouteImport } from './routes/api/telegram.webhook'
 import { Route as ApiBriefsAudioFileIdRouteImport } from './routes/api/briefs.audio.$fileId'
 
@@ -110,6 +114,11 @@ const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminJobsRouteRoute = AdminJobsRouteRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const BriefsIndexRoute = BriefsIndexRouteImport.update({
   id: '/briefs/',
   path: '/briefs/',
@@ -119,6 +128,21 @@ const BriefsIdRoute = BriefsIdRouteImport.update({
   id: '/briefs/$id',
   path: '/briefs/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminJobsIndexRoute = AdminJobsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminJobsRouteRoute,
+} as any)
+const AdminJobsCategoryRoute = AdminJobsCategoryRouteImport.update({
+  id: '/category',
+  path: '/category',
+  getParentRoute: () => AdminJobsRouteRoute,
+} as any)
+const AdminJobsFetchRoute = AdminJobsFetchRouteImport.update({
+  id: '/fetch',
+  path: '/fetch',
+  getParentRoute: () => AdminJobsRouteRoute,
 } as any)
 const ApiTelegramWebhookRoute = ApiTelegramWebhookRouteImport.update({
   id: '/api/telegram/webhook',
@@ -146,11 +170,15 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/topics': typeof TopicsRoute
   '/validate-email': typeof ValidateEmailRoute
+  '/admin/jobs': typeof AdminJobsRouteRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
   '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
   '/briefs/': typeof BriefsIndexRoute
+  '/admin/jobs/category': typeof AdminJobsCategoryRoute
+  '/admin/jobs/fetch': typeof AdminJobsFetchRoute
   '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
+  '/admin/jobs/': typeof AdminJobsIndexRoute
   '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRoutesByTo {
@@ -171,7 +199,10 @@ export interface FileRoutesByTo {
   '/briefs/$id': typeof BriefsIdRoute
   '/admin': typeof AdminIndexRoute
   '/briefs': typeof BriefsIndexRoute
+  '/admin/jobs/category': typeof AdminJobsCategoryRoute
+  '/admin/jobs/fetch': typeof AdminJobsFetchRoute
   '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
+  '/admin/jobs': typeof AdminJobsIndexRoute
   '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRoutesById {
@@ -190,11 +221,15 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/topics': typeof TopicsRoute
   '/validate-email': typeof ValidateEmailRoute
+  '/admin/jobs': typeof AdminJobsRouteRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
   '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
   '/briefs/': typeof BriefsIndexRoute
+  '/admin/jobs/category': typeof AdminJobsCategoryRoute
+  '/admin/jobs/fetch': typeof AdminJobsFetchRoute
   '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
+  '/admin/jobs/': typeof AdminJobsIndexRoute
   '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRouteTypes {
@@ -214,11 +249,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/topics'
     | '/validate-email'
+    | '/admin/jobs'
     | '/admin/categories'
     | '/briefs/$id'
     | '/admin/'
     | '/briefs/'
+    | '/admin/jobs/category'
+    | '/admin/jobs/fetch'
     | '/api/telegram/webhook'
+    | '/admin/jobs/'
     | '/api/briefs/audio/$fileId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -239,7 +278,10 @@ export interface FileRouteTypes {
     | '/briefs/$id'
     | '/admin'
     | '/briefs'
+    | '/admin/jobs/category'
+    | '/admin/jobs/fetch'
     | '/api/telegram/webhook'
+    | '/admin/jobs'
     | '/api/briefs/audio/$fileId'
   id:
     | '__root__'
@@ -257,11 +299,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/topics'
     | '/validate-email'
+    | '/admin/jobs'
     | '/admin/categories'
     | '/briefs/$id'
     | '/admin/'
     | '/briefs/'
+    | '/admin/jobs/category'
+    | '/admin/jobs/fetch'
     | '/api/telegram/webhook'
+    | '/admin/jobs/'
     | '/api/briefs/audio/$fileId'
   fileRoutesById: FileRoutesById
 }
@@ -400,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriesRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/jobs': {
+      id: '/admin/jobs'
+      path: '/jobs'
+      fullPath: '/admin/jobs'
+      preLoaderRoute: typeof AdminJobsRouteRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/briefs/': {
       id: '/briefs/'
       path: '/briefs'
@@ -413,6 +466,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/briefs/$id'
       preLoaderRoute: typeof BriefsIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/jobs/': {
+      id: '/admin/jobs/'
+      path: '/'
+      fullPath: '/admin/jobs/'
+      preLoaderRoute: typeof AdminJobsIndexRouteImport
+      parentRoute: typeof AdminJobsRouteRoute
+    }
+    '/admin/jobs/category': {
+      id: '/admin/jobs/category'
+      path: '/category'
+      fullPath: '/admin/jobs/category'
+      preLoaderRoute: typeof AdminJobsCategoryRouteImport
+      parentRoute: typeof AdminJobsRouteRoute
+    }
+    '/admin/jobs/fetch': {
+      id: '/admin/jobs/fetch'
+      path: '/fetch'
+      fullPath: '/admin/jobs/fetch'
+      preLoaderRoute: typeof AdminJobsFetchRouteImport
+      parentRoute: typeof AdminJobsRouteRoute
     }
     '/api/telegram/webhook': {
       id: '/api/telegram/webhook'
@@ -431,12 +505,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminJobsRouteRouteChildren {
+  AdminJobsCategoryRoute: typeof AdminJobsCategoryRoute
+  AdminJobsFetchRoute: typeof AdminJobsFetchRoute
+  AdminJobsIndexRoute: typeof AdminJobsIndexRoute
+}
+
+const AdminJobsRouteRouteChildren: AdminJobsRouteRouteChildren = {
+  AdminJobsCategoryRoute: AdminJobsCategoryRoute,
+  AdminJobsFetchRoute: AdminJobsFetchRoute,
+  AdminJobsIndexRoute: AdminJobsIndexRoute,
+}
+
+const AdminJobsRouteRouteWithChildren = AdminJobsRouteRoute._addFileChildren(
+  AdminJobsRouteRouteChildren,
+)
+
 interface AdminRouteRouteChildren {
+  AdminJobsRouteRoute: typeof AdminJobsRouteRouteWithChildren
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminJobsRouteRoute: AdminJobsRouteRouteWithChildren,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

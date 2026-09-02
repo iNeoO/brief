@@ -23,6 +23,7 @@ import {
 	type AdminTableColumns,
 	createAdminColumnHelper,
 } from "./admin-table";
+import { JobStatusBadge } from "./job-cells";
 
 const columnHelper = createAdminColumnHelper<AdminCategoryRow>();
 
@@ -112,13 +113,7 @@ const buildColumns = (
 				return (
 					<Group gap="xs" wrap="nowrap">
 						<span>{formatCalendarDate(lastBrief.targetDate, locale)}</span>
-						<Badge
-							size="sm"
-							variant="light"
-							color={lastBrief.status === "failed" ? "red" : "gray"}
-						>
-							{t.auth.admin.jobStatus[lastBrief.status]}
-						</Badge>
+						<JobStatusBadge status={lastBrief.status} />
 					</Group>
 				);
 			},
