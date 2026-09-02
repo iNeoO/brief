@@ -8,16 +8,24 @@ import { Topics } from "#/components/home/topics";
 import { SiteShell } from "#/components/layout/site-shell";
 import { ROUTES } from "#/config/routes";
 import { latestBriefsQueryOptions } from "#/libs/api/briefs";
+import { showcaseTopicsQueryOptions } from "#/libs/api/topics";
 import { readStoredLocale } from "#/libs/i18n/locale-cookie";
 import { localisedHead } from "#/libs/i18n/route-head";
 
 export const Route = createFileRoute("/")({
 	// Awaited even on the client: the briefs are the point of the page, and a
-	// section that pops in after the fold reads as a layout bug.
+	// section that pops in after the fold reads as a layout bug. The topic
+	// teaser is the other list the page is made of, so it is warmed the same way
+	// — with the locale the reader already has, not a second read of the cookie.
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData(latestBriefsQueryOptions());
+		const locale = readStoredLocale();
 
-		return { locale: readStoredLocale() };
+		await Promise.all([
+			context.queryClient.ensureQueryData(latestBriefsQueryOptions()),
+			context.queryClient.ensureQueryData(showcaseTopicsQueryOptions(locale)),
+		]);
+
+		return { locale };
 	},
 	// The one page that leads with the brand: a search result for "daily briefs"
 	// should read as the name of the site, not as a sentence about it.

@@ -1,9 +1,18 @@
 import { Title } from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
+import { Notice } from "#/components/notice";
+import { showcaseTopicsQueryOptions } from "#/libs/api/topics";
 import { useI18n } from "#/libs/i18n/context";
 import classes from "./home.module.css";
 
 export function Topics() {
-	const { t } = useI18n();
+	const { locale, t } = useI18n();
+	// Keyed by locale, so switching language swaps the teaser for the topics
+	// that language actually publishes rather than relabelling the same chips.
+	const topics = useQuery(showcaseTopicsQueryOptions(locale));
+
+	const names = topics.data?.names ?? [];
+	const remaining = topics.data?.remaining ?? 0;
 
 	return (
 		<section
@@ -17,13 +26,28 @@ export function Topics() {
 
 				<p className={classes.sectionLead}>{t.topics.lead}</p>
 
-				<ul className={classes.topicList}>
-					{t.topics.items.map((topic) => (
-						<li key={topic} className={classes.topicChip}>
-							{topic}
-						</li>
-					))}
-				</ul>
+				{names.length === 0 ? (
+					<Notice
+						className={classes.topicNotice}
+						title={topics.isError ? t.topics.loadError : t.topics.empty}
+					/>
+				) : (
+					<ul className={classes.topicList}>
+						{names.map((name) => (
+							<li key={name} className={classes.topicChip}>
+								{name}
+							</li>
+						))}
+
+						{/* The catalogue can outgrow the teaser: the rest is a count, so
+						    the row stays one line and the topics page keeps the list. */}
+						{remaining > 0 ? (
+							<li className={`${classes.topicChip} ${classes.topicChipMore}`}>
+								{t.topics.more(remaining)}
+							</li>
+						) : null}
+					</ul>
+				)}
 			</div>
 		</section>
 	);

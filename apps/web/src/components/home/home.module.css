@@ -258,6 +258,18 @@
 	font-size: var(--mantine-font-size-sm);
 }
 
+/* The overflow count is not a topic anyone can follow, so it does not read as
+   one: no border, no surface, just the tail of the sentence the chips make. */
+.topicChipMore {
+	border-color: transparent;
+	background-color: transparent;
+	color: var(--brief-muted);
+}
+
+.topicNotice {
+	margin-top: 2.5rem;
+}
+
 /* ----------------------------------------------------------------- closing */
 
 .closing {

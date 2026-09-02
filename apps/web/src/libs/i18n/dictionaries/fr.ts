@@ -165,14 +165,11 @@ export const fr: Dictionary = {
 	topics: {
 		title: "Sujets couverts",
 		lead: "Suivez-en un, ou suivez-les tous. Vous pouvez changer d'avis chaque matin.",
-		items: [
-			"Technologie",
-			"Économie",
-			"International",
-			"Sciences",
-			"Culture",
-			"Sport",
-		],
+		more: (count) =>
+			count === 1 ? "et 1 autre sujet" : `et ${count} autres sujets`,
+		empty:
+			"Aucun sujet n'est encore ouvert en français. Les premiers arrivent bientôt.",
+		loadError: "Les sujets n'ont pas pu être chargés.",
 	},
 	closing: {
 		title: "Commencez demain matin.",

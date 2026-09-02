@@ -64,3 +64,14 @@ export type DeletedFileTarget = {
 	bucket: string;
 	objectKey: string;
 };
+
+/**
+ * The topic teaser the landing page shows: the first few names, then a count
+ * of everything else on offer in that language.
+ */
+export type ShowcaseTopics = {
+	/** Enabled topics of the language asked for, oldest first. */
+	names: string[];
+	/** Topics of that language beyond the ones named. Zero when all fit. */
+	remaining: number;
+};

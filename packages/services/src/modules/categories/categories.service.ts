@@ -1,10 +1,12 @@
 import {
 	CATEGORY_SORT,
 	DOMAIN_ERROR_CODE,
+	SHOWCASE_TOPICS_LIMIT,
 	SORT_ORDER,
 } from "@brief/common/constants";
-import type { Paginated } from "@brief/common/types";
+import type { Language, Paginated } from "@brief/common/types";
 import {
+	and,
 	asc,
 	type Database,
 	desc,
@@ -24,6 +26,7 @@ import type {
 	CategoryWriteInput,
 	DeletedFileTarget,
 	ListAdminCategoriesInput,
+	ShowcaseTopics,
 	UpdateCategoryInput,
 } from "./categories.type.js";
 
@@ -69,6 +72,42 @@ export class CategoriesService {
 				providers: true,
 			},
 		});
+	}
+
+	/**
+	 * The topics the landing page names, in the language the reader's interface
+	 * speaks: showing a French reader topics they cannot read would be an offer
+	 * we do not keep. Oldest first, so the teaser a returning reader remembers
+	 * does not reshuffle — a topic added today joins the end, and once past the
+	 * limit it shows up only in `remaining`.
+	 */
+	async listShowcase(language: Language): Promise<ShowcaseTopics> {
+		const where = and(
+			eq(schema.categories.isEnabled, true),
+			eq(schema.categories.language, language),
+		);
+
+		const [rows, [totals]] = await Promise.all([
+			this.db
+				.select({ name: schema.categories.name })
+				.from(schema.categories)
+				.where(where)
+				// `created_at` defaults to `now()`, so a seed can give several
+				// categories the same instant. The id breaks the tie, and uuidv7
+				// orders by creation too, so the tiebreaker agrees with the sort.
+				.orderBy(asc(schema.categories.createdAt), asc(schema.categories.id))
+				.limit(SHOWCASE_TOPICS_LIMIT),
+			// Same filter, no window: the count is the whole offer, not this slice.
+			this.db
+				.select({ total: sql<number>`count(*)::int` })
+				.from(schema.categories)
+				.where(where),
+		]);
+
+		return {
+			names: rows.map((row) => row.name),
+			remaining: Math.max((totals?.total ?? 0) - rows.length, 0),
+		};
 	}
 
 	/**

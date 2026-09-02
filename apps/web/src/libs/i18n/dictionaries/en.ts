@@ -164,14 +164,10 @@ export const en = {
 	topics: {
 		title: "Topics covered",
 		lead: "Follow one, or follow them all. You can change your mind any morning.",
-		items: [
-			"Technology",
-			"Economy",
-			"International",
-			"Science",
-			"Culture",
-			"Sport",
-		],
+		more: (count: number) =>
+			count === 1 ? "and 1 more topic" : `and ${count} more topics`,
+		empty: "No topic is open in English yet. The first ones are on their way.",
+		loadError: "The topics could not be loaded.",
 	},
 	closing: {
 		title: "Start tomorrow morning.",

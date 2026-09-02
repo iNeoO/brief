@@ -3,12 +3,17 @@ import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { pageParam, searchParam } from "#/libs/api/search-params";
-import { authedMiddleware } from "#/libs/server/middleware";
+import { LOCALES, type Locale } from "#/libs/i18n/config";
+import {
+	authedMiddleware,
+	containerMiddleware,
+} from "#/libs/server/middleware";
 
 /**
- * The topics page reads and writes one user's subscriptions, so everything
- * here sits behind `authedMiddleware` — including the available list, which
- * is the catalogue minus what that user already follows.
+ * The topics page reads and writes one user's subscriptions, so it sits behind
+ * `authedMiddleware` — including the available list, which is the catalogue
+ * minus what that user already follows. The landing-page teaser is the one
+ * public read here: the catalogue as anyone can see it.
  */
 
 const topicsPageParam = pageParam.default(PAGINATION.DEFAULT_PAGE);
@@ -76,6 +81,31 @@ export const availableTopicsQueryOptions = (search: TopicsSearch) => {
 		queryFn: () => getAvailableTopics({ data: input }),
 	});
 };
+
+/**
+ * A category's `language` is the language its briefs are written in, and the
+ * locale is the one the interface speaks. They carry the same values, and the
+ * teaser matches them: naming a topic a visitor could not read is an offer we
+ * do not keep. It is the locale, not the account, that decides — this runs
+ * before anyone signs in.
+ */
+export const getShowcaseTopics = createServerFn({ method: "GET" })
+	.middleware([containerMiddleware])
+	.validator(z.object({ locale: z.enum(LOCALES) }))
+	.handler(({ data, context }) =>
+		context.container.categoriesService.listShowcase(data.locale),
+	);
+
+export const showcaseTopicsQueryOptions = (locale: Locale) =>
+	queryOptions({
+		// Under TOPICS_QUERY_KEY, so an admin creating a category refreshes the
+		// teaser along with the two subscription lists.
+		queryKey: [...TOPICS_QUERY_KEY, "showcase", locale] as const,
+		queryFn: () => getShowcaseTopics({ data: { locale } }),
+		// The catalogue changes when an admin adds a topic, not between two
+		// readers: the teaser can be served from cache for a while.
+		staleTime: 5 * 60 * 1000,
+	});
 
 const subscriptionInput = z.object({ categoryId: z.uuid() });
 

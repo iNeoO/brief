@@ -33,3 +33,9 @@ export const CATEGORY_NAME_MAX_LENGTH = 80;
 export const CATEGORY_DESCRIPTION_MAX_LENGTH = 300;
 
 export const CATEGORY_DESCRIPTION_CLAMP_LINES = 2;
+
+/**
+ * How many topics the landing page names before falling back to a count. The
+ * list is a teaser, not the catalogue: the topics page is where a reader picks.
+ */
+export const SHOWCASE_TOPICS_LIMIT = 5;
