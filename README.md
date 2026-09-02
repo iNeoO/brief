@@ -149,6 +149,36 @@ The workers and the scheduler expose nothing of their own — they have no HTTP
 server. Their side of the pipeline is visible through the job gauges above, and
 through RabbitMQ's own `/metrics` on the shared broker.
 
+### Request logs
+
+Every request the Start server answers also produces one Pino line, emitted
+after the response by `httpLoggerMiddleware` — a TanStack Start *request*
+middleware, registered in
+[apps/web/src/start.ts](apps/web/src/start.ts) and covering both entry paths of
+the handler, SSR documents and server function calls alike:
+
+```text
+GET /briefs 200 73ms
+    reqId, method, pathname, statusCode, durationMs, handlerType
+```
+
+The essentials are in the message so a Grafana log panel reads without
+expanding, and repeated as flat fields so LogQL can filter on them
+(`| json | statusCode >= 500`). `info` below 400, `warn` on a 4xx, `error` on a
+5xx or on an exception that answered nothing — that last one also carries `err`.
+A successful `/metrics` scrape logs nothing; a failing one does.
+
+`reqId` is minted per request and put in the AsyncLocalStorage the services log
+through, so a service line, a route handler line and the HTTP line of the same
+request share it. Which server function a `serverFn` line carried is one
+`reqId` filter away — the framework does not expose the name at that layer.
+
+`start.ts` exists for this middleware, and its presence has a consequence worth
+knowing: Start applies its CSRF middleware by itself **only** for as long as an
+app declares no start instance. The file therefore declares
+`createCsrfMiddleware` explicitly. Removing it from `requestMiddleware`
+unprotects every server function, silently.
+
 ## Structure
 
 ```text

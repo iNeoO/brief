@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { pinoLogger, wrapWithLogger } from "@brief/infra/libs";
+import { loggerStorage, pinoLogger, wrapWithLogger } from "@brief/infra/libs";
 import { createMiddleware, createServerOnlyFn } from "@tanstack/react-start";
 
 /**
@@ -9,9 +9,11 @@ import { createMiddleware, createServerOnlyFn } from "@tanstack/react-start";
  * bare logger — noise in front of the real message, and on these paths the real
  * message only appears when something has already gone wrong.
  *
- * The id is minted here rather than taken from the request: there is no inbound
- * correlation header to honour, and its only job is to tie one request's lines
- * together.
+ * The request logger, and with it the `reqId`, is put in place by
+ * `httpLoggerMiddleware` for every request. This adds bindings to it, so the
+ * lines of a server function and the HTTP line of the request that carried it
+ * share one id. The fallback branch mints an id of its own, for the one caller
+ * that runs outside the Start handler: a unit test, or a script.
  *
  * `createServerOnlyFn` is what keeps this off the client, and it is load-bearing
  * rather than tidiness. `loggerMiddleware` below is named in the middleware
@@ -25,7 +27,12 @@ import { createMiddleware, createServerOnlyFn } from "@tanstack/react-start";
  */
 export const withRequestLogger = createServerOnlyFn(
 	<T>(bindings: Record<string, string>, run: () => Promise<T>) =>
-		wrapWithLogger(pinoLogger.child({ reqId: randomUUID(), ...bindings }), run),
+		wrapWithLogger(
+			(
+				loggerStorage.getStore() ?? pinoLogger.child({ reqId: randomUUID() })
+			).child(bindings),
+			run,
+		),
 );
 
 /**
