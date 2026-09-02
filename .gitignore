@@ -8,3 +8,5 @@ db/prisma/generated/
 .env.*
 !.env.example
 !.env.docker.example
+coverage/
+.scannerwork/
