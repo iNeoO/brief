@@ -193,6 +193,216 @@ export const fr: Dictionary = {
 		contact: "Contact",
 		rights: (year: number, brand: string) => `© ${year} ${brand}`,
 	},
+	legal: {
+		title: "Mentions légales et conditions",
+		lead: "Qui édite ce site, qui l'héberge, et les conditions que vous acceptez en l'utilisant.",
+		updated: (date: string) => `Dernière mise à jour le ${date}`,
+		identity: {
+			title: "Éditeur",
+			publisherLabel: "Éditeur",
+			publisherValue: (brand: string, publisher: string) =>
+				`${brand}, édité par ${publisher}`,
+			statusLabel: "Statut",
+			statusValue:
+				"Éditeur non professionnel, au sens de l'article 6, III, 2 de la LCEN. L'identité de l'éditeur est détenue par l'hébergeur nommé ci-dessous.",
+			contactLabel: "Contact",
+			directorLabel: "Directeur de la publication",
+			hostLabel: "Hébergeur",
+			hostRegistrationLabel: "Immatriculation de l'hébergeur",
+			hostRegistrationValue: (
+				capital: string,
+				registration: string,
+				vat: string,
+			) => `SAS au capital de ${capital} — ${registration} — TVA ${vat}`,
+		},
+		purpose: {
+			title: "Objet du service",
+			body: "Daily Briefs suit des sources de presse pour un ensemble de sujets, écrit chaque matin un résumé court par sujet, et le met en voix. Les résumés sont publiés sur ce site et livrés sur Telegram aux lecteurs qui suivent le sujet.",
+		},
+		account: {
+			title: "Compte et acceptation",
+			body: "Utiliser le site, c'est accepter ces conditions. Suivre un sujet demande un compte, ouvert avec une adresse dont vous disposez et un mot de passe que vous gardez. Ce qui est fait depuis le vôtre relève de vous : gardez ce mot de passe, et dites-le nous si vous pensez qu'un autre l'a.",
+		},
+		prohibited: {
+			title: "Ce qui n'est pas permis",
+			body: "Le service est petit et tourne sur un budget fixe. Ce qui suit le prend aux autres lecteurs :",
+			items: [
+				"Automatiser l'accès, collecter les briefs en masse, ou les revendre.",
+				"Chercher à atteindre un compte, un job ou une page d'administration qui n'est pas le vôtre.",
+				"Sonder, saturer ou contourner les limites de débit et les autres protections.",
+				"Utiliser le service à des fins illicites, ou pour envoyer à quiconque un contenu qui l'est.",
+			],
+		},
+		suspension: {
+			title: "Suspension et fermeture",
+			body: "Un compte qui fait l'un de ces usages peut être suspendu ou fermé, sans préavis lorsque le service lui-même est en jeu. Vous pouvez demander la fermeture du vôtre à tout moment en nous écrivant : les briefs s'arrêtent le lendemain matin.",
+		},
+		availability: {
+			title: "Disponibilité",
+			body: "Le service est fourni tel qu'il est, sans garantie de disponibilité ni garantie qu'un brief sera produit un matin donné. Une source peut cesser de répondre, une exécution peut échouer, une maintenance peut interrompre le site. Un brief manqué n'ouvre droit à aucune compensation.",
+		},
+		liability: {
+			title: "Responsabilité éditoriale",
+			body: "Un brief est écrit par un modèle de langage à partir d'articles publiés par des organes de presse, puis mis en voix par un modèle de synthèse vocale. C'est un résumé et rien de plus : il peut être incomplet, dépassé ou faux. Chaque brief liste les articles dont il est tiré — ce sont eux la source, et ce sont eux qu'il faut lire avant d'agir sur quoi que ce soit. Rien ici ne constitue un conseil, de quelque nature que ce soit.",
+		},
+		intellectualProperty: {
+			title: "Propriété intellectuelle",
+			body: "Les articles dont un brief est tiré appartiennent aux organes qui les ont publiés : nous y renvoyons par un lien et ne les republions jamais. Le site, son nom et les briefs qu'il produit appartiennent à l'éditeur. Citer un brief en le liant est bienvenu ; le republier en entier ne l'est pas.",
+		},
+		data: {
+			title: "Données personnelles",
+			body: "Ce qui est collecté, pourquoi, combien de temps c'est conservé et comment le faire effacer est exposé en entier dans la politique de confidentialité.",
+			link: "Lire la politique de confidentialité",
+		},
+		changes: {
+			title: "Modifications",
+			body: "Ces conditions évoluent avec le service. La version publiée ici est celle qui s'applique, et la date en haut de cette page dit quand elle a bougé pour la dernière fois.",
+		},
+		law: {
+			title: "Droit applicable",
+			body: "Ces conditions sont régies par le droit français. Tout litige relève des tribunaux français, après que nous avons tenté de le régler en nous écrivant.",
+		},
+		prevails:
+			"Cette page existe aussi en anglais. En cas de divergence, la version française prévaut.",
+	},
+	privacy: {
+		title: "Politique de confidentialité",
+		lead: "Ce que Daily Briefs sait de vous, pourquoi il le sait, et ce que vous pouvez nous demander d'en faire.",
+		updated: (date: string) => `Dernière mise à jour le ${date}`,
+		controller: {
+			title: "Responsable du traitement",
+			body: (publisher: string) =>
+				`L'éditeur de ce site, ${publisher}, décide de ce qui est collecté ici et pourquoi. Tout ce qui concerne cette page atteint une personne à l'adresse ci-dessous.`,
+		},
+		collected: {
+			title: "Ce qui est collecté",
+			body: "Seulement ce dont le service a besoin pour fonctionner. Pas de profil, rien de déduit sur vous, rien acheté à personne :",
+			items: [
+				"Votre compte : un nom, une adresse e-mail, et un mot de passe haché. Rien d'autre n'est demandé.",
+				"Vos sujets : ceux que vous suivez, et depuis quand.",
+				"Votre liaison Telegram, si vous en faites une : l'identifiant de conversation, la langue de vos légendes, et le texte auquel vous avez consenti avec sa date — c'est cet enregistrement qui prouve que les messages ont été demandés.",
+				"Les traces de livraison : quel brief vous a été envoyé et s'il est arrivé, pour qu'un envoi manqué soit réessayé plutôt que perdu ou répété.",
+			],
+		},
+		purposes: {
+			title: "Pourquoi, et sur quelle base",
+			body: "Chaque finalité repose sur sa propre base légale au sens du RGPD :",
+			items: [
+				"Tenir votre compte et livrer les briefs que vous avez demandés — exécution du contrat qui nous lie.",
+				"Vous écrire sur Telegram — votre consentement, donné par la liaison, retiré en la défaisant ou en bloquant le bot.",
+				"Les e-mails transactionnels, pour vérifier une adresse ou réinitialiser un mot de passe — exécution du contrat.",
+				"Les limites de débit et la protection contre les abus, qui retiennent une adresse et une IP une heure au plus — notre intérêt légitime à garder le service debout.",
+			],
+		},
+		ai: {
+			title: "Ce que les modèles ne voient jamais",
+			body: "Un brief est écrit pour un sujet, pas pour un lecteur. Le modèle de langage reçoit des articles de presse et rend un résumé ; le modèle vocal reçoit ce résumé et rend un audio. Ni l'un ni l'autre ne reçoit votre nom, votre adresse, vos sujets ou quoi que ce soit d'autre sur vous — la chaîne qui les appelle va jusqu'au bout avant que quiconque soit désigné pour en recevoir le résultat.",
+		},
+		recipients: {
+			title: "Qui d'autre y touche",
+			body: "Quatre prestataires, chacun pour une tâche et rien au-delà :",
+			items: [
+				"OpenAI, aux États-Unis, pour le résumé et l'audio — des articles de presse uniquement, jamais vos données.",
+				"Resend, pour les e-mails transactionnels et les messages envoyés depuis le formulaire de contact. Il reçoit l'adresse à laquelle il doit écrire.",
+				"Telegram, pour la livraison. Il reçoit votre identifiant de conversation et le brief.",
+				"Scaleway, en France, qui héberge les serveurs et la base de données.",
+			],
+		},
+		retention: {
+			title: "Combien de temps",
+			body: "Votre compte et vos sujets durent autant que le compte. Défaire la liaison Telegram supprime le lien et arrête la livraison immédiatement ; l'enregistrement du consentement reste tant que le compte existe, puisqu'il est la preuve que les messages étaient voulus. Demandez la fermeture du compte et tout ce qui précède est supprimé sous trente jours. Les compteurs de limite de débit expirent d'eux-mêmes dans l'heure.",
+		},
+		cookies: {
+			title: "Cookies",
+			body: "Deux, strictement nécessaires tous les deux, partagés avec personne :",
+			items: [
+				"Un cookie de session, posé quand vous vous connectez, et qui est ce qui vous garde connecté.",
+				"Un cookie qui retient la langue choisie, pour que le site s'ouvre dedans la fois suivante.",
+			],
+			note: "Il n'y a sur ce site aucune analytique, aucune mesure d'audience et aucun script tiers. Rien ici ne vous demande de consentir aux cookies parce que rien ici ne vous suit.",
+		},
+		rights: {
+			title: "Vos droits",
+			body: "Le RGPD vous permet de demander :",
+			items: [
+				"Une copie de ce qui est détenu sur vous, et la même chose sous une forme portable.",
+				"Une rectification — votre nom, vous pouvez aussi le changer vous-même depuis votre profil.",
+				"L'effacement, qui ferme le compte et emporte tout ce qui y est attaché.",
+				"L'opposition à un traitement, ou le retrait de votre consentement Telegram, que défaire la liaison opère immédiatement depuis votre profil.",
+			],
+			note: "Il n'existe pas encore de bouton de suppression en libre-service. Écrivez à l'adresse ci-dessous et c'est fait à la main, sous trente jours.",
+		},
+		complaint: {
+			title: "Réclamation",
+			body: "Si notre réponse ne vous satisfait pas, vous pouvez adresser une réclamation à la CNIL, l'autorité française de protection des données, sur cnil.fr.",
+		},
+		changes: {
+			title: "Modifications",
+			body: "Cette politique bouge quand le service bouge. La date en haut de cette page dit quand c'est arrivé la dernière fois.",
+		},
+	},
+	about: {
+		title: "À propos",
+		lead: "Pourquoi ce service existe, comment un brief est fabriqué, et ce qu'il n'est délibérément pas.",
+		why: {
+			title: "Pourquoi",
+			body: "Suivre l'actualité coûte plus d'attention qu'elle n'en rend. Les fils défilent sans fin, les notifications arrivent toute la journée, et la même histoire est racontée vingt fois avant d'être établie. Daily Briefs répond à une question plus étroite : que s'est-il passé sur les sujets que je suis, dans le temps d'un café.",
+		},
+		how: {
+			title: "Comment un brief est fabriqué",
+			body: "Chaque sujet a son propre jeu de sources de presse. Chaque matin, les articles qu'elles ont publiés sont collectés, une passe éditoriale garde ceux qui comptent pour ce sujet, et ils deviennent un seul résumé court, dans la langue du sujet. Le résumé est mis en voix, publié ici, et livré sur Telegram à 7 h. Chaque brief liste les articles dont il est tiré.",
+		},
+		not: {
+			title: "Ce que ce n'est pas",
+			body: "Ce qui a été laissé de côté est le propos :",
+			items: [
+				"Pas un fil. Un brief par sujet, une fois par jour, et rien entre les deux.",
+				"Pas une opinion. Les résumés rapportent ce que les sources ont rapporté, et les nomment.",
+				"Pas un remplacement de la presse. Les articles sont liés pour que vous alliez les lire, et ce sont les organes qui les ont écrits qui font le travail.",
+				"Pas financé par la publicité, et pas en train de vous mesurer : il n'y a aucun traceur sur ce site.",
+			],
+		},
+		who: {
+			title: "Qui",
+			body: (publisher: string) =>
+				`Un projet personnel, écrit et exploité par ${publisher}. Une question, une source à ajouter, ou quelque chose de faux dans un brief — la page de contact atteint une vraie boîte aux lettres.`,
+		},
+	},
+	contact: {
+		title: "Contact",
+		lead: "Une question, une source à ajouter, ou quelque chose de faux dans un brief.",
+		leadSignUpClosed:
+			"Les inscriptions sont fermées pour le moment : c'est donc aussi ici qu'on demande un compte, créé à la main après votre message.",
+		form: {
+			email: "Votre adresse e-mail",
+			emailPlaceholder: "vous@exemple.fr",
+			subject: "Sujet",
+			subjectPlaceholder: "De quoi il s'agit",
+			message: "Message",
+			messagePlaceholder: "Dites-nous ce qu'il vous faut.",
+			submit: "Envoyer",
+			submitting: "Envoi…",
+		},
+		validation: {
+			emailRequired:
+				"Une adresse e-mail est nécessaire : c'est par là que nous répondons.",
+			emailInvalid: "Cette adresse ne semble pas valide.",
+			subjectRequired: "Un sujet est nécessaire.",
+			messageTooShort: (min: number) =>
+				`Au moins ${min} caractères, pour qu'il y ait de quoi agir.`,
+			messageTooLong: (max: number) =>
+				`Restez sous les ${max} caractères, s'il vous plaît.`,
+		},
+		sent: {
+			title: "Message envoyé",
+			body: "Il nous est parvenu. Les réponses sont écrites par une personne, comptez un jour ou deux.",
+		},
+		tooManyRequests: "Trop de messages depuis ici. Réessayez dans une heure.",
+		genericError:
+			"Le message n'a pas pu être envoyé. Réessayez dans un instant.",
+		direct: (email: string) =>
+			`Vous pouvez aussi écrire directement à ${email}.`,
+	},
 	notFound: {
 		title: "Cette page n'existe pas",
 		lead: "L'adresse est peut-être mal écrite, ou la page a changé depuis que le lien a été écrit.",

@@ -1,0 +1,27 @@
+.form {
+	margin: clamp(2.5rem, 6vw, 3.5rem) 0 0;
+	max-width: 34rem;
+}
+
+.direct {
+	margin: 1.75rem 0 0;
+	max-width: var(--brief-measure);
+	color: var(--brief-faint);
+	font-size: var(--mantine-font-size-sm);
+	text-wrap: pretty;
+}
+
+/*
+ * The honeypot. Off-screen rather than `display: none`: a bot that parses the
+ * stylesheet skips a hidden field, and one that fills every input it can find
+ * is exactly the caller this is meant to catch. `aria-hidden` and the negative
+ * tab index keep it away from a screen reader and from the tab order, so no
+ * human ever lands in it.
+ */
+.honeypot {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}

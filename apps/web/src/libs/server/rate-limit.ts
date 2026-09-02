@@ -35,6 +35,15 @@ const RULES = {
 		ip: { limit: 20, windowSeconds: 3600 },
 		email: { limit: 10, windowSeconds: 3600 },
 	},
+	// The only form here an anonymous visitor can reach, and every submission
+	// spends a Resend send. Tighter than the auth rules on purpose: writing to us
+	// is something someone does once, not ten times an hour. The email half is
+	// self-declared and trivially rotated, so the IP limit is the one doing the
+	// work — it stays low enough that a relay is not worth building.
+	sendContactMessage: {
+		ip: { limit: 5, windowSeconds: 3600 },
+		email: { limit: 3, windowSeconds: 3600 },
+	},
 } as const satisfies Record<string, { ip: Rule; email: Rule }>;
 
 export type RateLimitedAction = keyof typeof RULES;
@@ -71,7 +80,7 @@ const consume = async (
 	}
 };
 
-export const enforceAuthRateLimit = async (
+export const enforceRateLimit = async (
 	redis: RedisClient,
 	action: RateLimitedAction,
 	email: string,

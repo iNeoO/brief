@@ -5,7 +5,7 @@ import { env } from "#/config/env";
 import { LOCALES } from "#/libs/i18n/config";
 import { DICTIONARIES } from "#/libs/i18n/dictionaries";
 import { authedMiddleware } from "#/libs/server/middleware";
-import { enforceAuthRateLimit } from "#/libs/server/rate-limit";
+import { enforceRateLimit } from "#/libs/server/rate-limit";
 
 /**
  * The pairing state of the signed-in user, and the link that starts one. Nothing
@@ -46,7 +46,7 @@ export const createTelegramPairingLink = createServerFn({ method: "POST" })
 	.handler(async ({ data, context }) => {
 		// Each link mints a code with a lifetime of its own. Minting them in a loop
 		// has no legitimate use, and the codes would all stay live at once.
-		await enforceAuthRateLimit(
+		await enforceRateLimit(
 			context.container.redis,
 			"createTelegramPairingLink",
 			context.user.email,

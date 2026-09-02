@@ -13,6 +13,10 @@ const STATIC_PATHS = [
 	ROUTES.landing,
 	ROUTES.briefs,
 	ROUTES.howItWorks,
+	ROUTES.about,
+	ROUTES.contact,
+	ROUTES.legal,
+	ROUTES.privacy,
 	// Dropped while sign-up is closed: the page answers, but it is a notice
 	// rather than the form a crawler would be indexing it for.
 	...(SIGNUP_ENABLED ? [ROUTES.signUp] : []),

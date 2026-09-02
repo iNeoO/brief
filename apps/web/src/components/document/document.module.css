@@ -1,0 +1,125 @@
+.page {
+	padding-block: clamp(2.5rem, 6vw, 4rem);
+}
+
+.header {
+	max-width: var(--brief-measure);
+}
+
+.title {
+	margin: 0 0 0.75rem;
+	letter-spacing: -0.03em;
+	text-wrap: balance;
+}
+
+.lead {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-lg);
+	line-height: 1.6;
+	text-wrap: pretty;
+}
+
+.updated {
+	margin: 1.25rem 0 0;
+	color: var(--brief-faint);
+	font-size: var(--mantine-font-size-xs);
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.body {
+	margin: clamp(2.5rem, 6vw, 3.5rem) 0 0;
+	border-top: 1px solid var(--brief-line);
+}
+
+/* ----------------------------------------------------------------- section */
+
+.section {
+	display: grid;
+	gap: 0.5rem 2rem;
+	padding-block: 1.75rem;
+	border-bottom: 1px solid var(--brief-line);
+}
+
+@media (min-width: 48em) {
+	.section {
+		grid-template-columns: 16rem 1fr;
+	}
+}
+
+.sectionTitle {
+	margin: 0;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	text-wrap: balance;
+}
+
+.sectionBody {
+	margin: 0;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+	text-wrap: pretty;
+}
+
+.items {
+	margin: 0.75rem 0 0;
+	padding-left: 1.125rem;
+	max-width: var(--brief-measure);
+	color: var(--brief-muted);
+}
+
+.item {
+	margin: 0;
+	padding-left: 0.25rem;
+	text-wrap: pretty;
+}
+
+.item + .item {
+	margin-top: 0.375rem;
+}
+
+/* ------------------------------------------------------------- definitions */
+
+.definitions {
+	display: grid;
+	gap: 0.75rem 2rem;
+	margin: 0.75rem 0 0;
+	max-width: var(--brief-measure);
+}
+
+@media (min-width: 30em) {
+	.definitions {
+		grid-template-columns: minmax(8rem, auto) 1fr;
+	}
+}
+
+.definitionLabel {
+	margin: 0;
+	color: var(--brief-faint);
+	font-size: var(--mantine-font-size-sm);
+}
+
+.definitionValue {
+	margin: 0;
+	color: var(--brief-muted);
+	text-wrap: pretty;
+}
+
+/* The grid rows only line up from the two-column breakpoint; below it the
+   value must not keep the gap meant to separate it from its label. */
+@media (max-width: 29.99em) {
+	.definitionValue {
+		margin-top: -0.5rem;
+	}
+}
+
+.note {
+	margin: 1.75rem 0 0;
+	max-width: var(--brief-measure);
+	color: var(--brief-faint);
+	font-size: var(--mantine-font-size-sm);
+	text-wrap: pretty;
+}

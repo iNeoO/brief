@@ -192,6 +192,215 @@ export const en = {
 		contact: "Contact",
 		rights: (year: number, brand: string) => `© ${year} ${brand}`,
 	},
+	legal: {
+		title: "Legal notice and terms",
+		lead: "Who publishes this site, who hosts it, and the terms you accept by using it.",
+		updated: (date: string) => `Last updated ${date}`,
+		identity: {
+			title: "Publisher",
+			publisherLabel: "Publisher",
+			publisherValue: (brand: string, publisher: string) =>
+				`${brand}, published by ${publisher}`,
+			statusLabel: "Status",
+			statusValue:
+				"Non-professional publisher, under article 6, III, 2 of the French LCEN. The publisher's identity is held by the host named below.",
+			contactLabel: "Contact",
+			directorLabel: "Publication director",
+			hostLabel: "Host",
+			hostRegistrationLabel: "Host registration",
+			hostRegistrationValue: (
+				capital: string,
+				registration: string,
+				vat: string,
+			) =>
+				`SAS with a share capital of ${capital} — ${registration} — VAT ${vat}`,
+		},
+		purpose: {
+			title: "What this service does",
+			body: "Daily Briefs follows press sources for a set of topics, writes one short summary per topic every morning, and voices it. The summaries are published on this site and delivered on Telegram to the readers who follow the topic.",
+		},
+		account: {
+			title: "Account and acceptance",
+			body: "Using the site means accepting these terms. Following a topic needs an account, opened with an address you control and a password you keep to yourself. What is done through yours is your responsibility, so keep the password to yourself and tell us if you think someone else has it.",
+		},
+		prohibited: {
+			title: "What you may not do",
+			body: "The service is small and runs on a fixed budget. The following takes it away from other readers:",
+			items: [
+				"Automating access, collecting the briefs in bulk, or reselling them.",
+				"Reaching for an account, a job or an administration page that is not yours.",
+				"Probing, overloading or working around the rate limits and other protections.",
+				"Using the service for anything unlawful, or to send anyone content that is.",
+			],
+		},
+		suspension: {
+			title: "Suspension and closure",
+			body: "An account that does one of the above can be suspended or closed, without notice where the service itself is at risk. You can ask for yours to be closed at any time by writing to us, and the briefs stop the next morning.",
+		},
+		availability: {
+			title: "Availability",
+			body: "The service is provided as it is, with no guarantee of uptime and none that a brief will be produced on a given morning. A source can stop answering, a run can fail, and maintenance can interrupt the site. A missed brief gives no right to compensation.",
+		},
+		liability: {
+			title: "Editorial responsibility",
+			body: "A brief is written by a language model from articles published by press outlets, then voiced by a speech model. It is a summary and nothing more: it can be incomplete, out of date, or wrong. Every brief lists the articles it was written from — those are the source, and the ones to read before acting on anything. Nothing here is advice of any kind.",
+		},
+		intellectualProperty: {
+			title: "Intellectual property",
+			body: "The articles a brief is written from belong to the outlets that published them: we link to them and never republish them. The site, its name and the briefs it produces belong to the publisher. Quoting a brief with a link back is welcome; republishing it wholesale is not.",
+		},
+		data: {
+			title: "Personal data",
+			body: "What is collected, why, how long it is kept and how to have it erased is set out in full in the privacy policy.",
+			link: "Read the privacy policy",
+		},
+		changes: {
+			title: "Changes",
+			body: "These terms change as the service does. The version published here is the one that applies, and the date at the top of this page says when it last moved.",
+		},
+		law: {
+			title: "Governing law",
+			body: "French law governs these terms. Any dispute goes before the French courts, once we have tried to settle it by writing to each other.",
+		},
+		prevails:
+			"This page is a translation. Where the two diverge, the French version prevails.",
+	},
+	privacy: {
+		title: "Privacy policy",
+		lead: "What Daily Briefs knows about you, why it knows it, and what you can ask us to do with it.",
+		updated: (date: string) => `Last updated ${date}`,
+		controller: {
+			title: "Who is responsible",
+			body: (publisher: string) =>
+				`The publisher of this site, ${publisher}, decides what is collected here and why. Anything on this page reaches a person at the address below.`,
+		},
+		collected: {
+			title: "What is collected",
+			body: "Only what the service needs to run. There is no profile, nothing inferred about you, and nothing bought from anyone:",
+			items: [
+				"Your account: a name, an email address, and a hashed password. Nothing else is asked for.",
+				"Your topics: which ones you follow, and since when.",
+				"Your Telegram link, if you make one: the chat identifier, the language of your captions, and the wording you agreed to with its date — that record is what proves the messages were asked for.",
+				"Delivery records: which brief went to you and whether it arrived, so a failed send can be retried rather than lost or repeated.",
+			],
+		},
+		purposes: {
+			title: "Why, and on what basis",
+			body: "Each purpose stands on its own legal basis under the GDPR:",
+			items: [
+				"Running your account and delivering the briefs you asked for — performance of the contract between us.",
+				"Writing to you on Telegram — your consent, given by pairing, withdrawn by unpairing or by blocking the bot.",
+				"Transactional email, to verify an address or reset a password — performance of the contract.",
+				"Rate limits and abuse protection, which hold an address and an IP for at most an hour — our legitimate interest in keeping the service standing.",
+			],
+		},
+		ai: {
+			title: "What the models never see",
+			body: "A brief is written for a topic, not for a reader. The language model receives press articles and returns a summary; the speech model receives that summary and returns audio. Neither is given your name, your address, your topics or anything else about you — the pipeline that calls them runs to completion before anyone is picked to receive the result.",
+		},
+		recipients: {
+			title: "Who else processes it",
+			body: "Four providers, each for one job and nothing beyond it:",
+			items: [
+				"OpenAI, in the United States, for the summary and the audio — press articles only, never your data.",
+				"Resend, for transactional email and for the messages sent from the contact form. It receives the address it has to write to.",
+				"Telegram, for delivery. It receives your chat identifier and the brief.",
+				"Scaleway, in France, which hosts the servers and the database.",
+			],
+		},
+		retention: {
+			title: "How long it is kept",
+			body: "Your account and your topics last as long as the account does. Unpairing Telegram removes the link and stops the delivery on the spot; the consent record stays while the account exists, since it is the evidence that the messages were wanted. Ask for the account to be closed and everything above is deleted within thirty days. Rate-limit counters expire on their own within the hour.",
+		},
+		cookies: {
+			title: "Cookies",
+			body: "Two, both strictly necessary, neither shared with anyone:",
+			items: [
+				"A session cookie, set when you sign in, which is what keeps you signed in.",
+				"A cookie holding the language you picked, so the site opens in it next time.",
+			],
+			note: "There is no analytics, no audience measurement and no third-party script on this site. Nothing here asks for your consent to cookies because nothing here tracks you.",
+		},
+		rights: {
+			title: "Your rights",
+			body: "Under the GDPR you can ask for:",
+			items: [
+				"A copy of what is held about you, and the same in a portable form.",
+				"A correction — your name you can also change yourself, from your profile.",
+				"Erasure, which closes the account and takes everything attached to it with it.",
+				"An objection to a processing, or the withdrawal of your consent to Telegram, which unpairing does immediately from your profile.",
+			],
+			note: "There is no self-service deletion button yet. Write to the address below and it is done by hand, within thirty days.",
+		},
+		complaint: {
+			title: "Complaints",
+			body: "If our answer does not satisfy you, you can lodge a complaint with the CNIL, the French data protection authority, at cnil.fr.",
+		},
+		changes: {
+			title: "Changes",
+			body: "This policy moves when the service does. The date at the top of this page says when it last did.",
+		},
+	},
+	about: {
+		title: "About",
+		lead: "Why this exists, how a brief is made, and what it deliberately is not.",
+		why: {
+			title: "Why",
+			body: "Following the news costs more attention than it gives back. Feeds run without end, notifications arrive all day, and the same story is told twenty times before it has settled. Daily Briefs answers a narrower question: what happened on the subjects I follow, in the time it takes to make coffee.",
+		},
+		how: {
+			title: "How a brief is made",
+			body: "Every topic has its own set of press sources. Each morning the articles they published are collected, an editorial pass keeps the ones that matter for that topic, and those become a single short summary in the topic's own language. The summary is voiced, published here, and delivered on Telegram at 7:00. Every brief lists the articles it was written from.",
+		},
+		not: {
+			title: "What it is not",
+			body: "What has been left out is the point:",
+			items: [
+				"Not a feed. One brief per topic, once a day, and nothing in between.",
+				"Not an opinion. The summaries report what the sources reported, and name them.",
+				"Not a replacement for the press. The articles are linked so you can go and read them, and the outlets that wrote them are the ones doing the work.",
+				"Not funded by advertising, and not measuring you: there is no tracker on this site.",
+			],
+		},
+		who: {
+			title: "Who",
+			body: (publisher: string) =>
+				`A side project, written and run by ${publisher}. A question, a source worth adding, or something wrong in a brief — the contact page reaches a real inbox.`,
+		},
+	},
+	contact: {
+		title: "Contact",
+		lead: "A question, a source worth adding, or something wrong in a brief.",
+		/** Shown only while `SIGNUP_ENABLED` is off, since it describes that state. */
+		leadSignUpClosed:
+			"Sign-up is closed for now, so this is also where you ask for an account: write, and one is created by hand.",
+		form: {
+			email: "Your email address",
+			emailPlaceholder: "you@example.com",
+			subject: "Subject",
+			subjectPlaceholder: "What this is about",
+			message: "Message",
+			messagePlaceholder: "Tell us what you need.",
+			submit: "Send",
+			submitting: "Sending…",
+		},
+		validation: {
+			emailRequired: "An email address is needed — it is how we answer.",
+			emailInvalid: "This address does not look valid.",
+			subjectRequired: "A subject is needed.",
+			messageTooShort: (min: number) =>
+				`At least ${min} characters, so there is something to act on.`,
+			messageTooLong: (max: number) =>
+				`Please keep it under ${max} characters.`,
+		},
+		sent: {
+			title: "Message sent",
+			body: "It reached us. Answers are written by a person, so give it a day or two.",
+		},
+		tooManyRequests: "Too many messages from here. Try again in an hour.",
+		genericError: "The message could not be sent. Try again in a moment.",
+		direct: (email: string) => `You can also write straight to ${email}.`,
+	},
 	notFound: {
 		title: "This page does not exist",
 		lead: "The address may be mistyped, or the page moved since the link was written.",

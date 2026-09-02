@@ -1,4 +1,7 @@
-import { ADMIN_USER_IDS_SEPARATOR } from "@brief/common/constants";
+import {
+	ADMIN_USER_IDS_SEPARATOR,
+	CONTACT_EMAIL,
+} from "@brief/common/constants";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -18,6 +21,12 @@ const envSchema = z.object({
 	BETTER_AUTH_REDIS_KEY_PREFIX: z.string().default("brief:auth:"),
 	RESEND_API_KEY: z.string().min(1),
 	RESEND_FROM_EMAIL: z.string().min(1),
+	// Where the contact form lands. Separate from `CONTACT_EMAIL`, the address
+	// the site *displays*: that one is the public face of the project and must
+	// stay stable, this one is a real inbox someone reads and can change without
+	// touching a page. Defaults to the displayed address so a fresh install is
+	// coherent rather than silently dropping messages.
+	CONTACT_INBOX_EMAIL: z.email().default(CONTACT_EMAIL),
 	// Needed to purge the audio objects of a deleted category. Required, like
 	// every other block here: the app refuses to boot half-configured rather
 	// than discovering the gap on the first delete.

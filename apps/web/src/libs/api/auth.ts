@@ -11,7 +11,7 @@ import {
 	authedMiddleware,
 	containerMiddleware,
 } from "#/libs/server/middleware";
-import { enforceAuthRateLimit } from "#/libs/server/rate-limit";
+import { enforceRateLimit } from "#/libs/server/rate-limit";
 import { attempt } from "#/libs/server/result";
 
 const emailSchema = z.email();
@@ -65,7 +65,7 @@ export const signInWithEmailAndPassword = createServerFn({ method: "POST" })
 	.validator(signInInput)
 	.handler(({ data, context }) =>
 		attempt(async () => {
-			await enforceAuthRateLimit(context.container.redis, "signIn", data.email);
+			await enforceRateLimit(context.container.redis, "signIn", data.email);
 
 			const { headers } =
 				await context.container.authService.signInWithEmailAndPassword({
@@ -86,7 +86,7 @@ export const signUpWithEmailAndPassword = createServerFn({ method: "POST" })
 	.validator(signUpInput)
 	.handler(({ data, context }) =>
 		attempt(async () => {
-			await enforceAuthRateLimit(context.container.redis, "signUp", data.email);
+			await enforceRateLimit(context.container.redis, "signUp", data.email);
 
 			await context.container.authService.signUpWithEmailAndPassword({
 				...data,
@@ -132,7 +132,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
 	.validator(requestPasswordResetInput)
 	.handler(({ data, context }) =>
 		attempt(async () => {
-			await enforceAuthRateLimit(
+			await enforceRateLimit(
 				context.container.redis,
 				"requestPasswordReset",
 				data.email,
@@ -180,7 +180,7 @@ export const sendVerificationEmail = createServerFn({ method: "POST" })
 	.validator(sendVerificationEmailInput)
 	.handler(({ data, context }) =>
 		attempt(async () => {
-			await enforceAuthRateLimit(
+			await enforceRateLimit(
 				context.container.redis,
 				"sendVerificationEmail",
 				data.email,
@@ -218,7 +218,7 @@ export const changePassword = createServerFn({ method: "POST" })
 	.validator(changePasswordInput)
 	.handler(({ data, context }) =>
 		attempt(async () => {
-			await enforceAuthRateLimit(
+			await enforceRateLimit(
 				context.container.redis,
 				"changePassword",
 				context.user.email,
