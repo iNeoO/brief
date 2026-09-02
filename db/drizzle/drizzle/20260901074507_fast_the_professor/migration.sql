@@ -1,2 +1,2 @@
 ALTER TYPE "category_job_status" ADD VALUE 'no_articles_selected';--> statement-breakpoint
-ALTER TABLE "category_jobs" DROP CONSTRAINT "category_jobs_finished_at_consistency", ADD CONSTRAINT "category_jobs_finished_at_consistency" CHECK (("status" IN ('finished', 'failed', 'no_articles_selected')) = ("finished_at" IS NOT NULL));
+ALTER TABLE "category_jobs" DROP CONSTRAINT "category_jobs_finished_at_consistency", ADD CONSTRAINT "category_jobs_finished_at_consistency" CHECK (("status"::text IN ('finished', 'failed', 'no_articles_selected')) = ("finished_at" IS NOT NULL));

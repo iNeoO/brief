@@ -3071,7 +3071,7 @@
       "table": "category_job_articles"
     },
     {
-      "value": "(\"status\" IN ('finished', 'failed', 'no_articles_selected')) = (\"finished_at\" IS NOT NULL)",
+      "value": "(\"status\"::text IN ('finished', 'failed', 'no_articles_selected')) = (\"finished_at\" IS NOT NULL)",
       "name": "category_jobs_finished_at_consistency",
       "entityType": "checks",
       "schema": "public",

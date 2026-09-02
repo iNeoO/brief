@@ -190,9 +190,15 @@ export const categoryJobs = pgTable(
 		index("category_jobs_pending_queue_idx")
 			.on(t.createdAt)
 			.where(sql`${t.status} = 'pending'`),
+		// `status::text` rather than the enum itself, and not by taste: this
+		// constraint was widened in the same migration that added
+		// `no_articles_selected` to the enum, and Postgres refuses a statement
+		// that uses an enum value the running transaction added (55P04). Comparing
+		// as text never mentions the enum value, so the migration applies on a
+		// database where the type already exists — which is every deployed one.
 		check(
 			"category_jobs_finished_at_consistency",
-			sql`(${t.status} IN ('finished', 'failed', 'no_articles_selected')) = (${t.finishedAt} IS NOT NULL)`,
+			sql`(${t.status}::text IN ('finished', 'failed', 'no_articles_selected')) = (${t.finishedAt} IS NOT NULL)`,
 		),
 		check(
 			"category_jobs_failed_requires_error",
