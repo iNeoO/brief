@@ -10,6 +10,7 @@ import { ColorSchemeToggle } from "./color-scheme-toggle";
 import { HeaderNav } from "./header-nav";
 import { LanguageMenu } from "./language-menu";
 import classes from "./layout.module.css";
+import { MobileMenu } from "./mobile-menu";
 import { Wordmark } from "./wordmark";
 
 export function SiteHeader() {
@@ -31,35 +32,42 @@ export function SiteHeader() {
 				<HeaderNav />
 
 				<div className={classes.actions}>
-					{isSignedIn ? (
-						<AccountMenu />
-					) : (
-						<>
-							<Link
-								to={ROUTES.signIn}
-								search={{ redirect: undefined }}
-								className={classes.signIn}
-							>
-								{t.nav.signIn}
-							</Link>
-
-							{SIGNUP_ENABLED ? (
-								<Button
-									component={Link}
-									to={ROUTES.signUp}
-									size="sm"
-									radius="sm"
+					{/* Below the breakpoint these are all in the drawer instead: a
+					    phone header that tries to hold them ends up holding none of
+					    them, which is where this row started. */}
+					<div className={classes.desktopActions}>
+						{isSignedIn ? (
+							<AccountMenu />
+						) : (
+							<>
+								<Link
+									to={ROUTES.signIn}
+									search={{ redirect: undefined }}
+									className={classes.signIn}
 								>
-									{t.nav.signUp}
-								</Button>
-							) : null}
-						</>
-					)}
+									{t.nav.signIn}
+								</Link>
 
-					<span className={classes.actionsSeparator} aria-hidden="true" />
+								{SIGNUP_ENABLED ? (
+									<Button
+										component={Link}
+										to={ROUTES.signUp}
+										size="sm"
+										radius="sm"
+									>
+										{t.nav.signUp}
+									</Button>
+								) : null}
+							</>
+						)}
 
-					<ColorSchemeToggle />
-					<LanguageMenu />
+						<span className={classes.actionsSeparator} aria-hidden="true" />
+
+						<ColorSchemeToggle />
+						<LanguageMenu />
+					</div>
+
+					<MobileMenu />
 				</div>
 			</div>
 		</header>

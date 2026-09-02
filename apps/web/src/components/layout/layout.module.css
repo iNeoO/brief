@@ -52,7 +52,9 @@
 	gap: 1.75rem;
 }
 
-@media (min-width: 62em) {
+/* 48em is where the app draws the line between the drawer and the full row —
+   the admin shell collapses its navbar at the same width. */
+@media (min-width: 48em) {
 	.nav {
 		display: flex;
 	}
@@ -78,7 +80,7 @@
 }
 
 .signIn {
-	display: none;
+	display: inline-flex;
 	align-items: center;
 	min-height: 44px;
 	padding-inline: 0.25rem;
@@ -91,9 +93,17 @@
 	color: var(--mantine-primary-color-filled);
 }
 
-@media (min-width: 30em) {
-	.signIn {
-		display: inline-flex;
+/* The account, the theme and the language, at the width that fits them beside
+   the navigation. Narrower than that, the burger owns them. */
+.desktopActions {
+	display: none;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+@media (min-width: 48em) {
+	.desktopActions {
+		display: flex;
 	}
 }
 
@@ -176,6 +186,102 @@
 .languageCode {
 	font-variant-caps: all-small-caps;
 	letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------------- mobile menu */
+
+.drawerNav {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Links and the sign-out button share the row: 44px of touch target, the icon
+   in a fixed gutter so the labels line up whether or not they have one. */
+.drawerLink {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	min-height: 44px;
+	padding-inline: 0.25rem;
+	border: 0;
+	background: transparent;
+	color: var(--brief-text);
+	font-family: inherit;
+	font-size: var(--mantine-font-size-md);
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.drawerLink:hover {
+	color: var(--mantine-primary-color-filled);
+}
+
+.drawerLink:disabled {
+	color: var(--brief-muted);
+	cursor: default;
+}
+
+.drawerLinkIcon {
+	display: inline-flex;
+	width: 16px;
+	color: var(--brief-muted);
+}
+
+.drawerIdentity {
+	margin-top: 0.75rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--brief-line);
+}
+
+.drawerAuth {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--brief-line);
+}
+
+/* Theme and language: preferences, so they sit apart from the destinations. */
+.drawerPrefs {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-top: 1.5rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--brief-line);
+}
+
+.drawerLocales {
+	display: flex;
+	gap: 0.375rem;
+}
+
+.drawerLocale {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	min-height: 44px;
+	padding-inline: 0.625rem;
+	border: 1px solid var(--brief-line);
+	border-radius: var(--mantine-radius-sm);
+	background: transparent;
+	color: var(--brief-muted);
+	font-family: inherit;
+	font-size: var(--mantine-font-size-sm);
+	cursor: pointer;
+}
+
+.drawerLocale:hover {
+	color: var(--brief-text);
+	background-color: var(--brief-surface);
+}
+
+.drawerLocaleActive {
+	border-color: var(--brief-line-strong);
+	color: var(--brief-text);
 }
 
 .footer {

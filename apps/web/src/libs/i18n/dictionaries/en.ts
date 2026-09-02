@@ -34,6 +34,7 @@ export const en = {
 		homeLink: "Home",
 	},
 	nav: {
+		menu: "Menu",
 		myTopics: "My topics",
 		myBriefs: "My briefs",
 		howItWorks: "How it works",

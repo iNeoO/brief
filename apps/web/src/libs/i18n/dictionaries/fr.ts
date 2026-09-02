@@ -36,6 +36,7 @@ export const fr: Dictionary = {
 		homeLink: "Accueil",
 	},
 	nav: {
+		menu: "Menu",
 		myTopics: "Mes sujets",
 		myBriefs: "Mes briefs",
 		howItWorks: "Comment ça marche",
