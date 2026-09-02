@@ -437,6 +437,26 @@ export const fr: Dictionary = {
 				categories: "Catégories",
 				backToBriefs: "Retour à mes briefs",
 			},
+			table: {
+				sort: {
+					ascending: "Trier par ordre croissant",
+					descending: "Trier par ordre décroissant",
+				},
+				pagination: {
+					range: (from: number, to: number, total: number) =>
+						`${from}–${to} sur ${total}`,
+					pageSize: "Lignes par page",
+				},
+				clearSearch: "Effacer la recherche",
+			},
+			jobStatus: {
+				waiting_for_providers: "En attente des sources",
+				pending: "En file",
+				running: "En cours",
+				finished: "Terminé",
+				failed: "Échec",
+				no_articles_selected: "Aucun article retenu",
+			},
 			categories: {
 				title: "Catégories",
 				lead: "Toutes les catégories, leurs briefs et leurs abonnés.",
@@ -458,19 +478,7 @@ export const fr: Dictionary = {
 					active: "Active",
 					inactive: "Inactive",
 				},
-				jobStatus: {
-					waiting_for_providers: "En attente des sources",
-					pending: "En file",
-					running: "En cours",
-					finished: "Terminé",
-					failed: "Échec",
-					no_articles_selected: "Aucun article retenu",
-				},
 				noBrief: "Aucun",
-				sort: {
-					ascending: "Trier par ordre croissant",
-					descending: "Trier par ordre décroissant",
-				},
 				empty: {
 					title: "Aucune catégorie",
 					body: "Les catégories créées pour le pipeline quotidien apparaissent ici.",
@@ -478,12 +486,6 @@ export const fr: Dictionary = {
 				noResults: {
 					title: "Aucun résultat",
 					body: (term: string) => `Rien ne correspond à « ${term} ».`,
-					clear: "Effacer la recherche",
-				},
-				pagination: {
-					range: (from: number, to: number, total: number) =>
-						`${from}–${to} sur ${total}`,
-					pageSize: "Lignes par page",
 				},
 				error: "Les catégories n'ont pas pu être chargées.",
 				actions: {

@@ -437,6 +437,26 @@ export const en = {
 				categories: "Categories",
 				backToBriefs: "Back to my briefs",
 			},
+			table: {
+				sort: {
+					ascending: "Sort ascending",
+					descending: "Sort descending",
+				},
+				pagination: {
+					range: (from: number, to: number, total: number) =>
+						`${from}–${to} of ${total}`,
+					pageSize: "Rows per page",
+				},
+				clearSearch: "Clear the search",
+			},
+			jobStatus: {
+				waiting_for_providers: "Waiting for sources",
+				pending: "Queued",
+				running: "Running",
+				finished: "Finished",
+				failed: "Failed",
+				no_articles_selected: "No article kept",
+			},
 			categories: {
 				title: "Categories",
 				lead: "Every category, its briefs and its subscribers.",
@@ -458,19 +478,7 @@ export const en = {
 					active: "Active",
 					inactive: "Inactive",
 				},
-				jobStatus: {
-					waiting_for_providers: "Waiting for sources",
-					pending: "Queued",
-					running: "Running",
-					finished: "Finished",
-					failed: "Failed",
-					no_articles_selected: "No article kept",
-				},
 				noBrief: "None yet",
-				sort: {
-					ascending: "Sort ascending",
-					descending: "Sort descending",
-				},
 				empty: {
 					title: "No category yet",
 					body: "Categories created for the daily pipeline show up here.",
@@ -478,12 +486,6 @@ export const en = {
 				noResults: {
 					title: "No match",
 					body: (term: string) => `Nothing matches “${term}”.`,
-					clear: "Clear the search",
-				},
-				pagination: {
-					range: (from: number, to: number, total: number) =>
-						`${from}–${to} of ${total}`,
-					pageSize: "Rows per page",
 				},
 				error: "The categories could not be loaded.",
 				actions: {

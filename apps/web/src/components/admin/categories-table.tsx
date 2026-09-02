@@ -1,68 +1,44 @@
-import { CATEGORY_SORT, PAGINATION } from "@brief/common/constants";
+import { CATEGORY_SORT } from "@brief/common/constants";
 import type { CategorySort, Paginated } from "@brief/common/types";
 import type { AdminCategoryRow } from "@brief/services";
 import {
 	ActionIcon,
-	Alert,
 	Badge,
-	Box,
 	Button,
 	Group,
-	LoadingOverlay,
 	Menu,
-	Pagination,
-	Select,
-	Table,
 	Text,
 	Tooltip,
 } from "@mantine/core";
-import {
-	createColumnHelper,
-	functionalUpdate,
-	type OnChangeFn,
-	type PaginationState,
-	rowPaginationFeature,
-	rowSortingFeature,
-	type SortingState,
-	tableFeatures,
-	useTable,
-} from "@tanstack/react-table";
-import { useCallback, useMemo } from "react";
-import { DebouncedSearchInput } from "#/components/debounced-search-input";
-import { ChevronDownIcon, DotsIcon, PlusIcon } from "#/components/icons";
-import { Notice } from "#/components/notice";
+import { useMemo } from "react";
+import { DotsIcon, PlusIcon } from "#/components/icons";
 import type { AdminCategoriesSearch } from "#/libs/api/admin-categories";
 import { formatCalendarDate, formatDate } from "#/libs/format/date";
 import type { Locale } from "#/libs/i18n/config";
 import { useI18n } from "#/libs/i18n/context";
 import type { Dictionary } from "#/libs/i18n/dictionaries";
 import classes from "./admin.module.css";
+import {
+	AdminTable,
+	type AdminTableColumns,
+	createAdminColumnHelper,
+} from "./admin-table";
 
-/**
- * Sorting and pagination are registered so the table exposes their state and
- * APIs; both run in `manual` mode, because the SQL query already returns the
- * ordered page.
- */
-const features = tableFeatures({ rowSortingFeature, rowPaginationFeature });
+const columnHelper = createAdminColumnHelper<AdminCategoryRow>();
 
-const columnHelper = createColumnHelper<typeof features, AdminCategoryRow>();
-
-// Stable reference: a fresh `[]` on every render invalidates the row model.
-const EMPTY_ROWS: AdminCategoryRow[] = [];
+const CATEGORY_SORT_KEYS: readonly CategorySort[] =
+	Object.values(CATEGORY_SORT);
 
 const NUMERIC_COLUMN_IDS: readonly string[] = [
 	CATEGORY_SORT.BRIEFS_COUNT,
 	CATEGORY_SORT.SUBSCRIBERS_COUNT,
 ];
 
-const isCategorySort = (id: string): id is CategorySort =>
-	(Object.values(CATEGORY_SORT) as string[]).includes(id);
-
 const buildColumns = (
 	t: Dictionary,
 	locale: Locale,
 	rowActions: RowActions,
-) => {
+): AdminTableColumns<AdminCategoryRow> => {
 	const labels = t.auth.admin.categories;
 
 	return columnHelper.columns([
@@ -141,7 +117,7 @@ const buildColumns = (
 							variant="light"
 							color={lastBrief.status === "failed" ? "red" : "gray"}
 						>
-							{labels.jobStatus[lastBrief.status]}
+							{t.auth.admin.jobStatus[lastBrief.status]}
 						</Badge>
 					</Group>
 				);
@@ -246,233 +222,22 @@ export function CategoriesTable({
 		[t, locale, onEdit, onToggleEnabled, onDelete, pendingActionId],
 	);
 
-	const pagination = useMemo<PaginationState>(
-		() => ({ pageIndex: search.page - 1, pageSize: search.pageSize }),
-		[search.page, search.pageSize],
-	);
-
-	const sorting = useMemo<SortingState>(
-		() => [{ id: search.sort, desc: search.order === "desc" }],
-		[search.sort, search.order],
-	);
-
-	const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
-		(updater) => {
-			const next = functionalUpdate(updater, pagination);
-
-			onSearchChange({
-				page: next.pageIndex + 1,
-				// A bigger page invalidates the current offset, so go back to the top.
-				...(next.pageSize === pagination.pageSize
-					? {}
-					: { pageSize: next.pageSize, page: 1 }),
-			});
-		},
-		[onSearchChange, pagination],
-	);
-
-	const handleSortingChange = useCallback<OnChangeFn<SortingState>>(
-		(updater) => {
-			const [next] = functionalUpdate(updater, sorting);
-
-			if (!next || !isCategorySort(next.id)) {
-				return;
-			}
-
-			onSearchChange({
-				sort: next.id,
-				order: next.desc ? "desc" : "asc",
-				page: 1,
-			});
-		},
-		[onSearchChange, sorting],
-	);
-
-	const table = useTable({
-		features,
-		columns,
-		data: result?.items ?? EMPTY_ROWS,
-		rowCount: result?.total,
-		manualPagination: true,
-		manualSorting: true,
-		// The list is always ordered by something, so a third click on a header
-		// returns to ascending instead of to an undefined order.
-		enableSortingRemoval: false,
-		enableMultiSort: false,
-		state: { pagination, sorting },
-		onPaginationChange: handlePaginationChange,
-		onSortingChange: handleSortingChange,
-	});
-
-	const total = result?.total ?? 0;
-	const rows = table.getRowModel().rows;
-	const firstRowIndex = (search.page - 1) * search.pageSize + 1;
-	const lastRowIndex = Math.min(search.page * search.pageSize, total);
-
 	return (
-		<div className={classes.page}>
-			<div className={classes.toolbar}>
-				<DebouncedSearchInput
-					value={search.q}
-					onCommit={(q) => onSearchChange({ q, page: 1 })}
-					labels={labels.search}
-					className={classes.search}
-				/>
-
+		<AdminTable
+			columns={columns}
+			result={result}
+			search={search}
+			sortKeys={CATEGORY_SORT_KEYS}
+			labels={labels}
+			isFetching={isFetching}
+			isError={isError}
+			onSearchChange={onSearchChange}
+			numericColumnIds={NUMERIC_COLUMN_IDS}
+			toolbar={
 				<Button leftSection={<PlusIcon size={16} />} onClick={onCreate}>
 					{labels.form.create}
 				</Button>
-			</div>
-
-			{isError ? (
-				<Alert color="red" variant="light">
-					{labels.error}
-				</Alert>
-			) : null}
-
-			<Box pos="relative">
-				<LoadingOverlay
-					visible={isFetching}
-					zIndex={1}
-					overlayProps={{ blur: 1 }}
-				/>
-
-				<div className={classes.tableScroll}>
-					<Table highlightOnHover verticalSpacing="sm" miw={860}>
-						<Table.Thead>
-							{table.getHeaderGroups().map((headerGroup) => (
-								<Table.Tr key={headerGroup.id}>
-									{headerGroup.headers.map((header) => {
-										const sorted = header.column.getIsSorted();
-
-										return (
-											<Table.Th
-												key={header.id}
-												aria-sort={
-													sorted === "asc"
-														? "ascending"
-														: sorted === "desc"
-															? "descending"
-															: "none"
-												}
-												className={
-													NUMERIC_COLUMN_IDS.includes(header.column.id)
-														? classes.numeric
-														: undefined
-												}
-											>
-												{header.isPlaceholder ? null : header.column.getCanSort() ? (
-													<button
-														type="button"
-														className={classes.sortButton}
-														onClick={header.column.getToggleSortingHandler()}
-														aria-label={
-															sorted === "asc"
-																? labels.sort.descending
-																: labels.sort.ascending
-														}
-													>
-														<table.FlexRender header={header} />
-														<ChevronDownIcon
-															size={14}
-															className={[
-																classes.sortIndicator,
-																sorted === "asc"
-																	? classes.sortIndicatorAsc
-																	: "",
-																sorted ? classes.sortIndicatorActive : "",
-															]
-																.filter(Boolean)
-																.join(" ")}
-														/>
-													</button>
-												) : (
-													<table.FlexRender header={header} />
-												)}
-											</Table.Th>
-										);
-									})}
-								</Table.Tr>
-							))}
-						</Table.Thead>
-
-						{rows.length > 0 ? (
-							<Table.Tbody>
-								{rows.map((row) => (
-									<Table.Tr key={row.id}>
-										{row.getAllCells().map((cell) => (
-											<Table.Td
-												key={cell.id}
-												className={
-													NUMERIC_COLUMN_IDS.includes(cell.column.id)
-														? classes.numeric
-														: undefined
-												}
-											>
-												<table.FlexRender cell={cell} />
-											</Table.Td>
-										))}
-									</Table.Tr>
-								))}
-							</Table.Tbody>
-						) : null}
-					</Table>
-				</div>
-
-				{/* The table already draws the edge around this, hence `bare`. */}
-				{rows.length === 0 && !isError ? (
-					search.q ? (
-						<Notice
-							variant="bare"
-							title={labels.noResults.title}
-							body={labels.noResults.body(search.q)}
-						>
-							<Button
-								variant="default"
-								size="sm"
-								onClick={() => onSearchChange({ q: undefined, page: 1 })}
-							>
-								{labels.noResults.clear}
-							</Button>
-						</Notice>
-					) : (
-						<Notice
-							variant="bare"
-							title={labels.empty.title}
-							body={labels.empty.body}
-						/>
-					)
-				) : null}
-			</Box>
-
-			{total > 0 ? (
-				<div className={classes.footer}>
-					<span className={classes.footerCount}>
-						{labels.pagination.range(firstRowIndex, lastRowIndex, total)}
-					</span>
-
-					<Group gap="sm" wrap="nowrap">
-						<Select
-							size="sm"
-							className={classes.pageSize}
-							aria-label={labels.pagination.pageSize}
-							data={PAGINATION.PAGE_SIZE_OPTIONS.map(String)}
-							value={String(search.pageSize)}
-							allowDeselect={false}
-							onChange={(value) =>
-								value ? table.setPageSize(Number(value)) : undefined
-							}
-						/>
-
-						<Pagination
-							size="sm"
-							total={table.getPageCount()}
-							value={search.page}
-							onChange={(page) => table.setPageIndex(page - 1)}
-						/>
-					</Group>
-				</div>
-			) : null}
-		</div>
+			}
+		/>
 	);
 }
