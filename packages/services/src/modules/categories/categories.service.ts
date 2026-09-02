@@ -47,10 +47,23 @@ const subscribersCount = sql<number>`(
 export class CategoriesService {
 	constructor(private db: Database) {}
 
-	async getCategories({ isEnabled }: { isEnabled?: boolean }) {
+	/**
+	 * Categories with their providers, narrowed by whatever the caller cares
+	 * about. `hasSubscribers` becomes an EXISTS on `subscriptions`: it asks
+	 * whether anyone follows the category at all, not whether they can be
+	 * reached on Telegram, because a brief is published on the site too.
+	 */
+	async getCategories({
+		isEnabled,
+		hasSubscribers,
+	}: {
+		isEnabled?: boolean;
+		hasSubscribers?: boolean;
+	}) {
 		return await this.db.query.categories.findMany({
 			where: {
-				isEnabled: isEnabled,
+				isEnabled,
+				subscriptions: hasSubscribers,
 			},
 			with: {
 				providers: true,

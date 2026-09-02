@@ -12,7 +12,11 @@ See [`docs/daily-pipeline-workflow.md`](docs/daily-pipeline-workflow.md) for the
 
 ### 1. Plan the daily run
 
-The scheduler loads the categories and their enabled providers. For each category, it creates one `category_job` for the target date with:
+The scheduler loads the enabled categories that have at least one subscriber, with their providers. An enabled category nobody follows is left out of the run: producing it would spend provider fetches, an LLM call and a text-to-speech call on a brief with no reader. The first subscription brings it back the next morning.
+
+A subscriber here is a row in `subscriptions`, whatever the state of that reader's Telegram pairing — a brief is published on the site as well as delivered, so a reader who follows a topic without a pairing still counts.
+
+For each selected category, it creates one `category_job` for the target date with:
 
 - `status = waiting_for_providers`
 - `state = creating_report`

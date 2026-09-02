@@ -70,7 +70,9 @@ The category worker writes this table after the LLM response. The primary key pr
 
 The scheduler chooses one calendar `targetDate`. Every job created by the run must use that value. The scheduler must use an agreed application timezone when it derives the date.
 
-It loads all categories and their enabled providers, then performs the following work in one PostgreSQL transaction:
+It loads the categories that are enabled **and** have at least one row in `subscriptions`, with their providers. An enabled category nobody follows is not planned at all: no category job, and no provider fetch job created on its behalf. A subscriber counts whatever the state of that reader's Telegram pairing, because the brief is published on the site as well as delivered.
+
+It then performs the following work in one PostgreSQL transaction:
 
 1. Insert one `category_job` per category with `status = waiting_for_providers` and `state = creating_report`.
 2. Insert one `provider_fetch_job` per distinct provider with `status = pending`.

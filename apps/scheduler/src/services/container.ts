@@ -59,7 +59,9 @@ export class ContainerService extends Effect.Service<ContainerService>()(
 			const categoriesService = new CategoriesService(db);
 			const schedulerService = new SchedulerService(db);
 
-			const getCategories = (args: { isEnabled?: boolean }) =>
+			const getCategories = (
+				args: Parameters<CategoriesService["getCategories"]>[0],
+			) =>
 				Effect.tryPromise({
 					try: () => categoriesService.getCategories(args),
 					catch: (cause) => new CategoriesDbError({ cause }),

@@ -22,7 +22,14 @@ const job = Effect.gen(function* () {
 	const container = yield* ContainerService;
 	const today = new Date();
 
-	const categories = yield* container.getCategories({ isEnabled: true });
+	// Only the categories someone is waiting for. An enabled category nobody
+	// follows would spend provider fetches, an LLM run and a text-to-speech
+	// call on a brief with no reader; the first subscription brings it back the
+	// next morning.
+	const categories = yield* container.getCategories({
+		isEnabled: true,
+		hasSubscribers: true,
+	});
 	const providerIds = [
 		...new Set(
 			categories.flatMap(({ providers }) => providers.map(({ id }) => id)),
@@ -30,8 +37,13 @@ const job = Effect.gen(function* () {
 	];
 
 	const logger = getLoggerStore();
+	if (!categories.length) {
+		logger.info("No enabled category has a subscriber");
+		return;
+	}
+
 	if (!providerIds.length) {
-		logger.info("No categories to create");
+		logger.info("No provider to fetch");
 		return;
 	}
 
