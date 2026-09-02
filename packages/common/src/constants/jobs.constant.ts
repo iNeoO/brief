@@ -1,3 +1,5 @@
+import { SORT_ORDER } from "./pagination.constant.js";
+
 export const JOB_STATUS = {
 	PENDING: "pending",
 	RUNNING: "running",
@@ -67,3 +69,42 @@ export const CATEGORY_JOB_STATE = {
 	CREATING_AUDIO: "creating_audio",
 	SENDING_MESSAGE: "sending_message",
 } as const;
+
+/**
+ * Sortable columns of the admin job lists, one set per pipeline stage. They
+ * live here rather than in `@brief/services` for the same reason as
+ * `CATEGORY_SORT`: the routes' `validateSearch` runs in the browser too, and
+ * importing the services package there would pull drizzle into the client
+ * bundle.
+ */
+export const CATEGORY_JOB_SORT = {
+	TARGET_DATE: "targetDate",
+	CREATED_AT: "createdAt",
+	CATEGORY: "category",
+	STATUS: "status",
+	ARTICLES_COUNT: "articlesCount",
+	TOTAL_TOKENS: "totalTokens",
+	DELIVERIES_FAILED: "deliveriesFailed",
+	DURATION: "duration",
+	RETRY: "retry",
+} as const;
+
+export const DEFAULT_CATEGORY_JOB_SORT = CATEGORY_JOB_SORT.TARGET_DATE;
+
+export const FETCH_JOB_SORT = {
+	TARGET_DATE: "targetDate",
+	CREATED_AT: "createdAt",
+	PROVIDER: "provider",
+	STATUS: "status",
+	ARTICLES_COUNT: "articlesCount",
+	DURATION: "duration",
+	RETRY: "retry",
+} as const;
+
+export const DEFAULT_FETCH_JOB_SORT = FETCH_JOB_SORT.TARGET_DATE;
+
+/** Both job lists open on the most recent run: that is the one being watched. */
+export const DEFAULT_JOB_SORT_ORDER = SORT_ORDER.DESC;
+
+/** The job lists search a category or a provider name, both `text` columns. */
+export const JOB_SEARCH_MAX_LENGTH = 100;

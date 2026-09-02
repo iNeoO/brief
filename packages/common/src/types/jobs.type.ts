@@ -1,7 +1,9 @@
 import type {
 	CATEGORY_JOB_OUTCOME,
+	CATEGORY_JOB_SORT,
 	CATEGORY_JOB_STATE,
 	CATEGORY_JOB_STATUS,
+	FETCH_JOB_SORT,
 	JOB_STATUS,
 } from "../constants/jobs.constant.js";
 
@@ -15,3 +17,8 @@ export type CategoryJobState =
 
 export type CategoryJobOutcome =
 	(typeof CATEGORY_JOB_OUTCOME)[keyof typeof CATEGORY_JOB_OUTCOME];
+
+export type CategoryJobSort =
+	(typeof CATEGORY_JOB_SORT)[keyof typeof CATEGORY_JOB_SORT];
+
+export type FetchJobSort = (typeof FETCH_JOB_SORT)[keyof typeof FETCH_JOB_SORT];

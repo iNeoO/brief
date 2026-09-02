@@ -2,6 +2,9 @@
 // `@brief/services/auth` and `@brief/services/mail` instead. Re-exporting them
 // here would make every worker load better-auth and resend just to import a
 // pipeline service.
+export * from "./modules/adminJobs/adminJobs.helper.js";
+export * from "./modules/adminJobs/adminJobs.service.js";
+export * from "./modules/adminJobs/adminJobs.type.js";
 export * from "./modules/articles/articles.service.js";
 export * from "./modules/briefs/briefs.helper.js";
 export * from "./modules/briefs/briefs.service.js";
