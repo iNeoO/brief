@@ -136,6 +136,7 @@ export const categoryJobStatus = pgEnum("category_job_status", [
 	CATEGORY_JOB_STATUS.RUNNING,
 	CATEGORY_JOB_STATUS.FINISHED,
 	CATEGORY_JOB_STATUS.FAILED,
+	CATEGORY_JOB_STATUS.NO_ARTICLES_SELECTED,
 ]);
 
 export const categoryJobState = pgEnum("category_job_state", [
@@ -191,7 +192,7 @@ export const categoryJobs = pgTable(
 			.where(sql`${t.status} = 'pending'`),
 		check(
 			"category_jobs_finished_at_consistency",
-			sql`(${t.status} IN ('finished', 'failed')) = (${t.finishedAt} IS NOT NULL)`,
+			sql`(${t.status} IN ('finished', 'failed', 'no_articles_selected')) = (${t.finishedAt} IS NOT NULL)`,
 		),
 		check(
 			"category_jobs_failed_requires_error",

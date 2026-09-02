@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import {
+	CATEGORY_JOB_OUTCOME,
 	CATEGORY_JOB_STATE,
 	CATEGORY_JOB_STATUS,
 } from "@brief/common/constants";
@@ -211,7 +212,14 @@ const main = async () => {
 
 	try {
 		await wrapWithLogger(logger, async () => {
-			await processingService.runCategoryJob(job);
+			const { outcome } = await processingService.runCategoryJob(job);
+
+			// Same ending as the consumer's: the selection kept nothing, the job is
+			// already terminal, and there is no brief to finish or deliver. The
+			// pipeline has already said so on this logger, so there is nothing to
+			// add here.
+			if (outcome === CATEGORY_JOB_OUTCOME.NO_ARTICLES_SELECTED) return;
+
 			const [finished] = await categoryJobsService.markFinished(jobId);
 			if (!finished)
 				throw new Error(`Job ${jobId} could not be marked finished`);

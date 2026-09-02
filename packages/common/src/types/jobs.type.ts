@@ -1,4 +1,5 @@
 import type {
+	CATEGORY_JOB_OUTCOME,
 	CATEGORY_JOB_STATE,
 	CATEGORY_JOB_STATUS,
 	JOB_STATUS,
@@ -11,3 +12,6 @@ export type CategoryJobStatus =
 
 export type CategoryJobState =
 	(typeof CATEGORY_JOB_STATE)[keyof typeof CATEGORY_JOB_STATE];
+
+export type CategoryJobOutcome =
+	(typeof CATEGORY_JOB_OUTCOME)[keyof typeof CATEGORY_JOB_OUTCOME];

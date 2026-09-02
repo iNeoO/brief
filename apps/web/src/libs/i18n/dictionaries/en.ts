@@ -464,6 +464,7 @@ export const en = {
 					running: "Running",
 					finished: "Finished",
 					failed: "Failed",
+					no_articles_selected: "No article kept",
 				},
 				noBrief: "None yet",
 				sort: {

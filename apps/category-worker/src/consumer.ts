@@ -1,4 +1,5 @@
 import {
+	CATEGORY_JOB_OUTCOME,
 	CATEGORY_RETRY_DELAYS_MS,
 	INTERNAL_ERROR_CODE,
 	JOB_STATUS,
@@ -102,7 +103,21 @@ export class CategoryConsumer extends BaseAmqpConsumer {
 		}
 
 		try {
-			await this.services.processingService.runCategoryJob(job);
+			const { outcome } =
+				await this.services.processingService.runCategoryJob(job);
+
+			// The pipeline settled the job itself and there is no brief: nothing to
+			// finish, nothing to deliver, and nothing wrong. Ack and let the row
+			// stand — going through `failJob` would put a perfectly good outcome back
+			// on the queue and eventually record it as a failure.
+			if (outcome === CATEGORY_JOB_OUTCOME.NO_ARTICLES_SELECTED) {
+				this.logger.info(
+					{ jobId, outcome },
+					"category job produced no brief, nothing to deliver",
+				);
+				channel.ack(msg);
+				return;
+			}
 
 			const [finished] =
 				await this.services.categoryJobsService.markFinished(jobId);

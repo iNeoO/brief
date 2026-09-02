@@ -1,5 +1,6 @@
 import { Readable } from "node:stream";
 import {
+	CATEGORY_JOB_OUTCOME,
 	CATEGORY_JOB_STATE,
 	FILE_KIND,
 	JOB_STATUS,
@@ -139,6 +140,7 @@ const getArticle = vi.fn();
 const completeStep = vi.fn();
 const setReport = vi.fn();
 const addTokenUsage = vi.fn();
+const markNoArticlesSelected = vi.fn();
 const uploadFile = vi.fn();
 
 /** The ranking rows `setRanking` writes, in the order it writes them. */
@@ -171,6 +173,7 @@ const service = () =>
 			completeStep,
 			setReport,
 			addTokenUsage,
+			markNoArticlesSelected,
 		} as unknown as CategoryJobsService,
 		db as unknown as Database,
 		{ uploadFile } as unknown as S3Service,
@@ -198,6 +201,7 @@ beforeEach(() => {
 	completeStep.mockResolvedValue({ id: 42 });
 	setReport.mockResolvedValue([{ id: 42 }]);
 	addTokenUsage.mockResolvedValue({ id: 42 });
+	markNoArticlesSelected.mockResolvedValue([{ id: 42 }]);
 	textToAudioMock.mockResolvedValue({
 		body: Readable.from([Buffer.from("audio")]),
 		mimeType: MIME_TYPE.MP3,
@@ -207,7 +211,7 @@ beforeEach(() => {
 
 describe("runCategoryJob", () => {
 	it("walks a fresh job through report, audio and delivery", async () => {
-		const context = await service().runCategoryJob(job());
+		const { context } = await service().runCategoryJob(job());
 
 		expect(context.summary).toBe(SUMMARY);
 		expect(setReport).toHaveBeenCalledWith(42, {
@@ -262,7 +266,7 @@ describe("runCategoryJob", () => {
 	it("still produces the brief when the usage write fails", async () => {
 		addTokenUsage.mockRejectedValue(new Error("column is gone"));
 
-		const context = await service().runCategoryJob(job());
+		const { context } = await service().runCategoryJob(job());
 
 		// Bookkeeping must never cost a brief that was already paid for.
 		expect(context.summary).toBe(SUMMARY);
@@ -357,16 +361,46 @@ describe("runCategoryJob", () => {
 		expect(textToAudioMock).not.toHaveBeenCalled();
 	});
 
-	it("fails the job rather than writing a brief about nothing", async () => {
+	// A day the editor kept nothing is a quiet day, not a broken one. Nothing is
+	// thrown, so nothing retries: the same articles through the same prompt would
+	// reach the same verdict, three times over.
+	it("settles the job instead of writing a brief about nothing", async () => {
 		modelSelection = [];
 
-		await expect(service().runCategoryJob(job())).rejects.toMatchObject({
-			code: "NO_ARTICLES_SELECTED",
-		});
+		const { outcome, context } = await service().runCategoryJob(job());
+
+		expect(outcome).toBe(CATEGORY_JOB_OUTCOME.NO_ARTICLES_SELECTED);
+		expect(markNoArticlesSelected).toHaveBeenCalledWith(42);
+		expect(context.summary).toBeNull();
 
 		expect(rankings).toEqual([]);
 		// Only the selection call was made: no summary is written without articles.
 		expect(chatCalls().filter((call) => !isSelectionCall(call))).toEqual([]);
+		expect(setReport).not.toHaveBeenCalled();
+		expect(textToAudioMock).not.toHaveBeenCalled();
+		expect(uploadFile).not.toHaveBeenCalled();
+		// The run stops where it stands: the report state is never completed, so
+		// nothing walks the job on to audio or delivery.
+		expect(completeStep).not.toHaveBeenCalled();
+	});
+
+	// The selection is billed whether or not it kept anything, and the figure is
+	// the only evidence of what the quiet day cost.
+	it("still records what the empty selection cost", async () => {
+		modelSelection = [];
+
+		await service().runCategoryJob(job());
+
+		expect(addTokenUsage.mock.calls).toEqual([[42, ITERATION_USAGE]]);
+	});
+
+	it("refuses to settle a job another worker has already moved on", async () => {
+		modelSelection = [];
+		markNoArticlesSelected.mockResolvedValue([]);
+
+		await expect(service().runCategoryJob(job())).rejects.toMatchObject({
+			code: "CATEGORY_JOB_STATE_CONFLICT",
+		});
 	});
 
 	it("throws when the report lands on a job that left the report state", async () => {

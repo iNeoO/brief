@@ -108,6 +108,11 @@ The web app serves Prometheus metrics at `GET /metrics`, every series prefixed
 | `brief_web_category_jobs` / `_provider_fetch_jobs` / `_message_jobs` | Today's pipeline, by job status — a `failed` above zero is the alert |
 | `brief_web_category_job_tokens` | What today's briefs cost in LLM tokens |
 
+`brief_web_category_jobs{status="no_articles_selected"}` is **not** a failure:
+the pipeline ran and the editor kept nothing that day. Alert on `failed` only,
+and chart the two apart — a category that stays on `no_articles_selected` for
+days is a sourcing problem, not an outage.
+
 The pipeline gauges are counted in SQL at scrape time, scoped to the current
 target date. A database that is down leaves them at their last value and logs a
 warning rather than failing the scrape, so the process metrics still say whether

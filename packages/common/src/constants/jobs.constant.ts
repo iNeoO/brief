@@ -8,6 +8,28 @@ export const JOB_STATUS = {
 export const CATEGORY_JOB_STATUS = {
 	WAITING_FOR_PROVIDERS: "waiting_for_providers",
 	...JOB_STATUS,
+	/**
+	 * The pipeline ran to the letter and the editorial selection kept nothing —
+	 * a quiet news day for this category, not an incident. Terminal like
+	 * `finished` and `failed`: no retry, no `error`, no audio, no delivery. It is
+	 * a status of its own so that an alert on `failed` stays an alert on real
+	 * breakage.
+	 */
+	NO_ARTICLES_SELECTED: "no_articles_selected",
+} as const;
+
+/**
+ * How a run of the category pipeline ended.
+ *
+ * `produced` is the ordinary answer and the only one that owes anything
+ * downstream: the brief exists, and the caller still has to finish the job and
+ * fan it out. Every other value is a step that settled the job in the database
+ * itself and stopped the run — the caller reads which ending it was and leaves
+ * the row alone.
+ */
+export const CATEGORY_JOB_OUTCOME = {
+	PRODUCED: "produced",
+	NO_ARTICLES_SELECTED: CATEGORY_JOB_STATUS.NO_ARTICLES_SELECTED,
 } as const;
 
 export const MAX_JOB_RETRY = 3;

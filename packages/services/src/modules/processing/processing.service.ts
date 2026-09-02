@@ -1,9 +1,10 @@
 import {
+	CATEGORY_JOB_OUTCOME,
 	CATEGORY_JOB_STATE,
 	FILE_KIND,
 	INTERNAL_ERROR_CODE,
 } from "@brief/common/constants";
-import type { Language } from "@brief/common/types";
+import type { CategoryJobOutcome, Language } from "@brief/common/types";
 import { type Database, eq, schema } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
@@ -23,7 +24,11 @@ import {
 	buildResumeUserPrompt,
 	RESUME_SYSTEM_PROMPT,
 } from "./processing.prompt.js";
-import type { CategoryJobContext, CategoryJobStep } from "./processing.type.js";
+import type {
+	CategoryJobContext,
+	CategoryJobRun,
+	CategoryJobStep,
+} from "./processing.type.js";
 import {
 	createUsageCollector,
 	type TokenUsageTotals,
@@ -66,7 +71,7 @@ export class ProcessingService {
 		},
 	];
 
-	async runCategoryJob(job: ClaimedCategoryJob) {
+	async runCategoryJob(job: ClaimedCategoryJob): Promise<CategoryJobRun> {
 		const startIndex = this.steps.findIndex((step) => step.state === job.state);
 
 		if (startIndex === -1) {
@@ -79,7 +84,14 @@ export class ProcessingService {
 		const context: CategoryJobContext = { job, summary: job.summary };
 
 		for (const [index, step] of this.steps.slice(startIndex).entries()) {
-			await step.run(context);
+			const outcome = await step.run(context);
+
+			// A step that settled the job itself owns the row now: it has already
+			// written a terminal status and a `finished_at`, so completing the state
+			// it was in would only move a job that is over.
+			if (outcome !== CATEGORY_JOB_OUTCOME.PRODUCED) {
+				return { outcome, context };
+			}
 
 			const next = this.steps[startIndex + index + 1]?.state;
 			const updated = await this.categoryJobsService.completeStep(
@@ -96,10 +108,12 @@ export class ProcessingService {
 			}
 		}
 
-		return context;
+		return { outcome: CATEGORY_JOB_OUTCOME.PRODUCED, context };
 	}
 
-	private async createReport(context: CategoryJobContext) {
+	private async createReport(
+		context: CategoryJobContext,
+	): Promise<CategoryJobOutcome> {
 		const { job } = context;
 
 		const selection = await this.makeSelection(
@@ -115,11 +129,33 @@ export class ProcessingService {
 		// overwrites — three attempts cost three attempts.
 		await this.addUsage(job.id, selection.usage);
 
+		// A day the editor found nothing worth reporting on. Not an error: retrying
+		// replays the same articles through the same prompt and reaches the same
+		// verdict, three times over, for a brief there was never anything to write.
+		// The job is settled here and the run ends — no summary, no audio, no
+		// delivery, and no `error` to make a quiet day look like an incident.
 		if (selection.articles.length === 0) {
-			throw new InternalError({
-				code: INTERNAL_ERROR_CODE.NO_ARTICLES_SELECTED,
-				message: `No articles selected for category ${job.category.name} on ${job.targetDate.toISOString()}`,
-			});
+			const [settled] = await this.categoryJobsService.markNoArticlesSelected(
+				job.id,
+			);
+
+			if (!settled) {
+				throw new InternalError({
+					code: INTERNAL_ERROR_CODE.CATEGORY_JOB_STATE_CONFLICT,
+					message: `Category job ${job.id} left state "${CATEGORY_JOB_STATE.CREATING_REPORT}" before its empty selection could be recorded`,
+				});
+			}
+
+			getLoggerStore().info(
+				{
+					jobId: job.id,
+					category: job.category.name,
+					targetDate: job.targetDate,
+				},
+				"no articles selected, nothing to brief",
+			);
+
+			return CATEGORY_JOB_OUTCOME.NO_ARTICLES_SELECTED;
 		}
 
 		await this.setRanking(job.id, selection.articles);
@@ -145,6 +181,8 @@ export class ProcessingService {
 		}
 
 		context.summary = summary;
+
+		return CATEGORY_JOB_OUTCOME.PRODUCED;
 	}
 
 	/**
@@ -163,7 +201,9 @@ export class ProcessingService {
 		}
 	}
 
-	private async createAudio(context: CategoryJobContext) {
+	private async createAudio(
+		context: CategoryJobContext,
+	): Promise<CategoryJobOutcome> {
 		const { job, summary } = context;
 
 		if (!summary) {
@@ -185,6 +225,8 @@ export class ProcessingService {
 			body: audio.body,
 			mimeType: audio.mimeType,
 		});
+
+		return CATEGORY_JOB_OUTCOME.PRODUCED;
 	}
 
 	/**
@@ -201,7 +243,9 @@ export class ProcessingService {
 	 * Its other job is to let the fan-out trust the invariant rather than re-check
 	 * it: past this point a finished category job has a summary and an audio file.
 	 */
-	private async verifyDeliverable(context: CategoryJobContext) {
+	private async verifyDeliverable(
+		context: CategoryJobContext,
+	): Promise<CategoryJobOutcome> {
 		const { job, summary } = context;
 
 		if (!summary) {
@@ -226,6 +270,8 @@ export class ProcessingService {
 				message: `Category job ${job.id} has no ${job.category.language} audio file to deliver`,
 			});
 		}
+
+		return CATEGORY_JOB_OUTCOME.PRODUCED;
 	}
 
 	private buildGetArticlesTool(

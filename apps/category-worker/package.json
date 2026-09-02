@@ -6,8 +6,9 @@
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"typecheck": "tsc --noEmit",
-		"build": "rm -rf dist && tsc",
+		"build": "rm -rf dist && tsc -p tsconfig.build.json",
 		"start": "node dist/index.js",
+		"test": "vitest run",
 		"job:run": "tsx src/scripts/runCategoryJob.ts"
 	},
 	"dependencies": {

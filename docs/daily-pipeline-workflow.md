@@ -172,11 +172,17 @@ The summary and selected-article rows should share one transaction. A retry shou
 
 The worker then changes `state` from `creating_report` to `creating_audio` and resets step-level retry data according to the retry policy.
 
+### A selection that kept nothing
+
+Some days the editorial call comes back empty. That is a quiet news day for the category, not an incident: the run is over, and the job is settled as `no_articles_selected` with its `finishedAt` and **no** `error`. It has its own status precisely so that it is not mistaken for one — no retry (the same articles through the same prompt reach the same verdict), no summary, no audio, no delivery, and nothing in the `failed` gauge an alert watches.
+
+The consumer reads the outcome the pipeline returns, acks the message and leaves the row where the pipeline put it. What the empty selection cost in tokens is still recorded: the call was billed whether or not it kept anything.
+
 ### What the run cost
 
 Both model calls of this step report their token usage through a `chat()` middleware, which sums the `onUsage` hook across the run's iterations — the run's own `RUN_FINISHED` carries the last iteration only, so reading it would price a four-turn agent loop at the cost of its fourth turn. The middleware logs `promptTokens`, `completionTokens`, `totalTokens` and `iterations` at `info` under `llm usage`, and each call's totals are added to `category_jobs`.
 
-The figures are added, never set: the selection and the summary are two calls, and a retried step pays for its calls again. They are written as soon as each call returns, before the guard that fails a job with no usable selection, so a job that dies halfway still shows what it spent. A failure to record usage is logged and swallowed — bookkeeping must not fail a brief that was already paid for.
+The figures are added, never set: the selection and the summary are two calls, and a retried step pays for its calls again. They are written as soon as each call returns, before the guard that settles a job with no usable selection, so a job that dies halfway still shows what it spent. A failure to record usage is logged and swallowed — bookkeeping must not fail a brief that was already paid for.
 
 `iterations` is the second half of the answer. A call that quietly ran out of agent-loop turns reads as a round number against its own ceiling, long before the summary it produced looks odd.
 
@@ -190,7 +196,7 @@ After all requested languages exist, the worker changes the state to `sending_me
 
 ### Category job failure
 
-A failure anywhere in steps 4 to 6 records an event with the attempt number and the error, then either returns the job to `pending` or marks it `failed` at `MAX_JOB_RETRY`. A few error codes are terminal on the first attempt — an unknown state, a missing category, a missing audio file — because a second attempt cannot change the answer.
+A failure anywhere in steps 4 to 6 records an event with the attempt number and the error, then either returns the job to `pending` or marks it `failed` at `MAX_JOB_RETRY`. A few error codes are terminal on the first attempt — an unknown state, a missing category, a missing audio file — because a second attempt cannot change the answer. An empty selection takes none of these paths: it is not a failure, and it ends the run at `no_articles_selected` instead.
 
 A returned job is not requeued with `nack(requeue = true)`, which would replay the LLM and the text-to-speech within seconds of the failure and burn every attempt against a rate limiter that has just said no. The message is republished to `category.retry`, the same holding-queue shape the message worker uses, with the delay for the attempt that just failed taken from `CATEGORY_RETRY_DELAYS_MS`. The attempt count lives on `category_jobs.retry`, because a republished message carries no history.
 
@@ -231,8 +237,8 @@ The message worker runs with `prefetch = 1`: Telegram allows roughly one message
 - Scheduling relies on unique category/date and provider/date constraints.
 - Article insertion relies on `(providerId, url)`.
 - Fetch observation links and selected-article links use composite primary keys.
-- Terminal `finished` and `failed` statuses require `finishedAt`.
-- A `failed` status requires an error.
+- Terminal `finished`, `failed` and `no_articles_selected` statuses require `finishedAt`.
+- A `failed` status requires an error. `no_articles_selected` deliberately has none.
 
 Event tables record attempt history. Current job rows keep the latest operational state used for claims and transitions.
 

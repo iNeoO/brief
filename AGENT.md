@@ -85,7 +85,12 @@ Category jobs add an initial dependency gate:
 ```text
 waiting_for_providers -> pending -> running -> finished
                                          -> failed
+                                         -> no_articles_selected
 ```
+
+`no_articles_selected` is terminal and is **not** a failure: the run went
+through, the editorial selection simply kept nothing. It carries a `finishedAt`
+and no `error`, it is never retried, and it produces no audio and no delivery.
 
 The category job state tracks the current processing step:
 
@@ -127,8 +132,8 @@ Category and provider IDs use UUIDv7. Job IDs remain serial integers because Rab
 - An observed article can appear only once for a provider fetch job.
 - A selected article can appear only once for a category job.
 - A selected article rank is unique within a category job and cannot be negative.
-- A finished or failed job must have `finishedAt`; other job statuses must not have it.
-- A failed job must contain an error.
+- A terminal job (`finished`, `failed`, or a category job's `no_articles_selected`) must have `finishedAt`; other job statuses must not have it.
+- A failed job must contain an error; `no_articles_selected` must not.
 - A category job can have at most one file for each `(kind, language)` pair.
 - Pending-job indexes support queue polling by creation time.
 

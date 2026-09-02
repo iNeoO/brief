@@ -464,6 +464,7 @@ export const fr: Dictionary = {
 					running: "En cours",
 					finished: "Terminé",
 					failed: "Échec",
+					no_articles_selected: "Aucun article retenu",
 				},
 				noBrief: "Aucun",
 				sort: {

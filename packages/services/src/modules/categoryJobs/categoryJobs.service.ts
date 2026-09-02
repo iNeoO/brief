@@ -219,6 +219,36 @@ export class CategoryJobsService {
 			.returning();
 	}
 
+	/**
+	 * Settles a job whose editorial selection kept nothing.
+	 *
+	 * Terminal, and deliberately not a failure: `error` stays null, the retry
+	 * counter is left where it is rather than being spent, and nothing downstream
+	 * — audio, delivery — is owed. The tokens the selection call already cost stay
+	 * on the row; the day was still billed.
+	 *
+	 * Claimed from `running` in `creating_report`, the only place the emptiness
+	 * can be observed, so a second worker that has moved the job on gets nothing
+	 * back and knows not to act.
+	 */
+	async markNoArticlesSelected(jobId: number) {
+		return await this.db
+			.update(schema.categoryJobs)
+			.set({
+				status: CATEGORY_JOB_STATUS.NO_ARTICLES_SELECTED,
+				error: null,
+				finishedAt: new Date(),
+			})
+			.where(
+				and(
+					eq(schema.categoryJobs.id, jobId),
+					eq(schema.categoryJobs.status, JOB_STATUS.RUNNING),
+					eq(schema.categoryJobs.state, CATEGORY_JOB_STATE.CREATING_REPORT),
+				),
+			)
+			.returning();
+	}
+
 	async markFailed(jobId: number, error: string) {
 		return await this.db.transaction(async (tx) => {
 			const [current] = await tx
