@@ -12,7 +12,12 @@ export default defineConfig({
 			provider: "v8",
 			reporter: ["text", "lcov"],
 			include: ["packages/services/src/**/*.ts", "apps/category-worker/src/**/*.ts"],
-			exclude: ["**/*.test.ts", "**/src/scripts/**", "**/src/**/index.ts"],
+			exclude: [
+				"**/*.test.ts",
+				"**/src/scripts/**",
+				"**/src/testing/**",
+				"**/src/**/index.ts",
+			],
 		},
 	},
 });

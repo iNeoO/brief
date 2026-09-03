@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	parseSourceLines,
 	readingMinutes,
+	toAudioFilename,
 	toBriefScript,
 	toExcerpt,
 	toParagraphs,
@@ -153,5 +154,33 @@ describe("toParagraphs", () => {
 			"Deux.",
 			"Trois.",
 		]);
+	});
+});
+
+describe("toAudioFilename", () => {
+	const TARGET_DATE = new Date("2026-08-17T00:00:00.000Z");
+
+	it("names the file after the category and the day", () => {
+		expect(toAudioFilename("Actu France", TARGET_DATE)).toBe(
+			"actu-france-2026-08-17.mp3",
+		);
+	});
+
+	it("folds accents and drops everything a header would have to quote", () => {
+		// The name lands in a `Content-Disposition` header unquoted, so anything
+		// outside `[a-z0-9-]` has to be gone by then.
+		expect(toAudioFilename("Économie & Marchés (FR)", TARGET_DATE)).toBe(
+			"economie-marches-fr-2026-08-17.mp3",
+		);
+	});
+
+	it("collapses the separators it created and trims the edges", () => {
+		expect(toAudioFilename("  --Tech // IA--  ", TARGET_DATE)).toBe(
+			"tech-ia-2026-08-17.mp3",
+		);
+	});
+
+	it("falls back to `brief` when nothing of the name survives", () => {
+		expect(toAudioFilename("!!!", TARGET_DATE)).toBe("brief-2026-08-17.mp3");
 	});
 });
