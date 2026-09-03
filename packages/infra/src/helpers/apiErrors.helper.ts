@@ -18,18 +18,6 @@ type ApiErrorDefinition = {
 	payload: ApiErrorPayload;
 };
 
-export type ApiErrorKey =
-	| "AUTH_EMAIL_ALREADY_EXISTS"
-	| "AUTH_INVALID_CREDENTIALS"
-	| "AUTH_EMAIL_NOT_VERIFIED"
-	| "AUTH_INVALID_TOKEN"
-	| "AUTH_INVALID_SESSION"
-	| "AUTH_SESSION_EXPIRED"
-	| "AUTH_USER_NOT_FOUND"
-	| "USER_NOT_FOUND"
-	| "POST_NOT_FOUND"
-	| "EMAIL_ALREADY_EXISTS";
-
 export const API_ERRORS = {
 	AUTH_EMAIL_ALREADY_EXISTS: {
 		status: 409,
@@ -41,35 +29,35 @@ export const API_ERRORS = {
 	AUTH_INVALID_CREDENTIALS: {
 		status: 401,
 		payload: {
-			code: "INVALID_CREDENTIALS",
+			code: "AUTH_INVALID_CREDENTIALS",
 			error: "Invalid Credential",
 		},
 	},
 	AUTH_EMAIL_NOT_VERIFIED: {
 		status: 403,
 		payload: {
-			code: "EMAIL_NOT_VERIFIED",
+			code: "AUTH_EMAIL_NOT_VERIFIED",
 			error: "Email not verified",
 		},
 	},
 	AUTH_INVALID_TOKEN: {
 		status: 400,
 		payload: {
-			code: "INVALID_TOKEN",
+			code: "AUTH_INVALID_TOKEN",
 			error: "Invalid or expired token",
 		},
 	},
 	AUTH_INVALID_SESSION: {
 		status: 401,
 		payload: {
-			code: "INVALID_SESSION",
+			code: "AUTH_INVALID_SESSION",
 			error: "Unauthorized",
 		},
 	},
 	AUTH_SESSION_EXPIRED: {
 		status: 401,
 		payload: {
-			code: "SESSION_EXPIRED",
+			code: "AUTH_SESSION_EXPIRED",
 			error: "Unauthorized",
 		},
 	},
@@ -87,13 +75,6 @@ export const API_ERRORS = {
 			error: "User not found",
 		},
 	},
-	POST_NOT_FOUND: {
-		status: 404,
-		payload: {
-			code: "POST_NOT_FOUND",
-			error: "Post not found",
-		},
-	},
 	EMAIL_ALREADY_EXISTS: {
 		status: 409,
 		payload: {
@@ -101,7 +82,11 @@ export const API_ERRORS = {
 			error: "Email already in use",
 		},
 	},
-} as const satisfies Record<ApiErrorKey, ApiErrorDefinition>;
+	// Internal-only codes (connector, file, job failures) are surfaced by the
+	// consumers through InternalError, never as an HTTP response.
+} as const satisfies Partial<Record<APIError, ApiErrorDefinition>>;
+
+export type ApiErrorKey = keyof typeof API_ERRORS;
 
 export const apiError = (c: Context, key: ApiErrorKey) => {
 	const { payload, status } = API_ERRORS[key];

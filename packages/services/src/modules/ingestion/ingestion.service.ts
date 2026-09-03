@@ -17,19 +17,23 @@ export class IngestionService {
 	) {}
 
 	async ingestProvider(provider: Provider) {
-		const connector = getConnector(provider.slug);
+		const connector = getConnector(provider);
 
 		if (!connector) {
 			const logger = getLoggerStore();
 			logger.error({ provider }, "No connector for provider");
 			throw new InternalError({
-				message: `No connector for provider "${provider.slug}"`,
+				message: `No connector for kind "${provider.kind}" (provider "${provider.slug}")`,
 				code: "NO_CONNECTOR",
 			});
 		}
 
 		const limit = provider.fetchLimit ?? DEFAULT_FETCH_LIMIT;
-		const raw = await connector.fetchLatest({ url: provider.url, limit });
+		const raw = await connector.fetchLatest({
+			url: provider.url,
+			limit,
+			label: provider.name,
+		});
 
 		const rows = raw.map((a) => ({
 			providerId: provider.id,

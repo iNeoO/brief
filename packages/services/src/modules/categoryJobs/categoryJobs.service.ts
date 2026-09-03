@@ -133,24 +133,57 @@ export class CategoryJobsService {
 			.returning();
 	}
 
-	async transitionState(jobId: number, newState: CategoryJobState) {
-		return await this.db
-			.update(schema.categoryJobs)
-			.set({
-				state: newState,
-				error: null,
-				retry: 0,
-			})
-			.where(eq(schema.categoryJobs.id, jobId))
-			.returning();
+	/**
+	 * Records that `completed` succeeded and moves the job to `next`, or leaves
+	 * the state where it is when `next` is omitted (the last step of the
+	 * pipeline). The retry counter is scoped to a step: reaching a new one
+	 * clears it, so every step gets its own budget of attempts.
+	 *
+	 * Returns `null` when the job is no longer running at `completed` — another
+	 * attempt moved it in the meantime, and this one must not write over it.
+	 */
+	async completeStep(
+		jobId: number,
+		completed: CategoryJobState,
+		next?: CategoryJobState,
+	) {
+		return await this.db.transaction(async (tx) => {
+			const [current] = await tx
+				.select({ retry: schema.categoryJobs.retry })
+				.from(schema.categoryJobs)
+				.where(eq(schema.categoryJobs.id, jobId));
+
+			if (!current) return null;
+
+			const [job] = await tx
+				.update(schema.categoryJobs)
+				.set({ state: next ?? completed, error: null, retry: 0 })
+				.where(
+					and(
+						eq(schema.categoryJobs.id, jobId),
+						eq(schema.categoryJobs.status, JOB_STATUS.RUNNING),
+						eq(schema.categoryJobs.state, completed),
+					),
+				)
+				.returning();
+
+			if (!job) return null;
+
+			await tx.insert(schema.categoryJobEvents).values({
+				categoryJobId: jobId,
+				attempt: current.retry + 1,
+				state: completed,
+				status: JOB_STATUS.FINISHED,
+			});
+
+			return job;
+		});
 	}
 
-	async setSummary(jobId: number, summary: string) {
+	async setReport(jobId: number, report: { summary: string; sources: string }) {
 		return await this.db
 			.update(schema.categoryJobs)
-			.set({
-				summary,
-			})
+			.set(report)
 			.where(
 				and(
 					eq(schema.categoryJobs.id, jobId),
@@ -178,6 +211,41 @@ export class CategoryJobsService {
 				),
 			)
 			.returning();
+	}
+
+	/** Ends the job on an error no further attempt could fix. */
+	async markFailed(jobId: number, error: string) {
+		return await this.db.transaction(async (tx) => {
+			const [current] = await tx
+				.select({
+					retry: schema.categoryJobs.retry,
+					state: schema.categoryJobs.state,
+				})
+				.from(schema.categoryJobs)
+				.where(eq(schema.categoryJobs.id, jobId));
+
+			if (!current) return null;
+
+			const [job] = await tx
+				.update(schema.categoryJobs)
+				.set({
+					status: JOB_STATUS.FAILED,
+					error,
+					finishedAt: new Date(),
+				})
+				.where(eq(schema.categoryJobs.id, jobId))
+				.returning();
+
+			await tx.insert(schema.categoryJobEvents).values({
+				categoryJobId: jobId,
+				attempt: current.retry + 1,
+				state: current.state,
+				status: JOB_STATUS.FAILED,
+				error,
+			});
+
+			return job ?? null;
+		});
 	}
 
 	async incrementRetry(jobId: number, error: string) {

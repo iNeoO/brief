@@ -5,7 +5,8 @@
 		"dev": "tsx watch --clear-screen=false src/index.ts",
 		"lint": "biome check",
 		"build": "rm -rf dist && tsc",
-		"start": "node dist/index.js"
+		"start": "node dist/index.js",
+		"job:run": "tsx src/scripts/runCategoryJob.ts"
 	},
 	"dependencies": {
 		"@brief/common": "workspace:*",
@@ -26,6 +27,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
 		"@types/node": "catalog:",
+		"tsx": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	}

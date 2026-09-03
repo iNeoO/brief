@@ -1,8 +1,11 @@
 import {
 	CATEGORY_JOB_STATE,
 	CATEGORY_JOB_STATUS,
-	FILE_LANGUAGE,
+	CONNECTOR_KIND,
+	DEFAULT_LANGUAGE,
+	FILE_KIND,
 	JOB_STATUS,
+	LANGUAGE,
 } from "@brief/common/constants";
 import { defineRelations, sql } from "drizzle-orm";
 import {
@@ -22,10 +25,14 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 
+export const language = pgEnum("language", [LANGUAGE.FR, LANGUAGE.EN]);
+
 export const categories = pgTable("categories", {
 	id: uuid("id").primaryKey().default(sql`uuidv7()`),
 	name: text("name").notNull(),
 	description: text("description").notNull(),
+	// Language every brief of this category is written and voiced in.
+	language: language("language").notNull().default(DEFAULT_LANGUAGE),
 	isEnable: boolean("is_enable").default(true),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.notNull()
@@ -36,6 +43,8 @@ export const categories = pgTable("categories", {
 		.$onUpdate(() => new Date()),
 });
 
+export const connectorKind = pgEnum("connector_kind", [CONNECTOR_KIND.RSS]);
+
 export const providers = pgTable(
 	"providers",
 	{
@@ -43,6 +52,7 @@ export const providers = pgTable(
 		name: text("name").notNull(),
 		slug: text("slug").notNull().unique(),
 		url: text("url").notNull(),
+		kind: connectorKind("kind").notNull().default(CONNECTOR_KIND.RSS),
 		isEnabled: boolean("is_enabled").notNull().default(true),
 		fetchLimit: integer("fetch_limit").default(5),
 		lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
@@ -86,7 +96,7 @@ export const articles = pgTable(
 		url: text("url").notNull(),
 		title: text("title").notNull(),
 		description: text("description"),
-		content: text("content"),
+		content: text("content").notNull(),
 		publishedAt: timestamp("published_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -140,6 +150,7 @@ export const categoryJobs = pgTable(
 			.notNull()
 			.default(CATEGORY_JOB_STATE.CREATING_REPORT),
 		summary: text("summary"),
+		sources: text("sources"),
 		error: text("error"),
 		retry: integer("retry").notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -312,12 +323,7 @@ export const categoryJobEvents = pgTable(
 	],
 );
 
-export const fileKind = pgEnum("file_kind", ["audio_file"]);
-
-export const fileLanguage = pgEnum("file_language", [
-	FILE_LANGUAGE.FR,
-	FILE_LANGUAGE.EN,
-]);
+export const fileKind = pgEnum("file_kind", [FILE_KIND.AUDIO_FILE]);
 
 export const files = pgTable(
 	"files",
@@ -327,7 +333,7 @@ export const files = pgTable(
 			.notNull()
 			.references(() => categoryJobs.id, { onDelete: "cascade" }),
 		kind: fileKind("kind").notNull(),
-		language: fileLanguage("language").notNull(),
+		language: language("language").notNull(),
 		bucket: text("bucket").notNull(),
 		objectKey: text("object_key").notNull(),
 		mimeType: text("mime_type").notNull(),

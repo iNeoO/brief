@@ -2,9 +2,24 @@ import process from "node:process";
 import pino from "pino";
 import pretty from "pino-pretty";
 
+const LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
+
+type Level = (typeof LEVELS)[number];
+
+const isLevel = (value: string | undefined): value is Level =>
+	LEVELS.includes(value as Level);
+
+/**
+ * Services and workers stay at `info`. LOG_LEVEL turns the volume up without a
+ * code change; an unknown value is ignored rather than crashing a worker at
+ * boot over a typo in an env file.
+ */
+const configuredLevel = (fallback: Level): Level =>
+	isLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : fallback;
+
 const createDefaultConfig = (): pino.LoggerOptions => {
 	return {
-		level: "info",
+		level: configuredLevel("info"),
 		serializers: {
 			err: pino.stdSerializers.err,
 		},
@@ -51,6 +66,13 @@ type WorkerBindings = {
 
 export const createWorkerLogger = (bindings: WorkerBindings) =>
 	pinoLogger.child(bindings);
+
+/**
+ * For the hand-run scripts, where seeing what the model produced is the whole
+ * point. Defaults to `debug` instead of `info`, and still obeys LOG_LEVEL.
+ */
+export const createCliLogger = (bindings: Record<string, string>) =>
+	pinoLogger.child(bindings, { level: configuredLevel("debug") });
 
 type SchedulerBindings = {
 	schedulerId: string;

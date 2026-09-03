@@ -1,4 +1,4 @@
-import { and, type Database, gte, lt, schema } from "@brief/drizzle";
+import { and, type Database, gte, inArray, lt, schema } from "@brief/drizzle";
 import type { CreateManyArticlesParams } from "./articles.type.js";
 
 export class ArticlesService {
@@ -16,7 +16,7 @@ export class ArticlesService {
 			.returning();
 	}
 
-	getArticlesByDay(day: Date) {
+	getArticlesByDay(day: Date, providerIds: string[] = []) {
 		const start = new Date(day);
 		start.setHours(0, 0, 0, 0);
 
@@ -28,9 +28,14 @@ export class ArticlesService {
 			.from(schema.articles)
 			.where(
 				and(
+					inArray(schema.articles.providerId, providerIds),
 					gte(schema.articles.publishedAt, start),
 					lt(schema.articles.publishedAt, end),
 				),
 			);
+	}
+
+	getArticle(id: string) {
+		return this.db.query.articles.findFirst({ where: { id } });
 	}
 }

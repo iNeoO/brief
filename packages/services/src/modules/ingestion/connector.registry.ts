@@ -1,11 +1,16 @@
+import { CONNECTOR_KIND } from "@brief/common/constants";
+import type { ConnectorKind } from "@brief/common/types";
 import type { ArticleConnector } from "./connector.port.js";
-import { FranceInfoConnector } from "./connectors/franceInfo.connector.js";
+import { RssConnector } from "./connectors/rss.connector.js";
 
-const connectors: ArticleConnector[] = [new FranceInfoConnector()];
+const byKind: Record<ConnectorKind, ArticleConnector> = {
+	[CONNECTOR_KIND.RSS]: new RssConnector(),
+};
 
-const bySlug: Map<string, ArticleConnector> = new Map(
-	connectors.map((c) => [c.slug, c]),
-);
+const bySlug: Record<string, ArticleConnector> = {};
 
-export const getConnector = (slug: string): ArticleConnector | undefined =>
-	bySlug.get(slug);
+export const getConnector = (provider: {
+	slug: string;
+	kind: ConnectorKind;
+}): ArticleConnector | undefined =>
+	bySlug[provider.slug] ?? byKind[provider.kind];
