@@ -26,6 +26,7 @@ export const categories = pgTable("categories", {
 	id: uuid("id").primaryKey().default(sql`uuidv7()`),
 	name: text("name").notNull(),
 	description: text("description").notNull(),
+	isEnable: boolean("is_enable").default(true),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.notNull()
 		.defaultNow(),

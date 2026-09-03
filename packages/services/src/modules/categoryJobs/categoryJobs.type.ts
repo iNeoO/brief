@@ -1,4 +1,4 @@
 export type CreateCategoryJobParams = {
-	categoryId: number;
+	categoryId: string;
 	targetDate: Date;
 };

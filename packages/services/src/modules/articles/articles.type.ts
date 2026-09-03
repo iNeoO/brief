@@ -1,5 +1,5 @@
 export type CreateManyArticlesParams = {
-	providerId: number;
+	providerId: string;
 	url: string;
 	title: string;
 	content: string;

@@ -1,6 +1,6 @@
-import { serve } from "@hono/node-server";
 import type { LogsBindings } from "@brief/infra/factories";
 import { pinoLogger } from "@brief/infra/libs";
+import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { createApp } from "./app.js";
 import { setupOpenAPI } from "./libs/openAPI.js";
@@ -9,7 +9,9 @@ import { services } from "./services/container.js";
 const apiApp = createApp(services);
 setupOpenAPI(apiApp);
 const app = new Hono<LogsBindings>();
-app.notFound((c) => c.json({ code: "NOT_FOUND", error: "Page not found" }, 404));
+app.notFound((c) =>
+	c.json({ code: "NOT_FOUND", error: "Page not found" }, 404),
+);
 app.route("/api", apiApp);
 
 const server = serve(

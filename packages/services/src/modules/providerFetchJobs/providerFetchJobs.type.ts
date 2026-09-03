@@ -1,5 +1,5 @@
 export type CreateProviderFetchJobParams = {
-	providerId: number;
+	providerId: string;
 	targetDate: Date;
 	status: "pending";
 };

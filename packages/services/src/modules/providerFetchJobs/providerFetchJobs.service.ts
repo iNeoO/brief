@@ -18,7 +18,7 @@ export class ProviderFetchJobsService {
 			.returning();
 	}
 
-	async areAllProvidersFinished(categoryId: number, targetDate: Date) {
+	async areAllProvidersFinished(categoryId: string, targetDate: Date) {
 		const unfinished = await this.db
 			.select({ providerId: schema.categoryProviders.providerId })
 			.from(schema.categoryProviders)
