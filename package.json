@@ -1,0 +1,29 @@
+{
+	"name": "brief",
+	"license": "MIT",
+	"scripts": {
+		"hono:dev": "dotenv -e .env -- pnpm --filter @brief/hono dev",
+		"hono:build": "pnpm --filter @brief/hono build",
+		"common:build": "pnpm --filter @brief/common build",
+		"infra:build": "pnpm --filter @brief/infra build",
+		"services:build": "pnpm --filter @brief/services build",
+		"dev:libs:build": "pnpm run common:build && pnpm run infra:build && pnpm run drizzle:build && pnpm run services:build",
+		"react:dev": "dotenv -e .env -- pnpm --filter @brief/react dev",
+		"react:build": "pnpm --filter @brief/react build",
+		"drizzle:generate": "dotenv -e .env -- pnpm --filter @brief/drizzle generate",
+		"drizzle:migrate": "dotenv -e .env -- pnpm --filter @brief/drizzle migrate",
+		"drizzle:push": "dotenv -e .env -- pnpm --filter @brief/drizzle push",
+		"drizzle:build": "pnpm --filter @brief/drizzle build",
+		"dev:runtime": "concurrently -k \"pnpm run hono:dev\" \"pnpm run react:dev\"",
+		"dev": "pnpm run dev:libs:build && pnpm run hono:build && pnpm run dev:runtime"
+	},
+	"type": "module",
+	"version": "1.0.0",
+	"packageManager": "pnpm@11.3.0",
+	"dependencies": {
+		"dotenv-cli": "^11.0.0"
+	},
+	"devDependencies": {
+		"concurrently": "^10.0.0"
+	}
+}

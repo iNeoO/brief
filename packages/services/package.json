@@ -1,0 +1,26 @@
+{
+	"name": "@brief/services",
+	"type": "module",
+	"scripts": {
+		"lint": "biome check",
+		"build": "rm -rf dist && tsc"
+	},
+	"dependencies": {
+		"@brief/common": "workspace:*",
+		"@brief/drizzle": "workspace:*",
+		"@brief/infra": "workspace:*"
+	},
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "catalog:",
+		"@types/node": "catalog:",
+		"typescript": "catalog:"
+	}
+}
