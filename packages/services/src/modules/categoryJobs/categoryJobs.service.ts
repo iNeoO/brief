@@ -19,6 +19,12 @@ export class CategoryJobsService {
 				status: JOB_STATUS.PENDING,
 				state: CATEGORY_JOB_STATE.CREATING_REPORT,
 			})
+			.onConflictDoNothing({
+				target: [
+					schema.categoryJobs.categoryId,
+					schema.categoryJobs.targetDate,
+				],
+			})
 			.returning();
 	}
 

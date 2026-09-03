@@ -1,5 +1,6 @@
 import amqp from "amqplib";
 import { createWorkerLogger, type PinoLogger } from "../libs/index.js";
+import { assertQueueTopology } from "./topology.js";
 
 export type AmqpChannel = amqp.Channel;
 export type AmqpMessage = amqp.ConsumeMessage;
@@ -148,27 +149,7 @@ export abstract class BaseAmqpConsumer {
 				this.handleDisconnect();
 			});
 
-			const dlx = `${this.queue}.dlx`;
-			const dlq = `${this.queue}.dlq`;
-			const dlRoutingKey = `${this.queue}.dead`;
-
-			await channel.assertExchange(dlx, "direct", {
-				durable: true,
-			});
-
-			await channel.assertQueue(dlq, {
-				durable: true,
-			});
-
-			await channel.bindQueue(dlq, dlx, dlRoutingKey);
-
-			await channel.assertQueue(this.queue, {
-				durable: true,
-				arguments: {
-					"x-dead-letter-exchange": dlx,
-					"x-dead-letter-routing-key": dlRoutingKey,
-				},
-			});
+			await assertQueueTopology(channel, this.queue);
 
 			await channel.prefetch(this.prefetch);
 

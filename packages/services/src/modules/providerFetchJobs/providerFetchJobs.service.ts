@@ -8,7 +8,10 @@ export class ProviderFetchJobsService {
 	async createJob(params: CreateProviderFetchJobParams) {
 		return await this.db
 			.insert(schema.providerFetchJobs)
-			.values(params)
+			.values({
+				...params,
+				status: "pending",
+			})
 			.onConflictDoNothing({
 				target: [
 					schema.providerFetchJobs.providerId,
@@ -16,6 +19,35 @@ export class ProviderFetchJobsService {
 				],
 			})
 			.returning();
+	}
+
+	async claimJob(jobId: number) {
+		return await this.db.transaction(async (tx) => {
+			const [job] = await tx
+				.update(schema.providerFetchJobs)
+				.set({
+					status: JOB_STATUS.RUNNING,
+				})
+				.where(
+					and(
+						eq(schema.providerFetchJobs.id, jobId),
+						eq(schema.providerFetchJobs.status, JOB_STATUS.PENDING),
+					),
+				)
+				.returning();
+
+			if (!job) return undefined;
+
+			const [provider] = await tx
+				.select()
+				.from(schema.providers)
+				.where(eq(schema.providers.id, job.providerId));
+
+			return {
+				...job,
+				provider,
+			};
+		});
 	}
 
 	async areAllProvidersFinished(categoryId: string, targetDate: Date) {

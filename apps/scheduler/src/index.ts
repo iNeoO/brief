@@ -1,4 +1,3 @@
-import { formatDateToYMD } from "@brief/common/utils";
 import { createSchedulerLogger, getLoggerStore } from "@brief/infra/libs";
 import { NodeRuntime } from "@effect/platform-node";
 import { Cron, DateTime, Effect, Schedule } from "effect";
@@ -19,30 +18,40 @@ const schedule = Schedule.cron(cron);
 
 const job = Effect.gen(function* () {
 	const container = yield* ContainerService;
+	const today = new Date();
 
 	const categories = yield* container.getCategories({ isEnable: true });
-	const providers = [
+	const providerIds = [
 		...new Set(
 			categories.flatMap(({ providers }) => providers.map(({ id }) => id)),
 		),
 	];
 
-	if (!providers.length) {
-		const logger = getLoggerStore();
+	const logger = getLoggerStore();
+	if (!providerIds.length) {
 		logger.info("No categories to create");
 		return;
 	}
 
 	for (const category of categories) {
 		yield* container.createCategoryJob({
-			date: formatDateToYMD(new Date()),
+			targetDate: today,
 			categoryId: category.id,
 		});
 	}
 
-	yield* Effect.log(
-		`running job at 7am Paris — ${categories.length} categories`,
-	);
+	for (const providerId of providerIds) {
+		const [job] = yield* container.createProviderFetchJobs({
+			targetDate: today,
+			providerId,
+		});
+
+		if (job) {
+			yield* container.publishProviderFetchJob(job.id);
+		}
+	}
+
+	logger.info(`running job at 7am Paris — ${categories.length} categories`);
 });
 
 const handler = Effect.gen(function* () {
