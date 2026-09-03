@@ -1,22 +1,17 @@
 import { db } from "@brief/drizzle";
 import { pinoLogger } from "@brief/infra/libs";
+import { CategoryJobsService } from "@brief/services";
 import { env } from "./config/env.js";
+import { CategoryConsumer } from "./consumer.js";
 
 const main = async (id: string, url: string, queue: string) => {
-	const workersServices = new WorkersService(db);
+	const categoryJobsService = new CategoryJobsService(db);
 
-	const taskConsumer = new TaskConsumer(
-		id,
-		url,
-		queue,
-		tasksServices,
-		workersServices,
-		redisService,
-		statsService,
-	);
+	const consumer = new CategoryConsumer(id, url, queue, "category", {
+		categoryJobsService,
+	});
 
-	await statsService.init();
-	await taskConsumer.init();
+	await consumer.init();
 
 	let isShuttingDown = false;
 
@@ -24,6 +19,7 @@ const main = async (id: string, url: string, queue: string) => {
 		if (isShuttingDown) return;
 		isShuttingDown = true;
 		pinoLogger.info(`${signal} received. Graceful shutdown initiated.`);
+		await consumer.end();
 		await db.$client.end();
 		process.exit(0);
 	};
@@ -32,4 +28,4 @@ const main = async (id: string, url: string, queue: string) => {
 	process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 };
 
-main(env.WORKER_ID, env.AMQP_URL, env.AMQP_QUEUE);
+main(env.WORKER_ID, env.AMQP_URL, env.CATEGORY_QUEUE);

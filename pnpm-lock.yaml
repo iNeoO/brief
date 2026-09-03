@@ -12,6 +12,9 @@ catalogs:
     '@types/node':
       specifier: ^25.9.1
       version: 25.9.4
+    amqplib:
+      specifier: ^2.0.1
+      version: 2.0.1
     hono:
       specifier: ^4.12.23
       version: 4.12.27
@@ -58,8 +61,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/services
       amqplib:
-        specifier: ^2.0.1
+        specifier: 'catalog:'
         version: 2.0.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'
@@ -135,7 +141,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/services
       amqplib:
-        specifier: ^2.0.1
+        specifier: 'catalog:'
         version: 2.0.1
       zod:
         specifier: 'catalog:'
@@ -242,7 +248,7 @@ importers:
         specifier: ^0.108.0
         version: 0.108.0(@effect/cluster@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.76.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.61.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/workflow@0.19.0(@effect/experimental@0.61.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.76.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.76.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.61.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0)
       amqplib:
-        specifier: ^2.0.1
+        specifier: 'catalog:'
         version: 2.0.1
       effect:
         specifier: ^3.22.0
@@ -326,7 +332,7 @@ importers:
         specifier: 'catalog:'
         version: 25.9.4
       amqplib:
-        specifier: ^2.0.1
+        specifier: 'catalog:'
         version: 2.0.1
       hono:
         specifier: 'catalog:'

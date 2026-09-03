@@ -12,7 +12,7 @@
 		"@brief/drizzle": "workspace:*",
 		"@brief/infra": "workspace:*",
 		"@brief/services": "workspace:*",
-		"amqplib": "^2.0.1",
+		"amqplib": "catalog:",
 		"zod": "catalog:"
 	},
 	"exports": {
