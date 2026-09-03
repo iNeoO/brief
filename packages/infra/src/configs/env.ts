@@ -33,9 +33,9 @@ const envSchema = z.object({
 	// helper picks the wording that matches the brief's own language.
 	TTS_INSTRUCTIONS: z.string().optional(),
 	// A newsreader's pace on top of the steering above: the instructions set the
-	// tone, this sets the rate. 1.2 is one notch up from the 1.1 we started on —
-	// brisker without the clipped consonants the model starts producing past 1.3.
-	TTS_SPEED: z.coerce.number().min(0.25).max(4).default(1.2),
+	// tone, this sets the rate. Left empty, the helper picks the rate that suits
+	// the brief's own language — set here, it overrides every language at once.
+	TTS_SPEED: z.coerce.number().min(0.25).max(4).optional(),
 });
 
 export const env = envSchema.parse(process.env);

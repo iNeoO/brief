@@ -18,3 +18,14 @@ export const DELIVERY_INSTRUCTIONS: Record<Language, string> = {
 - Crisp articulation, no theatrical emphasis.
 - Take a short breath between stories, not between sentences.`,
 };
+
+/**
+ * The rate the instructions above are read at, per language. French carries more
+ * syllables than English for the same news, so the same brief takes longer to
+ * say: 1.2 keeps it to a newsreader's minute. English at that rate starts
+ * clipping consonants, so it stays on the 1.1 it was voiced at.
+ */
+export const DELIVERY_SPEED: Record<Language, number> = {
+	[LANGUAGE.FR]: 1.2,
+	[LANGUAGE.EN]: 1.1,
+};

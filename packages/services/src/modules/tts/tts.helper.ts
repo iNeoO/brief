@@ -11,7 +11,7 @@ import { getLoggerStore } from "@brief/infra/libs";
 import OpenAI from "openai";
 import { withDeadline } from "../../helpers/withDeadline.helper.js";
 import { splitTextForTts } from "./tts.chunk.js";
-import { DELIVERY_INSTRUCTIONS } from "./tts.prompt.js";
+import { DELIVERY_INSTRUCTIONS, DELIVERY_SPEED } from "./tts.prompt.js";
 
 const RESPONSE_FORMAT = "mp3";
 
@@ -34,7 +34,7 @@ const speakChunk = async (
 			voice: env.TTS_VOICE,
 			input: text,
 			response_format: RESPONSE_FORMAT,
-			speed: env.TTS_SPEED,
+			speed: env.TTS_SPEED ?? DELIVERY_SPEED[language],
 			// Only gpt-4o-mini-tts reads these; the older models reject them.
 			...(env.TTS_MODEL === "gpt-4o-mini-tts" && {
 				instructions: env.TTS_INSTRUCTIONS ?? DELIVERY_INSTRUCTIONS[language],
