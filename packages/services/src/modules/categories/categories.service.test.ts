@@ -246,6 +246,15 @@ describe("listForAdmin", () => {
 		expect(items.map(({ lastBrief }) => lastBrief)).toEqual([null, null]);
 	});
 
+	it("counts nothing when the count query comes back empty", async () => {
+		const { service } = harness({ rows: [], total: [] });
+
+		await expect(service.listForAdmin()).resolves.toMatchObject({
+			total: 0,
+			pageCount: 1,
+		});
+	});
+
 	it("searches the name and the description at once", async () => {
 		const { service, reads } = harness();
 
@@ -428,6 +437,39 @@ describe("update", () => {
 			inArray(schema.providers.id, ["ghost"]),
 		]);
 		expect(writes.insertLinks.calls).toEqual([]);
+	});
+});
+
+describe("setEnabled", () => {
+	it("takes a category out of the catalogue without touching anything else", async () => {
+		const { service, writes } = harness();
+
+		await expect(
+			service.setEnabled({ id: CATEGORY_ID, isEnabled: false }),
+		).resolves.toBeUndefined();
+
+		expect(writes.update.args("set")).toEqual([{ isEnabled: false }]);
+		expect(writes.update.args("where")).toEqual([
+			eq(schema.categories.id, CATEGORY_ID),
+		]);
+		// The provider links are the edit form's business, not this toggle's.
+		expect(writes.deleteLinks.calls).toEqual([]);
+	});
+
+	it("puts it back in the catalogue", async () => {
+		const { service, writes } = harness();
+
+		await service.setEnabled({ id: CATEGORY_ID, isEnabled: true });
+
+		expect(writes.update.args("set")).toEqual([{ isEnabled: true }]);
+	});
+
+	it("refuses a category that does not exist", async () => {
+		const { service } = harness({ written: [] });
+
+		await expect(
+			service.setEnabled({ id: "ghost", isEnabled: true }),
+		).rejects.toMatchObject({ code: DOMAIN_ERROR_CODE.CATEGORY_NOT_FOUND });
 	});
 });
 

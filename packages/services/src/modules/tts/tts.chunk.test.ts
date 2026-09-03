@@ -84,4 +84,13 @@ describe("splitTextForTts", () => {
 	it("never returns nothing, even for an empty brief", () => {
 		expect(splitTextForTts("")).toEqual([""]);
 	});
+
+	it("hands back a long brief that is nothing but blank lines", () => {
+		// Every paragraph is filtered out as empty, so there is no chunk to
+		// return: the text itself goes to the speech API and is refused there,
+		// rather than becoming an empty audio file.
+		const blank = "\n\n".repeat(TTS_CHUNK_SAFE_CHARS);
+
+		expect(splitTextForTts(blank)).toEqual([blank]);
+	});
 });

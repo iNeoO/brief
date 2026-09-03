@@ -211,4 +211,16 @@ describe("incrementRetry", () => {
 		expect(update.calls).toEqual([]);
 		expect(insert.calls).toEqual([]);
 	});
+
+	it("reports no row when the update matched nothing", async () => {
+		// The read found the job and the update did not: the caller is told there
+		// is nothing left to reschedule.
+		const { service, insert } = harness({
+			current: [{ retry: 0 }],
+			updated: [],
+		});
+
+		await expect(service.incrementRetry(JOB_ID, "502")).resolves.toBeNull();
+		expect(insert.args("values")).toMatchObject([{ error: "502" }]);
+	});
 });

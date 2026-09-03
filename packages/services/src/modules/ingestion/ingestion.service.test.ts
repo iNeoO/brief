@@ -103,6 +103,18 @@ describe("ingestProvider", () => {
 		]);
 	});
 
+	it("stores an article the feed dated with nothing", async () => {
+		// A feed entry with no date must not become an article dated today: the
+		// column stays null and the ranking reads it as unknown.
+		fetchLatest.mockResolvedValue([rawArticle(1, { publishedAt: undefined })]);
+
+		await ingest();
+
+		expect(createManyArticles).toHaveBeenCalledWith([
+			expect.objectContaining({ publishedAt: null }),
+		]);
+	});
+
 	it("snapshots every article the fetch saw, new and already known alike", async () => {
 		fetchLatest.mockResolvedValue([rawArticle(1), rawArticle(2)]);
 		// The second article was already stored by an earlier fetch job, so the

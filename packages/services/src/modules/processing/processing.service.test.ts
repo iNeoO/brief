@@ -309,6 +309,18 @@ describe("runCategoryJob", () => {
 		expect(completeStep).not.toHaveBeenCalled();
 	});
 
+	it("refuses to deliver a job that reached the last step with no script", async () => {
+		// The audio step's guard is not this one: a job resumed straight into
+		// `sending_message` never went through it.
+		await expect(
+			service().runCategoryJob(
+				job({ state: CATEGORY_JOB_STATE.SENDING_MESSAGE, summary: null }),
+			),
+		).rejects.toMatchObject({ code: "CATEGORY_JOB_MISSING_SUMMARY" });
+
+		expect(completeStep).not.toHaveBeenCalled();
+	});
+
 	it("lets a job with its audio through the delivery check", async () => {
 		await service().runCategoryJob(
 			job({

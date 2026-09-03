@@ -31,6 +31,11 @@ const send = () =>
 		}),
 	);
 
+const say = () =>
+	wrapWithLogger(logger, () =>
+		client.sendMessage({ chatId: "42", text: "C'est fait." }),
+	);
+
 const respond = (status: number, body: unknown) =>
 	vi
 		.spyOn(globalThis, "fetch")
@@ -47,6 +52,19 @@ afterEach(() => {
 });
 
 describe("TelegramClient", () => {
+	it("posts a text message to the sendMessage endpoint", async () => {
+		const fetchSpy = respond(200, { ok: true });
+
+		await expect(say()).resolves.toEqual({ ok: true });
+
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toContain("/sendMessage");
+		expect(JSON.parse(String(init?.body))).toEqual({
+			chat_id: "42",
+			text: "C'est fait.",
+		});
+	});
+
 	it("reports a success", async () => {
 		respond(200, { ok: true, result: {} });
 

@@ -191,6 +191,15 @@ describe("list", () => {
 		});
 	});
 
+	it("counts nothing when the count query comes back empty", async () => {
+		const { service } = harness({ briefs: [], total: [] });
+
+		await expect(service.list()).resolves.toMatchObject({
+			total: 0,
+			pageCount: 1,
+		});
+	});
+
 	it("counts only what it lists", async () => {
 		const { service, totals } = harness();
 
@@ -376,6 +385,18 @@ describe("getById", () => {
 		await expect(service.getById(BRIEF_ID)).resolves.toMatchObject({
 			audio: { size: 0 },
 		});
+	});
+
+	it("renders a brief whose script is missing as an empty one", async () => {
+		const { service } = harness({
+			briefs: [detailRow({ summary: null })],
+			sources,
+		});
+
+		const brief = await service.getById(BRIEF_ID);
+
+		expect(brief?.script.stories).toEqual([]);
+		expect(brief?.script.aligned).toBe(false);
 	});
 
 	it("reads the sources of that brief in rank order", async () => {

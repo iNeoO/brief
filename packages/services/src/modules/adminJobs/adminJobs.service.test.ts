@@ -319,6 +319,15 @@ describe("listFetchJobs", () => {
 		expect(fetchJobs.args("where")).toEqual([and(undefined, undefined)]);
 	});
 
+	it("counts nothing when the count query comes back empty", async () => {
+		const { service } = harness({ fetchJobs: [], total: [] });
+
+		await expect(service.listFetchJobs()).resolves.toMatchObject({
+			total: 0,
+			pageCount: 1,
+		});
+	});
+
 	it("breaks ties on the id, newest first", async () => {
 		const { service, fetchJobs } = harness();
 

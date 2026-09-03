@@ -112,6 +112,16 @@ describe("AtomConnector", () => {
 		expect(articles.map((a) => a.title)).toEqual(["Article 1"]);
 	});
 
+	it("throws CONNECTOR_PARSE_ERROR when the feed carries no entries at all", async () => {
+		// A well-formed document with nothing in it: the parser is happy and the
+		// connector still has nothing to ingest, which is a broken feed.
+		serve(feed(""));
+
+		await expect(fetchLatest()).rejects.toThrow(
+			expect.objectContaining({ code: "CONNECTOR_PARSE_ERROR" }),
+		);
+	});
+
 	it("throws CONNECTOR_PARSE_ERROR when the document is not Atom", async () => {
 		serve('<?xml version="1.0"?><rss version="2.0"><channel/></rss>');
 

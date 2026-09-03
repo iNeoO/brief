@@ -152,6 +152,14 @@ describe("listSubscribed", () => {
 		expect(topics.args("offset")).toEqual([2 * TOPICS_PAGE_SIZE]);
 	});
 
+	it("counts nothing when the count query comes back empty", async () => {
+		const { service } = harness({ topics: [], total: [] });
+
+		await expect(
+			service.listSubscribed({ userId: USER_ID }),
+		).resolves.toMatchObject({ total: 0, pageCount: 1 });
+	});
+
 	it("reads a page below the first as the first one", async () => {
 		// The page comes straight from a URL: page 0 means "the beginning", not
 		// an error page.
@@ -194,6 +202,14 @@ describe("listAvailable", () => {
 				undefined,
 			),
 		]);
+	});
+
+	it("counts nothing when the count query comes back empty", async () => {
+		const { service } = harness({ topics: [], total: [] });
+
+		await expect(
+			service.listAvailable({ userId: USER_ID }),
+		).resolves.toMatchObject({ total: 0, pageCount: 1 });
 	});
 
 	it("orders the catalogue newest first, ties broken on the id", async () => {

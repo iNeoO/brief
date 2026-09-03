@@ -34,4 +34,25 @@ describe("createS3Config", () => {
 			createS3Config({ ...baseEnv, S3_ENDPOINT: "garage-prod" }),
 		).toThrow();
 	});
+
+	it("rejects an endpoint the SDK could not speak to", () => {
+		// It parses as a URL, so only the protocol check stops it.
+		expect(() =>
+			createS3Config({ ...baseEnv, S3_ENDPOINT: "s3://garage-prod:3900" }),
+		).toThrow(/http or https/);
+	});
+
+	it("trims the trailing slashes off an endpoint", () => {
+		// The SDK builds `<endpoint>/<bucket>/<key>`, so a trailing slash would
+		// address an object whose key starts with one.
+		expect(
+			createS3Config({ ...baseEnv, S3_ENDPOINT: "https://s3.example.test//" })
+				.endpoint,
+		).toBe("https://s3.example.test");
+	});
+
+	it("defaults to path-style addressing", () => {
+		// Garage serves no virtual-host style, and that is what runs in production.
+		expect(createS3Config(baseEnv).forcePathStyle).toBe(true);
+	});
 });

@@ -312,6 +312,16 @@ describe("getFile", () => {
 		});
 	});
 
+	it("reports no length when the response announced none", async () => {
+		const { service } = harness({ file: fileRow });
+		send.mockResolvedValue({ Body: body });
+
+		await expect(run(() => service.getFile("file-1"))).resolves.toMatchObject({
+			contentLength: null,
+			contentRange: null,
+		});
+	});
+
 	it("refuses an id no file carries", async () => {
 		const { service } = harness({ file: undefined });
 

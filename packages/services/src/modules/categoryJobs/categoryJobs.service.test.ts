@@ -479,6 +479,18 @@ describe("markFailed", () => {
 		expect(update.calls).toEqual([]);
 		expect(insert.calls).toEqual([]);
 	});
+
+	it("still records the event when the row vanished mid-transaction", async () => {
+		// The read found the job and the update did not: the failure is still
+		// worth an event, and the caller is told there is no row left.
+		const { service, insert } = harness({
+			current: [{ retry: 0, state: CATEGORY_JOB_STATE.CREATING_REPORT }],
+			updated: [],
+		});
+
+		await expect(service.markFailed(JOB_ID, "boom")).resolves.toBeNull();
+		expect(insert.args("values")).toMatchObject([{ error: "boom" }]);
+	});
 });
 
 describe("incrementRetry", () => {
@@ -536,5 +548,14 @@ describe("incrementRetry", () => {
 		await expect(service.incrementRetry(JOB_ID, "timeout")).resolves.toBeNull();
 		expect(update.calls).toEqual([]);
 		expect(insert.calls).toEqual([]);
+	});
+
+	it("reports no row when the update matched nothing", async () => {
+		const { service } = harness({
+			current: [{ retry: 0, state: CATEGORY_JOB_STATE.CREATING_REPORT }],
+			updated: [],
+		});
+
+		await expect(service.incrementRetry(JOB_ID, "timeout")).resolves.toBeNull();
 	});
 });
