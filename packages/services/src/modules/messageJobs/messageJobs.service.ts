@@ -12,7 +12,7 @@ import { getLoggerStore } from "@brief/infra/libs";
 import type { ClaimedMessageJob } from "./messageJobs.type.js";
 
 export class MessageJobsService {
-	constructor(private db: Database) {}
+	constructor(private readonly db: Database) {}
 
 	/**
 	 * Creates the delivery rows for a finished category job and returns the ids

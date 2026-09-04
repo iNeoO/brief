@@ -22,8 +22,8 @@ type MessageConsumerOptions = {
 };
 
 export class MessageConsumer extends BaseAmqpConsumer {
-	private deliveryService: MessageDeliveryService;
-	private retryPublisher: AmqpPublisher;
+	private readonly deliveryService: MessageDeliveryService;
+	private readonly retryPublisher: AmqpPublisher;
 
 	constructor(options: MessageConsumerOptions) {
 		// One at a time: Telegram allows roughly one message per second to the same

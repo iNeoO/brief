@@ -1,5 +1,4 @@
 import {
-	BRAND_NAME,
 	MESSAGE_RETRY_DELAYS_MS,
 	TELEGRAM_MESSAGE_COPY,
 } from "@brief/common/constants";
@@ -53,7 +52,7 @@ export const buildAudioTitle = ({
 	locale: Locale;
 }) => `${categoryName} — ${formatBriefDate(targetDate, locale)}`;
 
-export const AUDIO_PERFORMER = BRAND_NAME;
+export { BRAND_NAME as AUDIO_PERFORMER } from "@brief/common/constants";
 
 /**
  * The public endpoint Telegram fetches the file from. It only serves a brief

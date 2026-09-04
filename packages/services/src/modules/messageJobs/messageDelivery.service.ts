@@ -25,10 +25,10 @@ import type {
  */
 export class MessageDeliveryService {
 	constructor(
-		private db: Database,
-		private messageJobsService: MessageJobsService,
-		private telegramClient: TelegramClient,
-		private config: MessageDeliveryConfig,
+		private readonly db: Database,
+		private readonly messageJobsService: MessageJobsService,
+		private readonly telegramClient: TelegramClient,
+		private readonly config: MessageDeliveryConfig,
 	) {}
 
 	async deliver(messageJobId: number): Promise<DeliveryVerdict> {
@@ -46,7 +46,7 @@ export class MessageDeliveryService {
 		// authorisation between the moment their brief was scheduled and the moment
 		// it goes out, and a delayed retry makes that gap minutes wide. A pairing
 		// that has been deleted outright counts the same as an opted-out one.
-		if (!job.pairing || job.pairing.status !== "verified") {
+		if (job.pairing?.status !== "verified") {
 			await this.messageJobsService.markFailed(
 				messageJobId,
 				"reader opted out",

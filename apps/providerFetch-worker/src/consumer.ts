@@ -33,7 +33,7 @@ type ProviderFetchConsumerServices = {
 };
 
 export class ProviderFetchConsumer extends BaseAmqpConsumer {
-	private services: ProviderFetchConsumerServices;
+	private readonly services: ProviderFetchConsumerServices;
 
 	constructor(
 		id: string,

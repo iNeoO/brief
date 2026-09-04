@@ -46,7 +46,7 @@ const envSchema = z.object({
 	// Without the leading `@`. Telegram's own rule for a bot username: 5 to 32
 	// characters, letters, digits and underscores. This is what the `t.me` deep
 	// link addresses, so a wrong value produces a link to nowhere.
-	TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/),
+	TELEGRAM_BOT_USERNAME: z.string().regex(/^\w{5,32}$/),
 	// Sent back by Telegram as X-Telegram-Bot-Api-Secret-Token on every webhook
 	// call. Without it the endpoint would take instructions from anyone who found
 	// the URL.

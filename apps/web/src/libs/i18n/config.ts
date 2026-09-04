@@ -1,11 +1,11 @@
-import { DEFAULT_LOCALE, LOCALES } from "@brief/common/constants";
+import { LOCALES } from "@brief/common/constants";
 import type { Locale } from "@brief/common/types";
 
-export type { Locale };
 // Re-exported rather than declared here: the message-worker composes Telegram
 // captions per reader and cannot import this file, so the list lives in
 // `@brief/common` and both sides read the same one.
-export { DEFAULT_LOCALE, LOCALES };
+export { DEFAULT_LOCALE, LOCALES } from "@brief/common/constants";
+export type { Locale } from "@brief/common/types";
 
 export const LOCALE_LABELS: Record<Locale, string> = {
 	en: "English",

@@ -9,7 +9,7 @@ import {
  * command and nothing else has to be told apart from prose. Telegram appends
  * `@botname` when the command is typed in a group.
  */
-const START_COMMAND = /^\/start(?:@[A-Za-z0-9_]{5,32})?$/;
+const START_COMMAND = /^\/start(?:@\w{5,32})?$/;
 
 export const generatePairingCode = () =>
 	Array.from({ length: TELEGRAM_PAIRING_CODE_LENGTH }, () =>

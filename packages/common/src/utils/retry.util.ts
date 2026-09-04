@@ -8,4 +8,4 @@
 export const retryDelayFromTiers = (
 	tiers: readonly number[],
 	attempt: number,
-) => tiers[attempt - 1] ?? tiers[tiers.length - 1] ?? 0;
+) => tiers[attempt - 1] ?? tiers.at(-1) ?? 0;

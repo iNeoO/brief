@@ -82,10 +82,10 @@ const parsePendingPairing = (raw: string | null) => {
  */
 export class TelegramPairingService {
 	constructor(
-		private db: Database,
-		private redis: RedisClient,
-		private config: TelegramConfig,
-		private client: TelegramClient,
+		private readonly db: Database,
+		private readonly redis: RedisClient,
+		private readonly config: TelegramConfig,
+		private readonly client: TelegramClient,
 	) {}
 
 	/**

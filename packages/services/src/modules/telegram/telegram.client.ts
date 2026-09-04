@@ -57,7 +57,7 @@ const readErrorBody = (raw: string): TelegramErrorBody => {
  * the error itself.
  */
 export class TelegramClient {
-	constructor(private config: TelegramConfig) {}
+	constructor(private readonly config: TelegramConfig) {}
 
 	sendMessage({ chatId, text }: SendMessageInput) {
 		return this.call("sendMessage", { chat_id: chatId, text }, TEXT_TIMEOUT_MS);
