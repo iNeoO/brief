@@ -1,5 +1,5 @@
 import { isDomainError } from "@brief/infra/errors";
-import { pinoLogger } from "@brief/infra/libs";
+import { getLoggerStore } from "@brief/infra/libs";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { createMiddleware } from "@tanstack/react-start";
 import {
@@ -11,6 +11,7 @@ import {
 	isServerError,
 	ServerError,
 } from "./errors";
+import { loggerMiddleware } from "./logger";
 
 const normalizeServerError = (
 	error: unknown,
@@ -36,21 +37,23 @@ const normalizeServerError = (
 		}
 	}
 
-	pinoLogger.error({ err: error, operation }, "Server function failed");
+	getLoggerStore().error({ err: error, operation }, "Server function failed");
 
 	return createGenericError();
 };
 
 export const errorHandlingMiddleware = createMiddleware({
 	type: "function",
-}).server(async ({ next, serverFnMeta }) => {
-	try {
-		return await next();
-	} catch (error) {
-		if (isRedirect(error) || isNotFound(error)) {
-			throw error;
-		}
+})
+	.middleware([loggerMiddleware])
+	.server(async ({ next, serverFnMeta }) => {
+		try {
+			return await next();
+		} catch (error) {
+			if (isRedirect(error) || isNotFound(error)) {
+				throw error;
+			}
 
-		throw normalizeServerError(error, serverFnMeta.name);
-	}
-});
+			throw normalizeServerError(error, serverFnMeta.name);
+		}
+	});
