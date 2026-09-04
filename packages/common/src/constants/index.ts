@@ -6,6 +6,7 @@ export * from "./briefs.constant.js";
 export * from "./categories.constant.js";
 export * from "./connectors.constant.js";
 export * from "./contact.constant.js";
+export * from "./disclosure.constant.js";
 export * from "./domainErrorCode.constant.js";
 export * from "./files.constant.js";
 export * from "./internalErrorCode.constant.js";

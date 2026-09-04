@@ -13,6 +13,9 @@ import { LOCALE } from "./locale.constant.js";
  * of whichever topic finishes first. A separate announcement message would need a
  * guarantee that it arrives before that first audio, which two workers cannot
  * give.
+ *
+ * The AI disclosure is not here: it is the same sentence on every carrier, and it
+ * lives in `AI_DISCLOSURE`.
  */
 export const TELEGRAM_MESSAGE_COPY = {
 	[LOCALE.FR]: {

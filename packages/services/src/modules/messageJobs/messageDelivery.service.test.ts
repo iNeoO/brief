@@ -68,7 +68,7 @@ describe("deliver", () => {
 			chatId: "chat-1",
 			audioUrl: "https://dailybriefs.fr/api/briefs/audio/file-1",
 			caption:
-				"Voici vos sujets pour la journée du 28 août 2026.\n\nVoici l'audio pour le topic Actu France.",
+				"Voici vos sujets pour la journée du 28 août 2026.\n\nVoici l'audio pour le topic Actu France.\n\nGénéré par IA : ce brief est écrit et mis en voix par des modèles, sans relecture humaine.",
 			title: "Actu France — 28 août 2026",
 			performer: "Daily Briefs",
 		});

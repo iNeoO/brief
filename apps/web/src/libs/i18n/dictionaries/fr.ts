@@ -146,6 +146,8 @@ export const fr: Dictionary = {
 		},
 		detail: {
 			back: "Retour à tous les briefs",
+			aiDisclosure:
+				"Généré par IA. Ce brief est écrit par un modèle de langage et mis en voix par un modèle de synthèse vocale, à partir des articles de presse qu'il cite. Aucune relecture humaine avant publication.",
 			publishedOn: (date: string) => `Publié le ${date}`,
 			listenTitle: "Écouter",
 			download: "Télécharger l'audio",

@@ -1,4 +1,5 @@
 import {
+	AI_DISCLOSURE,
 	MESSAGE_RETRY_DELAYS_MS,
 	TELEGRAM_MESSAGE_COPY,
 } from "@brief/common/constants";
@@ -21,6 +22,9 @@ export const formatBriefDate = (targetDate: Date, locale: Locale) =>
  * finishes first and is never sent on its own — a separate announcement message
  * would need a guarantee that it lands before that first audio, which two workers
  * cannot give.
+ *
+ * The disclosure closes every caption, opening line or not: it has to reach a
+ * reader who only ever sees their second brief.
  */
 export const buildCaption = ({
 	locale,
@@ -34,11 +38,13 @@ export const buildCaption = ({
 	isFirst: boolean;
 }) => {
 	const copy = TELEGRAM_MESSAGE_COPY[locale];
-	const topic = copy.topic(categoryName);
+	const lines = isFirst
+		? [copy.announcement(formatBriefDate(targetDate, locale))]
+		: [];
 
-	return isFirst
-		? `${copy.announcement(formatBriefDate(targetDate, locale))}\n\n${topic}`
-		: topic;
+	lines.push(copy.topic(categoryName), AI_DISCLOSURE[locale]);
+
+	return lines.join("\n\n");
 };
 
 /** What Telegram's native player shows instead of a file name. */

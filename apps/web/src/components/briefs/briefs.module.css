@@ -158,6 +158,17 @@
 	margin-top: 0.75rem;
 }
 
+/* The AI disclosure. Quiet enough not to fight the brief, but it sits above it
+   and not under it: the point is that it is read, not that it is present. */
+.aiDisclosure {
+	margin: 0 0 2rem;
+	padding-left: 0.875rem;
+	max-width: var(--brief-measure);
+	border-left: 2px solid var(--brief-line);
+	color: var(--brief-muted);
+	font-size: 0.85rem;
+}
+
 .sources {
 	margin-top: 3rem;
 	padding-top: 2rem;
