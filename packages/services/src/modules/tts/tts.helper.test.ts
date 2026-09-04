@@ -55,14 +55,36 @@ const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
 const speak = (text: string, language: Language = LANGUAGE.FR) =>
 	wrapWithLogger(logger as unknown as PinoLogger, () =>
-		TextToSpeechHelper.textToAudio(text, language),
+		TextToSpeechHelper.textToAudio({
+			text,
+			language,
+			title: "Actu France — 28 août 2026",
+			targetDate: new Date("2026-08-28T00:00:00.000Z"),
+		}),
 	);
 
 const collect = async (body: Readable) => {
 	const chunks: Buffer[] = [];
 	for await (const chunk of body) chunks.push(chunk as Buffer);
-	return Buffer.concat(chunks).toString();
+	return Buffer.concat(chunks);
 };
+
+/**
+ * The audio the model returned, with the ID3 tag the helper puts in front of it
+ * taken back off — the tag has its own tests, and these are about the speech.
+ */
+const withoutTag = (file: Buffer) => {
+	// The tag's size lives in four bytes that carry seven bits each.
+	const tagSize =
+		(file.readUInt8(6) << 21) |
+		(file.readUInt8(7) << 14) |
+		(file.readUInt8(8) << 7) |
+		file.readUInt8(9);
+
+	return file.subarray(10 + tagSize).toString();
+};
+
+const spoken = async (body: Readable) => withoutTag(await collect(body));
 
 /** The only request the helper made. */
 const request = () => create.mock.calls[0]?.[0];
@@ -84,9 +106,12 @@ afterEach(() => {
 describe("textToAudio", () => {
 	it("voices the brief and reports what it produced", async () => {
 		const { body, mimeType } = await speak("Voici votre brief.");
+		const file = await collect(body);
 
 		expect(mimeType).toBe(MIME_TYPE.MP3);
-		await expect(collect(body)).resolves.toBe("audio");
+		// Bare MPEG frames are what the API returns; the file leaves here named.
+		expect(file.subarray(0, 3).toString()).toBe("ID3");
+		expect(withoutTag(file)).toBe("audio");
 		expect(create).toHaveBeenCalledOnce();
 		expect(request()).toMatchObject({
 			model: "gpt-4o-mini-tts",
@@ -157,7 +182,7 @@ describe("textToAudio", () => {
 		const { body } = await speak(`${first}\n\n${second}`);
 
 		expect(create).toHaveBeenCalledTimes(2);
-		await expect(collect(body)).resolves.toBe("12");
+		await expect(spoken(body)).resolves.toBe("12");
 		expect(logger.info).toHaveBeenCalledOnce();
 	});
 

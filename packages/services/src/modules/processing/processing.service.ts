@@ -15,6 +15,7 @@ import { withDeadline } from "../../helpers/withDeadline.helper.js";
 import type { ArticlesService } from "../articles/articles.service.js";
 import type { CategoryJobsService } from "../categoryJobs/categoryJobs.service.js";
 import type { ClaimedCategoryJob } from "../categoryJobs/categoryJobs.type.js";
+import { buildAudioTitle } from "../messageJobs/messageJobs.helper.js";
 import type { S3Service } from "../s3/s3.service.js";
 import { TextToSpeechHelper } from "../tts/tts.helper.js";
 import { createAiDebugLogger } from "./processing.aiLogger.js";
@@ -213,10 +214,18 @@ export class ProcessingService {
 			});
 		}
 
-		const audio = await TextToSpeechHelper.textToAudio(
-			summary,
-			job.category.language,
-		);
+		// The same name Telegram shows in its player, so a file saved out of the
+		// chat and a file downloaded from the page answer to one title.
+		const audio = await TextToSpeechHelper.textToAudio({
+			text: summary,
+			language: job.category.language,
+			targetDate: job.targetDate,
+			title: buildAudioTitle({
+				categoryName: job.category.name,
+				targetDate: job.targetDate,
+				locale: job.category.language,
+			}),
+		});
 
 		await this.s3Service.uploadFile({
 			categoryJobId: job.id,

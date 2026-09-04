@@ -84,7 +84,13 @@ present, but not where a reader meets the content. It now sits in three places:
   JSON-LD. schema.org has no field for "written by a model"; `additionalProperty`
   is the one place that takes the claim without inventing a type. `author` stays
   the organisation, which does take responsibility for publishing.
-All three read from `AI_DISCLOSURE`, keyed by the brief's language rather than the
+- **The audio file itself** — an ID3v2.3 `COMM` frame written by `tts.tags.ts`.
+  A brief that has been forwarded out of Telegram twice has left every one of the
+  three carriers above; the file is what is left. The tag is prepended to the
+  frames and never interleaved with them, so the SynthID signal is untouched — the
+  audio bytes are the ones the speech API returned.
+
+All four read from `AI_DISCLOSURE`, keyed by the brief's language rather than the
 reader's: the statement rides on the content.
 
 ## Art. 4 — AI literacy

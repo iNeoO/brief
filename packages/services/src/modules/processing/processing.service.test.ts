@@ -218,7 +218,14 @@ describe("runCategoryJob", () => {
 			summary: SUMMARY,
 			sources: SOURCES,
 		});
-		expect(textToAudioMock).toHaveBeenCalledWith(SUMMARY, LANGUAGE.FR);
+		// The title is what a player shows for a file that has left the site, so
+		// it travels with the audio rather than being applied on the way out.
+		expect(textToAudioMock).toHaveBeenCalledWith({
+			text: SUMMARY,
+			language: LANGUAGE.FR,
+			targetDate: TARGET_DATE,
+			title: "Économie — 17 août 2026",
+		});
 		expect(uploadFile).toHaveBeenCalledWith(
 			expect.objectContaining({
 				categoryJobId: 42,
@@ -283,8 +290,7 @@ describe("runCategoryJob", () => {
 		// The report is paid for once: a retry must not call the model again.
 		expect(chatMock).not.toHaveBeenCalled();
 		expect(textToAudioMock).toHaveBeenCalledWith(
-			"Le brief déjà écrit.",
-			LANGUAGE.FR,
+			expect.objectContaining({ text: "Le brief déjà écrit." }),
 		);
 		expect(completeStep).toHaveBeenCalledTimes(2);
 	});

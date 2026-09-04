@@ -12,6 +12,7 @@ import OpenAI from "openai";
 import { withDeadline } from "../../helpers/withDeadline.helper.js";
 import { splitTextForTts } from "./tts.chunk.js";
 import { DELIVERY_INSTRUCTIONS, DELIVERY_SPEED } from "./tts.prompt.js";
+import { type AudioTags, buildId3Tag } from "./tts.tags.js";
 
 const RESPONSE_FORMAT = "mp3";
 
@@ -58,7 +59,11 @@ const speakChunk = async (
 };
 
 export const TextToSpeechHelper = {
-	textToAudio: async (text: string, language: Language) => {
+	textToAudio: async ({
+		text,
+		language,
+		...tags
+	}: AudioTags & { text: string }) => {
 		if (text.length > MAX_TTS_TOTAL_CHARS) {
 			throw new InternalError({
 				code: INTERNAL_ERROR_CODE.TTS_INPUT_TOO_LONG,
@@ -86,8 +91,13 @@ export const TextToSpeechHelper = {
 				),
 		});
 
+		// The tag goes in front of the frames, never between them: the watermark
+		// the speech model leaves is in the audio itself, and prepending a metadata
+		// block leaves every frame exactly as it arrived.
 		return {
-			body: Readable.from(Buffer.concat(buffers)),
+			body: Readable.from(
+				Buffer.concat([buildId3Tag({ language, ...tags }), ...buffers]),
+			),
 			mimeType: MIME_TYPE.MP3,
 		};
 	},
