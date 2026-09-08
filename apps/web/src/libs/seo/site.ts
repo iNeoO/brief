@@ -9,7 +9,9 @@
  * instead of quietly emitting canonical URLs that point nowhere.
  */
 export const siteOrigin = (): string =>
-	import.meta.env.SSR ? (process.env.SITE_URL ?? "") : window.location.origin;
+	import.meta.env.SSR
+		? (process.env.SITE_URL ?? "")
+		: globalThis.location.origin;
 
 /** `path` is absolute from the root, query string included where it matters. */
 export const absoluteUrl = (path: string): string => `${siteOrigin()}${path}`;

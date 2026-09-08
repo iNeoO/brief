@@ -206,7 +206,7 @@ export function TelegramSection({ returnTo }: Readonly<{ returnTo?: string }>) {
 			// Attempted, not relied on: a window opened from an async callback is
 			// what popup blockers exist to stop. The link is rendered as well, and
 			// that copy is the one that always works.
-			window.open(link.url, "_blank", "noopener,noreferrer");
+			globalThis.open(link.url, "_blank", "noopener,noreferrer");
 		},
 		onError: (error) => {
 			notifyError(
