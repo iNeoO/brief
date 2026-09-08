@@ -12,9 +12,13 @@ const envSchema = z.object({
 	// The public origin the site is served from. Canonical URLs, the sitemap and
 	// the social-card metadata are absolute by specification, so this cannot be
 	// read off the incoming request: behind a proxy a crawler would be handed the
-	// internal host as the address to index. The trailing slash goes here rather
-	// than at every call site.
-	SITE_URL: z.url().transform((url) => url.replace(/\/+$/, "")),
+	// internal host as the address to index. A trailing slash is refused rather
+	// than trimmed: every call site appends a rooted path to this, so one would
+	// put `//` in the canonical tags and the sitemap, and a crawler reads that as
+	// another URL. Failing at boot names the typo where a silent fix hides it.
+	SITE_URL: z
+		.url()
+		.refine((url) => !url.endsWith("/"), "SITE_URL must not end with a slash"),
 	BETTER_AUTH_SECRET: z.string().min(32),
 	PG_URL: z.string().min(1),
 	REDIS_URL: z.string().min(1),
