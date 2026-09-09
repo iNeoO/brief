@@ -9,3 +9,8 @@ export type ClaimedCategoryJob = CategoryJob & {
 		providers: Provider[];
 	};
 };
+
+export type ReleaseVerdict =
+	| { outcome: "waiting" }
+	| { outcome: "ready"; failedProviders: string[] }
+	| { outcome: "failed"; failedProviders: string[]; error: string };

@@ -60,14 +60,15 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 		const job = await this.services.providerFetchJobsService.claimJob(jobId);
 		if (!job) {
 			this.logger.warn({ jobId }, "provider fetch job could not be claimed");
-			channel.ack(msg);
+			if (await this.releaseDependents(channel, msg, jobId)) {
+				channel.ack(msg);
+			}
 			return;
 		}
 
 		try {
 			await this.processProviderFetchJob(job);
 			await this.services.providerFetchJobsService.markFinished(jobId);
-			await this.publishReadyCategoryJobs(jobId);
 		} catch (err) {
 			this.logger.error({ err, jobId }, "provider fetch job failed");
 			const message = err instanceof Error ? err.message : String(err);
@@ -79,14 +80,41 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 
 			if (updated?.status === JOB_STATUS.PENDING) {
 				await this.deferRetry(channel, msg, jobId, retryDelayMs(updated.retry));
-			} else {
-				// Out of tries: dead-letter it and leave the row `failed`.
-				channel.nack(msg, false, false);
+				return;
 			}
+
+			if (updated?.status === JOB_STATUS.FAILED) {
+				if (await this.releaseDependents(channel, msg, jobId)) {
+					channel.nack(msg, false, false);
+				}
+				return;
+			}
+
+			channel.nack(msg, false, false);
 			return;
 		}
 
-		channel.ack(msg);
+		if (await this.releaseDependents(channel, msg, jobId)) {
+			channel.ack(msg);
+		}
+	}
+
+	private async releaseDependents(
+		channel: AmqpChannel,
+		msg: AmqpMessage,
+		jobId: number,
+	): Promise<boolean> {
+		try {
+			await this.settleWaitingDependents(jobId);
+			return true;
+		} catch (err) {
+			this.logger.error(
+				{ err, jobId },
+				"could not settle the category jobs waiting on this fetch",
+			);
+			await this.deferRetry(channel, msg, jobId, retryDelayMs(1));
+			return false;
+		}
 	}
 
 	/**
@@ -122,25 +150,43 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 		await this.services.ingestionService.ingestProvider(job.id, job.provider);
 	}
 
-	private async publishReadyCategoryJobs(providerFetchJobId: number) {
-		const candidates =
+	private async settleWaitingDependents(providerFetchJobId: number) {
+		const waiting =
 			await this.services.categoryJobsService.findWaitingByProviderFetchJob(
 				providerFetchJobId,
 			);
 
-		for (const candidate of candidates) {
-			const allFinished =
-				await this.services.providerFetchJobsService.areAllProvidersFinished(
-					candidate.id,
-				);
-			if (!allFinished) continue;
+		for (const dependent of waiting) {
+			const verdict = await this.services.categoryJobsService.releaseWaitingJob(
+				dependent.id,
+			);
 
-			const [ready] =
-				await this.services.categoryJobsService.markReadyForProcessing(
-					candidate.id,
-				);
-			if (ready) {
-				await this.services.categoryPublisher.publish({ id: ready.id });
+			const context = {
+				jobId: dependent.id,
+				category: dependent.category,
+				targetDate: dependent.targetDate,
+				failedProviders:
+					verdict.outcome === "waiting" ? [] : verdict.failedProviders,
+			};
+
+			switch (verdict.outcome) {
+				case "waiting":
+					break;
+
+				case "ready":
+					await this.services.categoryPublisher.publish({ id: dependent.id });
+
+					if (verdict.failedProviders.length > 0) {
+						this.logger.warn(context, "brief released without every source");
+					}
+					break;
+
+				case "failed":
+					this.logger.error(
+						{ ...context, reason: verdict.error },
+						"no provider produced an article, category job failed",
+					);
+					break;
 			}
 		}
 	}

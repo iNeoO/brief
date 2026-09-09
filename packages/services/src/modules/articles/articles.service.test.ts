@@ -1,7 +1,8 @@
-import { and, eq, inArray, schema } from "@brief/drizzle";
+import { JOB_STATUS } from "@brief/common/constants";
+import { and, eq, inArray, schema, sql } from "@brief/drizzle";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asDatabase, recordingChain } from "../../testing/db.fake.js";
-import { ArticlesService } from "./articles.service.js";
+import { ArticlesService, contributingFetchJobs } from "./articles.service.js";
 import type { CreateManyArticlesParams } from "./articles.type.js";
 
 const PROVIDER_ID = "provider-1";
@@ -83,18 +84,38 @@ describe("findByProviderAndUrls", () => {
 });
 
 describe("getObservedArticles", () => {
-	it("walks the fetch jobs the category job waited on", async () => {
+	it("reads the candidates through the shared contributing-fetch definition", async () => {
 		await expect(
 			service().getObservedArticles(CATEGORY_JOB_ID),
 		).resolves.toEqual(rows);
 
-		expect(chain.args("from")).toEqual([schema.categoryJobProviderFetchJobs]);
+		expect(chain.args("from")).toEqual([schema.providerFetchJobArticles]);
 		expect(
 			chain.calls.filter((call) => call.method === "innerJoin"),
-		).toHaveLength(2);
+		).toHaveLength(1);
 		expect(chain.args("where")).toEqual([
-			eq(schema.categoryJobProviderFetchJobs.categoryJobId, CATEGORY_JOB_ID),
+			sql`${schema.providerFetchJobArticles.providerFetchJobId} in ${contributingFetchJobs(CATEGORY_JOB_ID)}`,
 		]);
+	});
+});
+
+describe("contributingFetchJobs", () => {
+	it("counts only the dependencies that reached finished", () => {
+		const chunks = contributingFetchJobs(CATEGORY_JOB_ID)
+			.queryChunks as unknown[];
+
+		expect(chunks).toContain(schema.categoryJobProviderFetchJobs);
+		expect(chunks).toContain(schema.providerFetchJobs);
+		expect(chunks).toContain(schema.providerFetchJobs.status);
+		const values = chunks
+			.filter((chunk) => {
+				const tag = Object.prototype.toString.call(chunk);
+				return tag === "[object String]" || tag === "[object Number]";
+			})
+			.map((chunk) => (chunk as { valueOf(): string | number }).valueOf());
+
+		expect(values).toContain(JOB_STATUS.FINISHED);
+		expect(values).toContain(CATEGORY_JOB_ID);
 	});
 });
 
