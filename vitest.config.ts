@@ -7,11 +7,18 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
 	test: {
-		projects: ["packages/services", "apps/category-worker"],
+		projects: [
+			"packages/services",
+			"apps/category-worker",
+			"apps/providerFetch-worker",
+		],
 		coverage: {
 			provider: "v8",
 			reporter: ["text", "lcov"],
-			include: ["packages/services/src/**/*.ts", "apps/category-worker/src/**/*.ts"],
+			include: [
+				"packages/services/src/**/*.ts",
+				"apps/category-worker/src/**/*.ts",
+			],
 			exclude: [
 				"**/*.test.ts",
 				"**/src/scripts/**",

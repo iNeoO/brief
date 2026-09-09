@@ -1,5 +1,5 @@
 import { JOB_STATUS, MAX_JOB_RETRY } from "@brief/common/constants";
-import { and, eq, ne, schema } from "@brief/drizzle";
+import { and, eq, schema } from "@brief/drizzle";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	asDatabase,
@@ -9,7 +9,6 @@ import {
 import { ProviderFetchJobsService } from "./providerFetchJobs.service.js";
 
 const JOB_ID = 7;
-const CATEGORY_JOB_ID = 42;
 const PROVIDER_ID = "provider-1";
 const NOW = new Date("2026-08-17T06:30:00.000Z");
 
@@ -20,8 +19,6 @@ type Rows = {
 	current?: Record<string, unknown>[];
 	/** The provider the claimed job points at. */
 	provider?: Record<string, unknown>[];
-	/** The fetch jobs of a category job that are not finished yet. */
-	unfinished?: Record<string, unknown>[];
 };
 
 const harness = (rows: Rows = {}) => {
@@ -30,12 +27,10 @@ const harness = (rows: Rows = {}) => {
 	const reads = {
 		providerFetchJobs: recordingChain(rows.current ?? []),
 		providers: recordingChain(rows.provider ?? []),
-		unfinished: recordingChain(rows.unfinished ?? []),
 	};
 
 	const from = (table: unknown) => {
 		if (table === schema.providers) return reads.providers;
-		if (table === schema.categoryJobProviderFetchJobs) return reads.unfinished;
 		return reads.providerFetchJobs;
 	};
 
@@ -103,34 +98,6 @@ describe("claimJob", () => {
 			providerId: PROVIDER_ID,
 			provider: undefined,
 		});
-	});
-});
-
-describe("areAllProvidersFinished", () => {
-	it("says yes once nothing unfinished is left", async () => {
-		const { service, reads } = harness({ unfinished: [] });
-
-		await expect(
-			service.areAllProvidersFinished(CATEGORY_JOB_ID),
-		).resolves.toBe(true);
-
-		// A failed fetch counts as unfinished, so the category job keeps waiting.
-		expect(reads.unfinished.args("where")).toEqual([
-			and(
-				eq(schema.categoryJobProviderFetchJobs.categoryJobId, CATEGORY_JOB_ID),
-				ne(schema.providerFetchJobs.status, JOB_STATUS.FINISHED),
-			),
-		]);
-		// One row is enough to answer: the query stops there.
-		expect(reads.unfinished.args("limit")).toEqual([1]);
-	});
-
-	it("says no while one fetch is still outstanding", async () => {
-		const { service } = harness({ unfinished: [{ id: JOB_ID }] });
-
-		await expect(
-			service.areAllProvidersFinished(CATEGORY_JOB_ID),
-		).resolves.toBe(false);
 	});
 });
 
@@ -212,15 +179,26 @@ describe("incrementRetry", () => {
 		expect(insert.calls).toEqual([]);
 	});
 
-	it("reports no row when the update matched nothing", async () => {
-		// The read found the job and the update did not: the caller is told there
-		// is nothing left to reschedule.
+	it("claims the attempt from `running`, so a finished fetch is never demoted", async () => {
+		const { service, update } = harness({ current: [{ retry: 0 }] });
+
+		await service.incrementRetry(JOB_ID, "502");
+
+		expect(update.args("where")).toEqual([
+			and(
+				eq(schema.providerFetchJobs.id, JOB_ID),
+				eq(schema.providerFetchJobs.status, JOB_STATUS.RUNNING),
+			),
+		]);
+	});
+
+	it("records no attempt when the guard refused the job", async () => {
 		const { service, insert } = harness({
 			current: [{ retry: 0 }],
 			updated: [],
 		});
 
 		await expect(service.incrementRetry(JOB_ID, "502")).resolves.toBeNull();
-		expect(insert.args("values")).toMatchObject([{ error: "502" }]);
+		expect(insert.calls).toEqual([]);
 	});
 });

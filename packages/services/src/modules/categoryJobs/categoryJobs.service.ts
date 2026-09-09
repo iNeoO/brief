@@ -8,6 +8,10 @@ import {
 import type { CategoryJobState } from "@brief/common/types";
 import { and, type Database, eq, schema, sql } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
+import { contributingFetchJobs } from "../articles/articles.service.js";
+import type { ReleaseVerdict } from "./categoryJobs.type.js";
+
+export const NO_CANDIDATES_ERROR = "no_candidate_articles";
 
 export class CategoryJobsService {
 	constructor(private db: Database) {}
@@ -80,7 +84,11 @@ export class CategoryJobsService {
 
 	async findWaitingByProviderFetchJob(providerFetchJobId: number) {
 		return await this.db
-			.select({ id: schema.categoryJobs.id })
+			.select({
+				id: schema.categoryJobs.id,
+				targetDate: schema.categoryJobs.targetDate,
+				category: schema.categories.name,
+			})
 			.from(schema.categoryJobProviderFetchJobs)
 			.innerJoin(
 				schema.categoryJobs,
@@ -88,6 +96,10 @@ export class CategoryJobsService {
 					schema.categoryJobs.id,
 					schema.categoryJobProviderFetchJobs.categoryJobId,
 				),
+			)
+			.innerJoin(
+				schema.categories,
+				eq(schema.categories.id, schema.categoryJobs.categoryId),
 			)
 			.where(
 				and(
@@ -117,6 +129,118 @@ export class CategoryJobsService {
 				),
 			)
 			.returning();
+	}
+
+	async releaseWaitingJob(jobId: number): Promise<ReleaseVerdict> {
+		const claimable = and(
+			eq(schema.categoryJobs.id, jobId),
+			eq(schema.categoryJobs.status, CATEGORY_JOB_STATUS.WAITING_FOR_PROVIDERS),
+			sql`not exists (
+				select 1
+				from ${schema.categoryJobProviderFetchJobs}
+				join ${schema.providerFetchJobs}
+					on ${schema.providerFetchJobs.id} = ${schema.categoryJobProviderFetchJobs.providerFetchJobId}
+				where ${schema.categoryJobProviderFetchJobs.categoryJobId} = ${jobId}
+					and ${schema.providerFetchJobs.status} not in (${JOB_STATUS.FINISHED}, ${JOB_STATUS.FAILED})
+			)`,
+		);
+
+		const hasDependency = sql`exists (
+			select 1
+			from ${schema.categoryJobProviderFetchJobs}
+			where ${schema.categoryJobProviderFetchJobs.categoryJobId} = ${jobId}
+		)`;
+
+		const hasCandidate = sql`exists (
+			select 1
+			from ${schema.providerFetchJobArticles}
+			where ${schema.providerFetchJobArticles.providerFetchJobId} in ${contributingFetchJobs(jobId)}
+		)`;
+
+		const [ready] = await this.db
+			.update(schema.categoryJobs)
+			.set({ status: CATEGORY_JOB_STATUS.PENDING })
+			.where(and(claimable, hasDependency, hasCandidate))
+			.returning({ id: schema.categoryJobs.id });
+
+		if (ready) {
+			return {
+				outcome: "ready",
+				failedProviders: (await this.readDependencies(jobId)).failed,
+			};
+		}
+
+		const dependencies = await this.readDependencies(jobId);
+		const error =
+			dependencies.total === 0
+				? `${NO_CANDIDATES_ERROR}: no provider is assigned to this category`
+				: `${NO_CANDIDATES_ERROR}: no provider produced an article (failed: ${dependencies.failed.join(", ") || "none"})`;
+
+		const failed = await this.db.transaction(async (tx) => {
+			const [current] = await tx
+				.select({
+					retry: schema.categoryJobs.retry,
+					state: schema.categoryJobs.state,
+				})
+				.from(schema.categoryJobs)
+				.where(eq(schema.categoryJobs.id, jobId));
+
+			if (!current) return null;
+
+			const [job] = await tx
+				.update(schema.categoryJobs)
+				.set({
+					status: JOB_STATUS.FAILED,
+					error,
+					finishedAt: new Date(),
+				})
+				.where(and(claimable, sql`not ${hasCandidate}`))
+				.returning({ id: schema.categoryJobs.id });
+
+			if (!job) return null;
+
+			await tx.insert(schema.categoryJobEvents).values({
+				categoryJobId: jobId,
+				attempt: current.retry + 1,
+				state: current.state,
+				status: JOB_STATUS.FAILED,
+				error,
+			});
+
+			return job;
+		});
+
+		if (!failed) return { outcome: "waiting" };
+
+		return { outcome: "failed", failedProviders: dependencies.failed, error };
+	}
+
+	private async readDependencies(jobId: number) {
+		const rows = await this.db
+			.select({
+				status: schema.providerFetchJobs.status,
+				provider: schema.providers.name,
+			})
+			.from(schema.categoryJobProviderFetchJobs)
+			.innerJoin(
+				schema.providerFetchJobs,
+				eq(
+					schema.providerFetchJobs.id,
+					schema.categoryJobProviderFetchJobs.providerFetchJobId,
+				),
+			)
+			.innerJoin(
+				schema.providers,
+				eq(schema.providers.id, schema.providerFetchJobs.providerId),
+			)
+			.where(eq(schema.categoryJobProviderFetchJobs.categoryJobId, jobId));
+
+		return {
+			total: rows.length,
+			failed: rows
+				.filter((row) => row.status === JOB_STATUS.FAILED)
+				.map((row) => row.provider),
+		};
 	}
 
 	async completeStep(

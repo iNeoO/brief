@@ -1,5 +1,5 @@
 import { JOB_STATUS, MAX_JOB_RETRY } from "@brief/common/constants";
-import { and, type Database, eq, ne, schema } from "@brief/drizzle";
+import { and, type Database, eq, schema } from "@brief/drizzle";
 
 export class ProviderFetchJobsService {
 	constructor(private db: Database) {}
@@ -31,28 +31,6 @@ export class ProviderFetchJobsService {
 				provider,
 			};
 		});
-	}
-
-	async areAllProvidersFinished(categoryJobId: number) {
-		const unfinished = await this.db
-			.select({ id: schema.categoryJobProviderFetchJobs.providerFetchJobId })
-			.from(schema.categoryJobProviderFetchJobs)
-			.innerJoin(
-				schema.providerFetchJobs,
-				eq(
-					schema.providerFetchJobs.id,
-					schema.categoryJobProviderFetchJobs.providerFetchJobId,
-				),
-			)
-			.where(
-				and(
-					eq(schema.categoryJobProviderFetchJobs.categoryJobId, categoryJobId),
-					ne(schema.providerFetchJobs.status, JOB_STATUS.FINISHED),
-				),
-			)
-			.limit(1);
-
-		return unfinished.length === 0;
 	}
 
 	async markFinished(jobId: number) {
@@ -89,8 +67,15 @@ export class ProviderFetchJobsService {
 			const [job] = await tx
 				.update(schema.providerFetchJobs)
 				.set({ error, retry, status, finishedAt: failed ? new Date() : null })
-				.where(eq(schema.providerFetchJobs.id, jobId))
+				.where(
+					and(
+						eq(schema.providerFetchJobs.id, jobId),
+						eq(schema.providerFetchJobs.status, JOB_STATUS.RUNNING),
+					),
+				)
 				.returning();
+
+			if (!job) return null;
 
 			await tx.insert(schema.providerFetchJobEvents).values({
 				providerFetchJobId: jobId,
@@ -99,7 +84,7 @@ export class ProviderFetchJobsService {
 				error,
 			});
 
-			return job ?? null;
+			return job;
 		});
 	}
 }

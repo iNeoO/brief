@@ -11,8 +11,12 @@ import {
 	asDatabase,
 	fakeTransaction,
 	recordingChain,
+	sequencedChains,
 } from "../../testing/db.fake.js";
-import { CategoryJobsService } from "./categoryJobs.service.js";
+import {
+	CategoryJobsService,
+	NO_CANDIDATES_ERROR,
+} from "./categoryJobs.service.js";
 
 const JOB_ID = 42;
 const CATEGORY_ID = "category-1";
@@ -187,6 +191,9 @@ describe("findWaitingByProviderFetchJob", () => {
 				),
 			),
 		]);
+		expect(
+			reads.waiting.calls.filter((call) => call.method === "innerJoin"),
+		).toHaveLength(2);
 	});
 });
 
@@ -216,6 +223,156 @@ describe("markReadyForProcessing", () => {
 		const { service } = harness({ updated: [] });
 
 		await expect(service.markReadyForProcessing(JOB_ID)).resolves.toEqual([]);
+	});
+});
+
+describe("releaseWaitingJob", () => {
+	const releaseHarness = (
+		rows: {
+			ready?: Record<string, unknown>[];
+			failedUpdate?: Record<string, unknown>[];
+			dependencies?: Record<string, unknown>[];
+			current?: Record<string, unknown>[];
+		} = {},
+	) => {
+		const updates = sequencedChains([
+			rows.ready ?? [],
+			rows.failedUpdate ?? [],
+		]);
+		const insert = recordingChain();
+		const reads = {
+			dependencies: recordingChain(rows.dependencies ?? []),
+			categoryJobs: recordingChain(
+				rows.current ?? [
+					{ retry: 0, state: CATEGORY_JOB_STATE.CREATING_REPORT },
+				],
+			),
+		};
+
+		const from = (table: unknown) =>
+			table === schema.categoryJobProviderFetchJobs
+				? reads.dependencies
+				: reads.categoryJobs;
+
+		const tx = {
+			update: (table: unknown) => updates.next().update(table),
+			insert: (table: unknown) => insert.insert(table),
+			select: () => ({ from }),
+		};
+
+		return {
+			updates,
+			insert,
+			service: new CategoryJobsService(
+				asDatabase({ ...tx, ...fakeTransaction(tx) }),
+			),
+		};
+	};
+
+	const dependencies = [
+		{ status: JOB_STATUS.FAILED, provider: "RFI" },
+		{ status: JOB_STATUS.FINISHED, provider: "France 24" },
+	];
+
+	it("releases the job and names the providers that died", async () => {
+		const { service, updates, insert } = releaseHarness({
+			ready: [{ id: JOB_ID }],
+			dependencies,
+		});
+
+		await expect(service.releaseWaitingJob(JOB_ID)).resolves.toEqual({
+			outcome: "ready",
+			failedProviders: ["RFI"],
+		});
+
+		expect(updates.at(0)?.args("set")).toEqual([
+			{ status: CATEGORY_JOB_STATUS.PENDING },
+		]);
+		expect(updates.at(1)?.calls).toEqual([]);
+		expect(insert.calls).toEqual([]);
+	});
+
+	it("fails the job for good when nothing was gathered", async () => {
+		const { service, updates, insert } = releaseHarness({
+			ready: [],
+			failedUpdate: [{ id: JOB_ID }],
+			dependencies: [
+				{ status: JOB_STATUS.FAILED, provider: "RFI" },
+				{ status: JOB_STATUS.FAILED, provider: "France 24" },
+			],
+		});
+
+		const verdict = await service.releaseWaitingJob(JOB_ID);
+
+		expect(verdict.outcome).toBe("failed");
+		expect(verdict).toMatchObject({
+			failedProviders: ["RFI", "France 24"],
+		});
+		expect(verdict).toHaveProperty(
+			"error",
+			expect.stringContaining(NO_CANDIDATES_ERROR),
+		);
+		expect(updates.at(1)?.args("set")).toEqual([
+			{
+				status: JOB_STATUS.FAILED,
+				error: expect.stringContaining("RFI, France 24"),
+				finishedAt: NOW,
+			},
+		]);
+		expect(insert.args("insert")).toEqual([schema.categoryJobEvents]);
+		expect(insert.args("values")).toMatchObject([
+			{
+				categoryJobId: JOB_ID,
+				attempt: 1,
+				state: CATEGORY_JOB_STATE.CREATING_REPORT,
+				status: JOB_STATUS.FAILED,
+			},
+		]);
+	});
+
+	it("leaves the job alone while a dependency is still running", async () => {
+		const { service, insert } = releaseHarness({
+			ready: [],
+			failedUpdate: [],
+			dependencies: [{ status: JOB_STATUS.RUNNING, provider: "RFI" }],
+		});
+
+		await expect(service.releaseWaitingJob(JOB_ID)).resolves.toEqual({
+			outcome: "waiting",
+		});
+		expect(insert.calls).toEqual([]);
+	});
+
+	it("fails a category nobody assigned a provider to, and says so", async () => {
+		const { service } = releaseHarness({
+			ready: [],
+			failedUpdate: [{ id: JOB_ID }],
+			dependencies: [],
+		});
+
+		const verdict = await service.releaseWaitingJob(JOB_ID);
+
+		expect(verdict).toMatchObject({ outcome: "failed", failedProviders: [] });
+		expect(verdict).toHaveProperty(
+			"error",
+			expect.stringContaining("no provider is assigned"),
+		);
+	});
+
+	it("never spends the retry counter", async () => {
+		const { service, updates } = releaseHarness({
+			ready: [],
+			failedUpdate: [{ id: JOB_ID }],
+			dependencies,
+		});
+
+		await service.releaseWaitingJob(JOB_ID);
+
+		for (const chain of updates.chains) {
+			for (const call of chain.calls.filter((one) => one.method === "set")) {
+				expect(call.args[0]).not.toHaveProperty("retry");
+			}
+		}
 	});
 });
 

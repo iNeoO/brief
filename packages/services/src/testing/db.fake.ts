@@ -90,6 +90,17 @@ export const recordingChain = <T>(rows: T[] = []): RecordingChain<T> => {
 	return chain;
 };
 
+export const sequencedChains = <T>(rowsPerCall: T[][]) => {
+	const chains = rowsPerCall.map((rows) => recordingChain(rows));
+	let handed = 0;
+
+	return {
+		chains,
+		at: (index: number) => chains[index],
+		next: () => chains[handed++] ?? recordingChain<T>([]),
+	};
+};
+
 /**
  * `db.transaction(cb)` that runs the callback against the `tx` fake and hands
  * back whatever it returned, so a rollback is simply a rejection.
