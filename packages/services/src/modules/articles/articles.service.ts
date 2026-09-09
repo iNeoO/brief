@@ -1,5 +1,15 @@
-import { and, type Database, eq, inArray, schema } from "@brief/drizzle";
+import { JOB_STATUS } from "@brief/common/constants";
+import { and, type Database, eq, inArray, schema, sql } from "@brief/drizzle";
 import type { CreateManyArticlesParams } from "./articles.type.js";
+
+export const contributingFetchJobs = (categoryJobId: number) => sql`(
+	select ${schema.categoryJobProviderFetchJobs.providerFetchJobId}
+	from ${schema.categoryJobProviderFetchJobs}
+	join ${schema.providerFetchJobs}
+		on ${schema.providerFetchJobs.id} = ${schema.categoryJobProviderFetchJobs.providerFetchJobId}
+	where ${schema.categoryJobProviderFetchJobs.categoryJobId} = ${categoryJobId}
+		and ${schema.providerFetchJobs.status} = ${JOB_STATUS.FINISHED}
+)`;
 
 export class ArticlesService {
 	constructor(private db: Database) {}
@@ -39,20 +49,13 @@ export class ArticlesService {
 				description: schema.articles.description,
 				publishedAt: schema.articles.publishedAt,
 			})
-			.from(schema.categoryJobProviderFetchJobs)
-			.innerJoin(
-				schema.providerFetchJobArticles,
-				eq(
-					schema.providerFetchJobArticles.providerFetchJobId,
-					schema.categoryJobProviderFetchJobs.providerFetchJobId,
-				),
-			)
+			.from(schema.providerFetchJobArticles)
 			.innerJoin(
 				schema.articles,
 				eq(schema.articles.id, schema.providerFetchJobArticles.articleId),
 			)
 			.where(
-				eq(schema.categoryJobProviderFetchJobs.categoryJobId, categoryJobId),
+				sql`${schema.providerFetchJobArticles.providerFetchJobId} in ${contributingFetchJobs(categoryJobId)}`,
 			);
 	}
 
