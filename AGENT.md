@@ -152,9 +152,9 @@ The same boundary holds inside `packages/services`: `auth` and `mail` are **not*
 ## Current boundaries
 
 - Services and workers have not been adapted to this schema yet.
-- Users, roles, and category subscriptions exist; delivery and per-recipient fan-out do not. A reader can now authorise WhatsApp — `whatsapp_pairings` holds the proven number and the opt-in evidence — but nothing sends to it yet, and `message_jobs.category_job_id` being unique still blocks per-recipient fan-out.
+- Users, roles, and category subscriptions exist; delivery and per-recipient fan-out do not. A reader can now authorise Telegram — `telegram_pairings` holds the proven `chat_id` and the opt-in evidence — but nothing sends to it yet, and `message_jobs.category_job_id` being unique still blocks per-recipient fan-out.
 - No admin surface: the role exists and is enforceable, but nothing reads it and there is no script to promote a user to `admin` yet.
-- The site copy names WhatsApp as the delivery channel (`hero.rhythm`, `closing.note`, `method.page.details`, `auth.topics.lead` in the i18n dictionaries), which nothing delivers on yet: a reader who pairs receives no brief until the fan-out lands. Email is now only the account address — sign-in, verification, password reset.
+- The site copy names Telegram as the delivery channel (`hero.rhythm`, `closing.note`, `method.page.details`, `auth.topics.lead` in the i18n dictionaries), which nothing delivers on yet: a reader who pairs receives no brief until the fan-out lands. Email is now only the account address — sign-in, verification, password reset.
 - The schema records the selected articles but does not version summaries or previous selections across retries.
 - The schema does not enforce that linked category and provider jobs share the same target date. The scheduler must create valid dependency rows.
 - The schema does not enforce that an article linked to a fetch job belongs to the same provider. The ingestion code must preserve that invariant.

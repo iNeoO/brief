@@ -26,7 +26,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
 import { Route as BriefsIndexRouteImport } from './routes/briefs/index'
 import { Route as BriefsIdRouteImport } from './routes/briefs/$id'
-import { Route as ApiWhatsappWebhookRouteImport } from './routes/api/whatsapp.webhook'
+import { Route as ApiTelegramWebhookRouteImport } from './routes/api/telegram.webhook'
 import { Route as ApiBriefsAudioFileIdRouteImport } from './routes/api/briefs.audio.$fileId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -114,9 +114,9 @@ const BriefsIdRoute = BriefsIdRouteImport.update({
   path: '/briefs/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiWhatsappWebhookRoute = ApiWhatsappWebhookRouteImport.update({
-  id: '/api/whatsapp/webhook',
-  path: '/api/whatsapp/webhook',
+const ApiTelegramWebhookRoute = ApiTelegramWebhookRouteImport.update({
+  id: '/api/telegram/webhook',
+  path: '/api/telegram/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefsAudioFileIdRoute = ApiBriefsAudioFileIdRouteImport.update({
@@ -143,7 +143,7 @@ export interface FileRoutesByFullPath {
   '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
   '/briefs/': typeof BriefsIndexRoute
-  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
+  '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRoutesByTo {
@@ -163,7 +163,7 @@ export interface FileRoutesByTo {
   '/briefs/$id': typeof BriefsIdRoute
   '/admin': typeof AdminIndexRoute
   '/briefs': typeof BriefsIndexRoute
-  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
+  '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRoutesById {
@@ -185,7 +185,7 @@ export interface FileRoutesById {
   '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
   '/briefs/': typeof BriefsIndexRoute
-  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
+  '/api/telegram/webhook': typeof ApiTelegramWebhookRoute
   '/api/briefs/audio/$fileId': typeof ApiBriefsAudioFileIdRoute
 }
 export interface FileRouteTypes {
@@ -208,7 +208,7 @@ export interface FileRouteTypes {
     | '/briefs/$id'
     | '/admin/'
     | '/briefs/'
-    | '/api/whatsapp/webhook'
+    | '/api/telegram/webhook'
     | '/api/briefs/audio/$fileId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -228,7 +228,7 @@ export interface FileRouteTypes {
     | '/briefs/$id'
     | '/admin'
     | '/briefs'
-    | '/api/whatsapp/webhook'
+    | '/api/telegram/webhook'
     | '/api/briefs/audio/$fileId'
   id:
     | '__root__'
@@ -249,7 +249,7 @@ export interface FileRouteTypes {
     | '/briefs/$id'
     | '/admin/'
     | '/briefs/'
-    | '/api/whatsapp/webhook'
+    | '/api/telegram/webhook'
     | '/api/briefs/audio/$fileId'
   fileRoutesById: FileRoutesById
 }
@@ -269,7 +269,7 @@ export interface RootRouteChildren {
   ValidateEmailRoute: typeof ValidateEmailRoute
   BriefsIdRoute: typeof BriefsIdRoute
   BriefsIndexRoute: typeof BriefsIndexRoute
-  ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
+  ApiTelegramWebhookRoute: typeof ApiTelegramWebhookRoute
   ApiBriefsAudioFileIdRoute: typeof ApiBriefsAudioFileIdRoute
 }
 
@@ -394,11 +394,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BriefsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/whatsapp/webhook': {
-      id: '/api/whatsapp/webhook'
-      path: '/api/whatsapp/webhook'
-      fullPath: '/api/whatsapp/webhook'
-      preLoaderRoute: typeof ApiWhatsappWebhookRouteImport
+    '/api/telegram/webhook': {
+      id: '/api/telegram/webhook'
+      path: '/api/telegram/webhook'
+      fullPath: '/api/telegram/webhook'
+      preLoaderRoute: typeof ApiTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/briefs/audio/$fileId': {
@@ -441,7 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   ValidateEmailRoute: ValidateEmailRoute,
   BriefsIdRoute: BriefsIdRoute,
   BriefsIndexRoute: BriefsIndexRoute,
-  ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
+  ApiTelegramWebhookRoute: ApiTelegramWebhookRoute,
   ApiBriefsAudioFileIdRoute: ApiBriefsAudioFileIdRoute,
 }
 export const routeTree = rootRouteImport

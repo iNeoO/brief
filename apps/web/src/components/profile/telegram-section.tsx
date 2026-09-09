@@ -1,14 +1,14 @@
-import { WHATSAPP_PAIRING_STATUS } from "@brief/common/constants";
+import { TELEGRAM_PAIRING_STATUS } from "@brief/common/constants";
 import { Anchor, Badge, Button, Code, Group, Stack } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import classes from "#/components/profile/profile.module.css";
 import {
-	createWhatsappPairingLink,
-	deleteWhatsappPairing,
-	refreshWhatsappPairing,
-	whatsappPairingQueryOptions,
-} from "#/libs/api/whatsapp";
+	createTelegramPairingLink,
+	deleteTelegramPairing,
+	refreshTelegramPairing,
+	telegramPairingQueryOptions,
+} from "#/libs/api/telegram";
 import { resolveErrorMessage } from "#/libs/auth/error-message";
 import { formatDate } from "#/libs/format/date";
 import { useI18n } from "#/libs/i18n/context";
@@ -17,7 +17,7 @@ import { notifyError, notifySuccess } from "#/libs/notify";
 const POLL_INTERVAL_MS = 3_000;
 
 /**
- * How long we keep watching for the user's message after handing out a link.
+ * How long we keep watching for the user's `/start` after handing out a link.
  * Long enough to switch apps and come back, short enough that a page left open
  * all afternoon stops polling.
  */
@@ -25,24 +25,29 @@ const WAITING_WINDOW_MS = 2 * 60 * 1_000;
 
 type PendingLink = {
 	url: string;
-	message: string;
-	senderNumber: string;
+	botUsername: string;
+	code: string;
 	until: number;
 };
 
 /**
  * Pairing runs the other way round from what a form would suggest: the user does
- * not type a number, they send us a message from WhatsApp. What comes back proves
- * the number and carries the consent, so there is nothing here to validate.
+ * not type an address, they open the bot and tap Start. What comes back proves the
+ * chat, so there is nothing here to validate.
+ *
+ * The consent is given here rather than in the message: `/start` proves control of
+ * the account and nothing else. The wording rendered next to the button is what
+ * gets stored as the opt-in record, so it has to say what the user is agreeing to
+ * and how to stop.
  */
-export function WhatsappSection({ returnTo }: { returnTo?: string }) {
+export function TelegramSection({ returnTo }: { returnTo?: string }) {
 	const { locale, t } = useI18n();
-	const labels = t.auth.profile.whatsapp;
+	const labels = t.auth.profile.telegram;
 	const queryClient = useQueryClient();
 	const [pending, setPending] = useState<PendingLink | null>(null);
 
 	const { data } = useQuery({
-		...whatsappPairingQueryOptions(),
+		...telegramPairingQueryOptions(),
 		// The pairing lands through the webhook, not through this page, so polling
 		// is the only way it can notice. Bounded, and only while we are waiting.
 		refetchInterval: () =>
@@ -52,7 +57,7 @@ export function WhatsappSection({ returnTo }: { returnTo?: string }) {
 	const pairing = data?.pairing ?? null;
 
 	const start = useMutation({
-		mutationFn: () => createWhatsappPairingLink({ data: { locale } }),
+		mutationFn: () => createTelegramPairingLink({ data: { locale } }),
 		onSuccess: (link) => {
 			setPending({ ...link, until: Date.now() + WAITING_WINDOW_MS });
 
@@ -73,10 +78,10 @@ export function WhatsappSection({ returnTo }: { returnTo?: string }) {
 	});
 
 	const remove = useMutation({
-		mutationFn: () => deleteWhatsappPairing(),
+		mutationFn: () => deleteTelegramPairing(),
 		onSuccess: async () => {
 			setPending(null);
-			await refreshWhatsappPairing(queryClient);
+			await refreshTelegramPairing(queryClient);
 			notifySuccess(labels.verified.removed);
 		},
 		onError: (error) => {
@@ -84,7 +89,7 @@ export function WhatsappSection({ returnTo }: { returnTo?: string }) {
 		},
 	});
 
-	const isVerified = pairing?.status === WHATSAPP_PAIRING_STATUS.VERIFIED;
+	const isVerified = pairing?.status === TELEGRAM_PAIRING_STATUS.VERIFIED;
 
 	return (
 		<section className={classes.section}>
@@ -95,9 +100,8 @@ export function WhatsappSection({ returnTo }: { returnTo?: string }) {
 				<Stack gap="md">
 					<dl className={classes.details}>
 						<div className={classes.detail}>
-							<dt className={classes.detailLabel}>{labels.verified.number}</dt>
+							<dt className={classes.detailLabel}>{labels.verified.state}</dt>
 							<dd className={classes.detailValue}>
-								{`+${pairing.phoneNumber}`}
 								<Badge
 									size="sm"
 									variant="light"
@@ -116,7 +120,14 @@ export function WhatsappSection({ returnTo }: { returnTo?: string }) {
 						</div>
 					</dl>
 
-					{isVerified ? null : <p>{labels.optedOut.body}</p>}
+					{isVerified ? null : (
+						<>
+							<p>{labels.optedOut.body}</p>
+							{/* Authorising again mints a new code, so the wording that will
+							    be stored has to be on screen again too. */}
+							<p className={classes.sectionLead}>{labels.consent}</p>
+						</>
+					)}
 
 					<Group>
 						{isVerified ? null : (
@@ -160,24 +171,31 @@ export function WhatsappSection({ returnTo }: { returnTo?: string }) {
 								{labels.waiting.open}
 							</Anchor>
 
-							{/* The desktop fallback: without WhatsApp installed the link
-							    leads nowhere, and the message can be sent by hand. */}
+							{/* The desktop fallback: without Telegram installed the deep
+							    link leads nowhere, and the command can be typed by hand. */}
 							<p className={classes.sectionLead}>
-								{labels.waiting.manual(`+${pending.senderNumber}`)}
+								{labels.waiting.manual(`@${pending.botUsername}`)}
 							</p>
-							<Code block>{pending.message}</Code>
+							<Code block>{`/start ${pending.code}`}</Code>
 						</Stack>
 					) : null}
 
-					<Group>
-						<Button
-							size="sm"
-							onClick={() => start.mutate()}
-							loading={start.isPending}
-						>
-							{pending ? labels.waiting.restart : labels.idle.action}
-						</Button>
-					</Group>
+					<Stack gap="xs">
+						{/* This wording, not the `/start` command, is the opt-in record:
+						    it is stored verbatim when the pairing completes. Rendered next
+						    to the button so agreeing and pressing are one gesture. */}
+						<p className={classes.sectionLead}>{labels.consent}</p>
+
+						<Group>
+							<Button
+								size="sm"
+								onClick={() => start.mutate()}
+								loading={start.isPending}
+							>
+								{pending ? labels.waiting.restart : labels.idle.action}
+							</Button>
+						</Group>
+					</Stack>
 				</Stack>
 			)}
 		</section>

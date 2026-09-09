@@ -28,22 +28,21 @@ const envSchema = z.object({
 	S3_ACCESS_KEY: z.string().min(1),
 	S3_SECRET_KEY: z.string().min(1),
 	S3_BUCKET: z.string().min(1),
-	// WhatsApp pairing. Deliberately here and not in `packages/infra`, whose env
+	// Telegram pairing. Deliberately here and not in `packages/infra`, whose env
 	// module parses at import time for every worker: a variable added there is a
 	// variable each of the four workers has to set before it will boot.
 	//
-	// The number the user writes *to*, in E.164 digits with no `+` — that is the
-	// form `wa.me` takes, and the form Cloud API reports numbers in.
-	WHATSAPP_SENDER_NUMBER: z.string().regex(/^\d{8,15}$/),
-	WHATSAPP_PHONE_NUMBER_ID: z.string().min(1),
-	WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().min(1),
-	WHATSAPP_ACCESS_TOKEN: z.string().min(1),
-	// Signs the webhook body as X-Hub-Signature-256. Without it the endpoint would
-	// take instructions from anyone who found the URL.
-	WHATSAPP_APP_SECRET: z.string().min(1),
-	// Echoed back to Meta once, when the callback URL is registered.
-	WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().min(16),
-	WHATSAPP_API_VERSION: z.string().default("v23.0"),
+	// From @BotFather. The only credential Telegram needs, and enough to write to
+	// every chat that has started the bot — so it is never logged.
+	TELEGRAM_BOT_TOKEN: z.string().min(1),
+	// Without the leading `@`. Telegram's own rule for a bot username: 5 to 32
+	// characters, letters, digits and underscores. This is what the `t.me` deep
+	// link addresses, so a wrong value produces a link to nowhere.
+	TELEGRAM_BOT_USERNAME: z.string().regex(/^[A-Za-z0-9_]{5,32}$/),
+	// Sent back by Telegram as X-Telegram-Bot-Api-Secret-Token on every webhook
+	// call. Without it the endpoint would take instructions from anyone who found
+	// the URL.
+	TELEGRAM_WEBHOOK_SECRET: z.string().min(16),
 	ADMIN_USER_IDS: z
 		.string()
 		.default("")

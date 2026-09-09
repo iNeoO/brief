@@ -23,7 +23,7 @@ export const en = {
 		signUp: {
 			title: "Create your account",
 			description:
-				"Choose your topics and get your first brief tomorrow at 7:00. One WhatsApp message a day, and unsubscribing takes one click.",
+				"Choose your topics and get your first brief tomorrow at 7:00. One Telegram message a day, and unsubscribing takes one click.",
 		},
 		page: (page: number) => `page ${page}`,
 	},
@@ -58,7 +58,7 @@ export const en = {
 		title: "The essentials, without the noise.",
 		lead: "One short summary per topic you follow, waiting for you each morning.",
 		cta: "Start reading",
-		rhythm: "One WhatsApp message each morning, at 7:00. Nothing else.",
+		rhythm: "One Telegram message each morning, at 7:00. Nothing else.",
 	},
 	method: {
 		title: "How it works",
@@ -79,7 +79,7 @@ export const en = {
 			details: [
 				{
 					title: "You choose your topics",
-					body: "Follow a topic and its brief joins your morning WhatsApp message. Unfollow it and it stops the next day — you can change your mind any morning.",
+					body: "Follow a topic and its brief joins your morning Telegram message. Unfollow it and it stops the next day — you can change your mind any morning.",
 				},
 				{
 					title: "We read the sources",
@@ -91,7 +91,7 @@ export const en = {
 				},
 				{
 					title: "It arrives at 7:00",
-					body: "Read the summary, or listen to its audio version — the same brief, voiced. One WhatsApp message a day, nothing else, and unsubscribing takes one click.",
+					body: "Read the summary, or listen to its audio version — the same brief, voiced. One Telegram message a day, nothing else, and unsubscribing takes one click.",
 				},
 			],
 		},
@@ -176,7 +176,7 @@ export const en = {
 		title: "Start tomorrow morning.",
 		body: "Choose your topics, and your first brief arrives at 7:00.",
 		cta: "Create my account",
-		note: "One WhatsApp message a day. Unsubscribe in one click.",
+		note: "One Telegram message a day. Unsubscribe in one click.",
 		signedIn: {
 			title: "Tomorrow morning, at 7:00.",
 			body: "Follow one more topic and it joins your next brief.",
@@ -241,7 +241,7 @@ export const en = {
 			emailTaken: "An account already exists with this email address.",
 			closed: {
 				title: "Sign-ups are closed for the moment",
-				body: "We are finishing WhatsApp delivery. Until then, write to us and we will create your account by hand.",
+				body: "We are finishing Telegram delivery. Until then, write to us and we will create your account by hand.",
 				write: "Write to us",
 			},
 			checkInbox: {
@@ -332,45 +332,46 @@ export const en = {
 				success: "Your password has been changed.",
 				incorrect: "That is not your current password.",
 			},
-			whatsapp: {
-				title: "WhatsApp",
-				lead: "Where your briefs are delivered. You authorise us from WhatsApp itself, by sending us a single message.",
-				// The sentence the user sends us: it *is* the opt-in record, which is
-				// why it names Brief and says what will be sent. A bare code would
-				// prove the number and nothing else.
-				consentMessage: (code: string) =>
-					`I authorise Brief to send me my daily briefs on WhatsApp. Code: ${code}`,
+			telegram: {
+				title: "Telegram",
+				lead: "Where your briefs are delivered. You open our Telegram bot and press Start.",
+				// The sentence shown next to the button: it *is* the opt-in record,
+				// which is why it names Brief, says what will be sent and how to stop.
+				// Pressing Start proves the Telegram account is yours, not that you
+				// agreed — the agreement happens here.
+				consent:
+					"By pressing this button, I authorise Brief to send me my daily briefs on Telegram. I can stop at any time by sending /stop to the bot, or by withdrawing the authorisation from this page.",
 				acknowledgement:
-					"Thank you, it is noted. Your briefs will arrive in this conversation.",
+					"Thank you, it is noted. Your briefs will arrive in this conversation. Send /stop to end them.",
 				idle: {
-					body: "Open WhatsApp, send the message we have prepared, and it is done. We never write to you first.",
-					action: "Authorise WhatsApp",
+					body: "Open our Telegram bot, press Start, and it is done. We never write to you first.",
+					action: "Authorise Telegram",
 				},
 				waiting: {
-					open: "Open WhatsApp",
-					body: "Waiting for your message. Send it from WhatsApp and this page will update on its own.",
-					manual: (number: string) =>
-						`If WhatsApp did not open, send this message to ${number}:`,
+					open: "Open Telegram",
+					body: "Waiting for your Start. Press it in Telegram and this page will update on its own.",
+					manual: (bot: string) =>
+						`If Telegram did not open, search for ${bot} in Telegram and send it this command:`,
 					restart: "Start again",
 				},
 				verified: {
 					badge: "Authorised",
 					continue: "Continue where you left off",
-					number: "Authorised number",
+					state: "Status",
 					since: "Authorised on",
 					remove: "Withdraw the authorisation",
 					removed: "The authorisation has been withdrawn.",
 				},
 				optedOut: {
 					badge: "Stopped",
-					body: "You replied STOP on WhatsApp, so nothing is sent there any more. You can authorise it again whenever you like.",
+					body: "You sent /stop, or blocked the bot, so nothing is sent on Telegram any more. You can authorise it again whenever you like.",
 				},
 				error: "The authorisation could not be prepared. Please try again.",
 			},
 		},
 		topics: {
 			title: "Your topics",
-			lead: "Follow a topic and its brief joins your daily WhatsApp message. Unfollow whenever you like.",
+			lead: "Follow a topic and its brief joins your daily Telegram message. Unfollow whenever you like.",
 			back: "Back to my briefs",
 			loadError: "The topics could not be loaded.",
 			pagination: (page: number, pageCount: number) =>
@@ -421,7 +422,7 @@ export const en = {
 			},
 			notifications: {
 				pairingNeeded:
-					"One more step: authorise WhatsApp to receive this brief.",
+					"One more step: authorise Telegram to receive this brief.",
 				subscribed: (name: string) => `You now follow ${name}.`,
 				unsubscribed: (name: string) => `You no longer follow ${name}.`,
 			},

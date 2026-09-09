@@ -13,5 +13,5 @@ export * from "./language.constant.js";
 export * from "./pagination.constant.js";
 export * from "./providers.constant.js";
 export * from "./seo.constant.js";
+export * from "./telegram.constant.js";
 export * from "./users.constant.js";
-export * from "./whatsapp.constant.js";

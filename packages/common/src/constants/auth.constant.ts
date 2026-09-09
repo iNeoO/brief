@@ -6,7 +6,7 @@ export const AUTH_PATH = {
 /**
  * Whether a reader can open an account themselves.
  *
- * Closed while WhatsApp delivery is unfinished: the site names WhatsApp as
+ * Closed while Telegram delivery is unfinished: the site names Telegram as
  * where a brief arrives and nothing sends one yet, so the few accounts we do
  * want are created by hand through the admin plugin — which Better Auth does
  * not gate on this. Flipping this back to `true` is the only line to change.

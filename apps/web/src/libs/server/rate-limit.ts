@@ -31,7 +31,7 @@ const RULES = {
 	// Each link mints a pairing code that stays live for its whole window, so a
 	// loop would leave hundreds of them valid at once. Pairing is something a
 	// reader does once, and retries a handful of times at worst.
-	createWhatsappPairingLink: {
+	createTelegramPairingLink: {
 		ip: { limit: 20, windowSeconds: 3600 },
 		email: { limit: 10, windowSeconds: 3600 },
 	},

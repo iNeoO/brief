@@ -6,7 +6,7 @@ import {
 	ProvidersService,
 	S3Service,
 	SubscriptionsService,
-	WhatsAppPairingService,
+	TelegramPairingService,
 } from "@brief/services";
 import { AuthService } from "@brief/services/auth";
 import { MailService } from "@brief/services/mail";
@@ -42,11 +42,9 @@ const createContainer = () => {
 		categoriesService: new CategoriesService(db),
 		providersService: new ProvidersService(db),
 		subscriptionsService: new SubscriptionsService(db),
-		whatsappPairingService: new WhatsAppPairingService(db, redis, {
-			senderNumber: env.WHATSAPP_SENDER_NUMBER,
-			phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
-			accessToken: env.WHATSAPP_ACCESS_TOKEN,
-			apiVersion: env.WHATSAPP_API_VERSION,
+		telegramPairingService: new TelegramPairingService(db, redis, {
+			botToken: env.TELEGRAM_BOT_TOKEN,
+			botUsername: env.TELEGRAM_BOT_USERNAME,
 		}),
 		s3Service: new S3Service(db, {
 			endpoint: `${env.S3_USE_SSL ? "https" : "http"}://${env.S3_ENDPOINT}:${env.S3_PORT}`,

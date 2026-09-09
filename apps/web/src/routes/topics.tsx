@@ -1,4 +1,4 @@
-import { WHATSAPP_PAIRING_STATUS } from "@brief/common/constants";
+import { TELEGRAM_PAIRING_STATUS } from "@brief/common/constants";
 import type { TopicCard as Topic } from "@brief/services";
 import { Anchor, Title } from "@mantine/core";
 import {
@@ -15,6 +15,7 @@ import topicClasses from "#/components/topics/topics.module.css";
 import { TopicsSection } from "#/components/topics/topics-section";
 import { ROUTES } from "#/config/routes";
 import { queryLoader } from "#/libs/api/query-loader";
+import { telegramPairingQueryOptions } from "#/libs/api/telegram";
 import {
 	availableTopicsQueryOptions,
 	subscribe,
@@ -23,7 +24,6 @@ import {
 	topicsSearchSchema,
 	unsubscribe,
 } from "#/libs/api/topics";
-import { whatsappPairingQueryOptions } from "#/libs/api/whatsapp";
 import { requireUser } from "#/libs/auth/guards";
 import { useI18n } from "#/libs/i18n/context";
 import { localisedHead } from "#/libs/i18n/route-head";
@@ -66,7 +66,7 @@ function TopicsPage() {
 		placeholderData: keepPreviousData,
 	});
 
-	const whatsapp = useQuery(whatsappPairingQueryOptions());
+	const telegram = useQuery(telegramPairingQueryOptions());
 
 	const patchSearch = useCallback(
 		(patch: Partial<typeof search>, replace = false) =>
@@ -94,7 +94,7 @@ function TopicsPage() {
 			// brief finally has somewhere to be delivered, so it is the moment the
 			// ask makes sense — and the only one where it is not an interruption.
 			const isPaired =
-				whatsapp.data?.pairing?.status === WHATSAPP_PAIRING_STATUS.VERIFIED;
+				telegram.data?.pairing?.status === TELEGRAM_PAIRING_STATUS.VERIFIED;
 
 			if (context.wasFirst && !isPaired) {
 				notifySuccess(labels.notifications.pairingNeeded);

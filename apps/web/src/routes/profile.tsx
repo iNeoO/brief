@@ -15,7 +15,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { SiteShell } from "#/components/layout/site-shell";
 import classes from "#/components/profile/profile.module.css";
-import { WhatsappSection } from "#/components/profile/whatsapp-section";
+import { TelegramSection } from "#/components/profile/telegram-section";
 import shellClasses from "#/components/shell/shell.module.css";
 import topicClasses from "#/components/topics/topics.module.css";
 import { ROUTES } from "#/config/routes";
@@ -80,7 +80,7 @@ function ProfilePage() {
 				{user ? (
 					<div className={classes.sections}>
 						<AccountSummary user={user} />
-						<WhatsappSection
+						<TelegramSection
 							returnTo={redirect ? safeRedirectPath(redirect) : undefined}
 						/>
 						<NameForm name={user.name} />

@@ -7,8 +7,8 @@ import {
 	FILE_KIND,
 	JOB_STATUS,
 	LANGUAGE,
+	TELEGRAM_PAIRING_STATUS,
 	USER_ROLE,
-	WHATSAPP_PAIRING_STATUS,
 } from "@brief/common/constants";
 import { defineRelations, sql } from "drizzle-orm";
 import {
@@ -483,36 +483,40 @@ export const subscriptions = pgTable(
 	],
 );
 
-export const whatsappPairingStatus = pgEnum("whatsapp_pairing_status", [
-	WHATSAPP_PAIRING_STATUS.VERIFIED,
-	WHATSAPP_PAIRING_STATUS.OPTED_OUT,
+export const telegramPairingStatus = pgEnum("telegram_pairing_status", [
+	TELEGRAM_PAIRING_STATUS.VERIFIED,
+	TELEGRAM_PAIRING_STATUS.OPTED_OUT,
 ]);
 
 /**
- * One row per user who has authorised us to write to them on WhatsApp. A user
+ * One row per user who has authorised us to write to them on Telegram. A user
  * with no row here has not paired: the waiting state is the pairing code sitting
  * in Redis, not a row.
  *
- * The three `optIn*` columns are the evidence Meta can ask for. `optInText` is
- * what the user actually sent, not the sentence we prefilled — the `wa.me`
- * prefill is editable, so only what arrived is proof.
+ * The three `optIn*` columns are the consent evidence. Tapping Start in Telegram
+ * proves control of the account, not agreement, so `optInText` is the wording our
+ * page displayed next to the button — carried through the pairing code, never the
+ * `/start` command itself, which would be an audit trail that proves nothing.
  *
- * `phoneNumber` is unique: one WhatsApp number belongs to one account. A number
- * that pairs again from another account is transferred rather than refused, since
- * sending the message proves present control of it — see `WhatsAppPairingService`.
+ * `chatId` is unique: one Telegram chat belongs to one account. A chat that pairs
+ * again from another account is transferred rather than refused, since a `/start`
+ * proves present control of it — see `TelegramPairingService`.
  */
-export const whatsappPairings = pgTable(
-	"whatsapp_pairings",
+export const telegramPairings = pgTable(
+	"telegram_pairings",
 	{
 		userId: text("user_id")
 			.primaryKey()
 			.references(() => user.id, { onDelete: "cascade" }),
-		// E.164 without the leading `+`, verbatim from the inbound `from` field.
-		// The user never types it, so there is nothing to normalise.
-		phoneNumber: text("phone_number").notNull(),
-		status: whatsappPairingStatus("status").notNull(),
+		// Telegram's chat id, verbatim from the update. Text rather than a number
+		// because it is an int64 and JavaScript numbers are not; it is also the
+		// address `sendMessage` takes, so it is never arithmetic.
+		chatId: text("chat_id").notNull(),
+		status: telegramPairingStatus("status").notNull(),
 		optInAt: timestamp("opt_in_at", { withTimezone: true }).notNull(),
-		optInMessageId: text("opt_in_message_id").notNull(),
+		// Telegram's monotonic `update_id`, kept as the idempotency key: it is what
+		// tells a redelivered update apart from a code that never existed.
+		optInUpdateId: text("opt_in_update_id").notNull(),
 		optInText: text("opt_in_text").notNull(),
 		optedOutAt: timestamp("opted_out_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -524,10 +528,10 @@ export const whatsappPairings = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(t) => [
-		unique("whatsapp_pairings_phone_number_unique").on(t.phoneNumber),
+		unique("telegram_pairings_chat_id_unique").on(t.chatId),
 		check(
-			"whatsapp_pairings_opted_out_at_matches_status",
-			sql`(${t.status} = ${WHATSAPP_PAIRING_STATUS.OPTED_OUT}) = (${t.optedOutAt} IS NOT NULL)`,
+			"telegram_pairings_opted_out_at_matches_status",
+			sql`(${t.status} = ${TELEGRAM_PAIRING_STATUS.OPTED_OUT}) = (${t.optedOutAt} IS NOT NULL)`,
 		),
 	],
 );
@@ -551,7 +555,7 @@ export const relations = defineRelations(
 		account,
 		verification,
 		subscriptions,
-		whatsappPairings,
+		telegramPairings,
 	},
 	(r) => ({
 		categories: {
@@ -672,12 +676,12 @@ export const relations = defineRelations(
 				from: r.user.id.through(r.subscriptions.userId),
 				to: r.categories.id.through(r.subscriptions.categoryId),
 			}),
-			whatsappPairing: r.one.whatsappPairings(),
+			telegramPairing: r.one.telegramPairings(),
 		},
 
-		whatsappPairings: {
+		telegramPairings: {
 			user: r.one.user({
-				from: r.whatsappPairings.userId,
+				from: r.telegramPairings.userId,
 				to: r.user.id,
 			}),
 		},
