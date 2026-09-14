@@ -23,8 +23,10 @@ export const formatBriefDate = (targetDate: Date, locale: Locale) =>
  * would need a guarantee that it lands before that first audio, which two workers
  * cannot give.
  *
- * The disclosure closes every caption, opening line or not: it has to reach a
- * reader who only ever sees their second brief.
+ * The disclosure rides with that opening line and is sent once a day: the reader
+ * meets it on the first brief they get, and the later captions carry the topic
+ * alone. What a brief keeps once it leaves the chat is the ID3 comment written
+ * into the audio itself, which is on every file.
  */
 export const buildCaption = ({
 	locale,
@@ -38,13 +40,15 @@ export const buildCaption = ({
 	isFirst: boolean;
 }) => {
 	const copy = TELEGRAM_MESSAGE_COPY[locale];
-	const lines = isFirst
-		? [copy.announcement(formatBriefDate(targetDate, locale))]
-		: [];
+	const topic = copy.topic(categoryName);
 
-	lines.push(copy.topic(categoryName), AI_DISCLOSURE[locale]);
+	if (!isFirst) return topic;
 
-	return lines.join("\n\n");
+	return [
+		copy.announcement(formatBriefDate(targetDate, locale)),
+		topic,
+		AI_DISCLOSURE[locale],
+	].join("\n\n");
 };
 
 /** What Telegram's native player shows instead of a file name. */

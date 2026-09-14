@@ -77,9 +77,11 @@ present, but not where a reader meets the content. It now sits in three places:
 - **The brief page** — `apps/web/src/routes/briefs/$id.tsx`, above the player and
   above the script, since both are generated. Copy in
   `briefs.detail.aiDisclosure`.
-- **The Telegram caption** — `TELEGRAM_MESSAGE_COPY[locale].disclosure`, appended
-  to every caption by `buildCaption`. Every delivery, not only the first: a reader
-  who joined yesterday never sees the opening line.
+- **The Telegram caption** — `AI_DISCLOSURE[language]`, appended by `buildCaption`
+  to the caption that opens the reader's day, alongside the announcement line. One
+  disclosure per day rather than one per topic: the day's later captions carry the
+  topic alone, and the reader who opens only those meets the statement on the
+  file itself (below) rather than in the chat.
 - **The page metadata** — an `aiGenerated` `PropertyValue` in the `NewsArticle`
   JSON-LD. schema.org has no field for "written by a model"; `additionalProperty`
   is the one place that takes the claim without inventing a type. `author` stays

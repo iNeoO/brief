@@ -43,22 +43,21 @@ describe("buildCaption", () => {
 		expect(caption(true)).toBe(
 			"Voici vos sujets pour la journée du 28 août 2026.\n\nVoici l'audio pour le topic Actu France.\n\nGénéré par IA : ce brief est écrit et mis en voix par des modèles, sans relecture humaine.",
 		);
-		expect(caption(false)).toBe(
-			"Voici l'audio pour le topic Actu France.\n\nGénéré par IA : ce brief est écrit et mis en voix par des modèles, sans relecture humaine.",
-		);
+		expect(caption(false)).toBe("Voici l'audio pour le topic Actu France.");
 	});
 
-	// The obligation is to tell the reader every time, not the first time: someone
-	// who joined yesterday only ever sees a caption without the opening line.
-	it("discloses the generation on every delivery, opening line or not", () => {
+	// The disclosure travels with the opening line: the reader meets it once a day,
+	// on the brief that opens it, and the rest of the day's captions stay bare.
+	it("discloses the generation on the delivery that opens the day", () => {
 		expect(caption(true)).toContain("Généré par IA");
-		expect(caption(false)).toContain("Généré par IA");
-		expect(caption(false, LOCALE.EN)).toContain("AI-generated");
+		expect(caption(true, LOCALE.EN)).toContain("AI-generated");
+		expect(caption(false)).not.toContain("Généré par IA");
+		expect(caption(false, LOCALE.EN)).not.toContain("AI-generated");
 	});
 
 	it("speaks the reader's locale, whatever the topic's language is", () => {
 		expect(caption(false, LOCALE.EN)).toBe(
-			"Here is the audio for the topic Actu France.\n\nAI-generated: this brief is written and voiced by models, with no human review.",
+			"Here is the audio for the topic Actu France.",
 		);
 	});
 });
