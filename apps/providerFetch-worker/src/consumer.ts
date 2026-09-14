@@ -1,4 +1,8 @@
-import { JOB_STATUS } from "@brief/common/constants";
+import {
+	JOB_STATUS,
+	PROVIDER_FETCH_RETRY_DELAYS_MS,
+} from "@brief/common/constants";
+import { retryDelayFromTiers } from "@brief/common/utils";
 import {
 	type AmqpChannel,
 	type AmqpMessage,
@@ -14,30 +18,32 @@ import type {
 	ProvidersService,
 } from "@brief/services";
 
+const retryDelayMs = (attempt: number) =>
+	retryDelayFromTiers(PROVIDER_FETCH_RETRY_DELAYS_MS, attempt);
+
+type ProviderFetchConsumerServices = {
+	providersService: ProvidersService;
+	providerFetchJobsService: ProviderFetchJobsService;
+	categoryJobsService: CategoryJobsService;
+	ingestionService: IngestionService;
+	categoryPublisher: AmqpPublisher;
+	// Both publishers have the same type, so they are named rather than passed
+	// positionally: swapping them would still compile.
+	retryPublisher: AmqpPublisher;
+};
+
 export class ProviderFetchConsumer extends BaseAmqpConsumer {
-	private services: {
-		providersService: ProvidersService;
-		providerFetchJobsService: ProviderFetchJobsService;
-		categoryJobsService: CategoryJobsService;
-		ingestionService: IngestionService;
-	};
-	private categoryPublisher: AmqpPublisher;
+	private services: ProviderFetchConsumerServices;
+
 	constructor(
 		id: string,
 		url: string,
 		queue: string,
 		name: string,
-		services: {
-			providersService: ProvidersService;
-			providerFetchJobsService: ProviderFetchJobsService;
-			categoryJobsService: CategoryJobsService;
-			ingestionService: IngestionService;
-		},
-		categoryPublisher: AmqpPublisher,
+		services: ProviderFetchConsumerServices,
 	) {
 		super({ id, url, queue, name });
 		this.services = services;
-		this.categoryPublisher = categoryPublisher;
 	}
 
 	protected async handleMessage(channel: AmqpChannel, msg: AmqpMessage) {
@@ -72,14 +78,44 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 				);
 
 			if (updated?.status === JOB_STATUS.PENDING) {
-				channel.nack(msg, false, true); // retry : requeue
+				await this.deferRetry(channel, msg, jobId, retryDelayMs(updated.retry));
 			} else {
-				channel.nack(msg, false, false); // épuisé : DLQ
+				// Out of tries: dead-letter it and leave the row `failed`.
+				channel.nack(msg, false, false);
 			}
 			return;
 		}
 
 		channel.ack(msg);
+	}
+
+	/**
+	 * Hands the message to the holding queue, where it waits `delayMs` before
+	 * dead-lettering back here, and acks the copy in hand. `nack(requeue = true)`
+	 * would redeliver at once instead: every attempt spent within seconds, each
+	 * one hitting a feed that has just failed to answer.
+	 *
+	 * Published before the ack. A crash in between duplicates the message, which
+	 * `claimJob` absorbs; the reverse order would lose it.
+	 */
+	private async deferRetry(
+		channel: AmqpChannel,
+		msg: AmqpMessage,
+		jobId: number,
+		delayMs: number,
+	) {
+		try {
+			await this.services.retryPublisher.publish({ id: jobId }, { delayMs });
+			this.logger.warn({ jobId, delayMs }, "provider fetch job deferred");
+			channel.ack(msg);
+		} catch (err) {
+			this.logger.error({ err, jobId }, "could not defer provider fetch job");
+			// The holding queue never took the message, so nothing else would ever
+			// drive this job again — and the category jobs waiting on it would sit in
+			// `waiting_for_providers` for good. An immediate redelivery is the lesser
+			// evil.
+			channel.nack(msg, false, true);
+		}
 	}
 
 	private async processProviderFetchJob(job: ClaimedProviderFetchJob) {
@@ -104,7 +140,7 @@ export class ProviderFetchConsumer extends BaseAmqpConsumer {
 					candidate.id,
 				);
 			if (ready) {
-				await this.categoryPublisher.publish({ id: ready.id });
+				await this.services.categoryPublisher.publish({ id: ready.id });
 			}
 		}
 	}

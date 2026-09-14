@@ -1,5 +1,5 @@
 import { createDb } from "@brief/drizzle";
-import { AmqpPublisher } from "@brief/infra/amqp";
+import { AmqpPublisher, assertRetryTopology } from "@brief/infra/amqp";
 import { pinoLogger } from "@brief/infra/libs";
 import {
 	ArticlesService,
@@ -33,22 +33,30 @@ const main = async (
 		url,
 		queue: categoryQueue,
 	});
-	await categoryPublisher.init();
 
-	const consumer = new ProviderFetchConsumer(
+	// Publishes back into the holding queue, whose messages dead-letter into
+	// `queue` once their own TTL expires. Declared with the retry shape: RabbitMQ
+	// refuses a redeclaration whose arguments disagree with the first one.
+	const retryPublisher = new AmqpPublisher({
 		id,
 		url,
-		queue,
-		"providerFetch",
-		{
-			providersService,
-			providerFetchJobsService,
-			categoryJobsService,
-			ingestionService,
-		},
-		categoryPublisher,
-	);
+		queue: `${queue}.retry`,
+		assertTopology: (channel) => assertRetryTopology(channel, queue),
+	});
 
+	const consumer = new ProviderFetchConsumer(id, url, queue, "providerFetch", {
+		providersService,
+		providerFetchJobsService,
+		categoryJobsService,
+		ingestionService,
+		categoryPublisher,
+		retryPublisher,
+	});
+
+	// Before the consumer, so both queues exist by the time the first message can
+	// fail rather than being declared on the way out.
+	await categoryPublisher.init();
+	await retryPublisher.init();
 	await consumer.init();
 
 	let isShuttingDown = false;
@@ -59,6 +67,7 @@ const main = async (
 		pinoLogger.info(`${signal} received. Graceful shutdown initiated.`);
 		await consumer.end();
 		await categoryPublisher.close();
+		await retryPublisher.close();
 		await db.$client.end();
 		process.exit(0);
 	};

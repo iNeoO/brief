@@ -7,6 +7,13 @@ export type AmqpPublisherOptions = {
 	url: string;
 	queue: string;
 	heartbeatSeconds?: number;
+	/**
+	 * How the target queue is declared. Defaults to the work-queue shape with a
+	 * dead-letter exchange. A retry queue is declared differently and RabbitMQ
+	 * refuses a redeclaration whose arguments disagree, so a publisher aimed at
+	 * one must be told — see `assertRetryTopology`.
+	 */
+	assertTopology?: (channel: amqp.Channel, queue: string) => Promise<void>;
 };
 
 export class AmqpPublisher {
@@ -14,6 +21,10 @@ export class AmqpPublisher {
 	private readonly url: string;
 	private readonly queue: string;
 	private readonly heartbeatSeconds: number;
+	private readonly assertTopology: (
+		channel: amqp.Channel,
+		queue: string,
+	) => Promise<void>;
 	private readonly logger: PinoLogger;
 
 	private connection?: amqp.ChannelModel;
@@ -25,6 +36,7 @@ export class AmqpPublisher {
 		this.url = options.url;
 		this.queue = options.queue;
 		this.heartbeatSeconds = options.heartbeatSeconds ?? 30;
+		this.assertTopology = options.assertTopology ?? assertQueueTopology;
 		this.logger = createWorkerLogger({ workerId: this.id });
 	}
 
@@ -32,11 +44,22 @@ export class AmqpPublisher {
 		await this.ensureChannel();
 	}
 
-	async publish(message: unknown) {
+	/**
+	 * `delayMs` sets the message's own TTL. It is only meaningful on a queue that
+	 * dead-letters somewhere else — see `assertRetryTopology`, where the message
+	 * expiring *is* the retry.
+	 */
+	async publish(message: unknown, options?: { delayMs?: number }) {
 		const channel = await this.ensureChannel();
 		const payload = Buffer.from(JSON.stringify(message));
 
-		const ok = channel.sendToQueue(this.queue, payload, { persistent: true });
+		const ok = channel.sendToQueue(this.queue, payload, {
+			persistent: true,
+			// amqplib wants the TTL as a string of milliseconds.
+			...(options?.delayMs !== undefined && {
+				expiration: String(options.delayMs),
+			}),
+		});
 		if (!ok) {
 			await new Promise<void>((resolve) => channel.once("drain", resolve));
 		}
@@ -88,7 +111,7 @@ export class AmqpPublisher {
 			}
 		});
 
-		await assertQueueTopology(channel, this.queue);
+		await this.assertTopology(channel, this.queue);
 
 		return channel;
 	}
