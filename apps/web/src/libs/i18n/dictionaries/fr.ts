@@ -25,7 +25,7 @@ export const fr: Dictionary = {
 		signUp: {
 			title: "Créer votre compte",
 			description:
-				"Choisissez vos sujets et recevez votre premier brief demain à 7 h. Un message Telegram par jour, et un clic suffit pour se désinscrire.",
+				"Choisissez vos sujets et recevez vos premiers briefs demain à 7 h. Un message Telegram par sujet suivi, et un clic suffit pour se désinscrire.",
 		},
 		page: (page: number) => `page ${page}`,
 	},
@@ -60,7 +60,8 @@ export const fr: Dictionary = {
 		title: "L'essentiel, sans le bruit.",
 		lead: "Un résumé court par sujet suivi, qui vous attend chaque matin.",
 		cta: "Commencer à lire",
-		rhythm: "Un message Telegram chaque matin, à 7 h. Rien d'autre.",
+		rhythm:
+			"Un message Telegram par sujet suivi, chaque matin à 7 h. Rien d'autre.",
 	},
 	method: {
 		title: "Comment ça marche",
@@ -81,7 +82,7 @@ export const fr: Dictionary = {
 			details: [
 				{
 					title: "Vous choisissez vos sujets",
-					body: "Suivez un sujet et son brief rejoint votre message Telegram du matin. Ne le suivez plus et il s'arrête dès le lendemain : vous pouvez changer d'avis n'importe quel matin.",
+					body: "Suivez un sujet et son brief vous arrive chaque matin sur Telegram. Ne le suivez plus et il s'arrête dès le lendemain : vous pouvez changer d'avis n'importe quel matin.",
 				},
 				{
 					title: "Nous lisons les sources",
@@ -93,7 +94,7 @@ export const fr: Dictionary = {
 				},
 				{
 					title: "Il arrive à 7 h",
-					body: "Lisez le résumé, ou écoutez sa version audio : le même brief, en voix. Un message Telegram par jour, rien d'autre, et le désabonnement tient en un clic.",
+					body: "Lisez le résumé sur le site, ou écoutez-le : chaque matin, l'audio de chaque sujet suivi arrive sur Telegram. Rien d'autre, et le désabonnement tient en un clic.",
 				},
 			],
 		},
@@ -177,7 +178,7 @@ export const fr: Dictionary = {
 		title: "Commencez demain matin.",
 		body: "Choisissez vos sujets, et votre premier brief arrive à 7 h.",
 		cta: "Créer mon compte",
-		note: "Un message Telegram par jour. Désinscription en un clic.",
+		note: "Un message Telegram par sujet suivi, chaque matin. Désinscription en un clic.",
 		signedIn: {
 			title: "Demain matin, à 7 h.",
 			body: "Suivez un sujet de plus et il rejoint votre prochain brief.",
@@ -372,7 +373,7 @@ export const fr: Dictionary = {
 		},
 		topics: {
 			title: "Vos sujets",
-			lead: "Abonnez-vous à un sujet et son brief rejoint votre message Telegram quotidien. Désabonnez-vous quand vous voulez.",
+			lead: "Abonnez-vous à un sujet et son brief vous arrive chaque matin sur Telegram. Désabonnez-vous quand vous voulez.",
 			back: "Retour à mes briefs",
 			loadError: "Les sujets n'ont pas pu être chargés.",
 			pagination: (page, pageCount) => `Page ${page} sur ${pageCount}`,

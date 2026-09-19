@@ -48,7 +48,7 @@ export class ProcessingService {
 		},
 		{
 			state: CATEGORY_JOB_STATE.SENDING_MESSAGE,
-			run: (context) => this.sendMessage(context),
+			run: (context) => this.verifyDeliverable(context),
 		},
 	];
 
@@ -148,11 +148,45 @@ export class ProcessingService {
 		});
 	}
 
-	private async sendMessage(context: CategoryJobContext) {
-		getLoggerStore().warn(
-			{ categoryJobId: context.job.id },
-			"message delivery is not implemented, skipping",
-		);
+	/**
+	 * The last step of the pipeline no longer sends anything: delivery belongs to
+	 * the reader, is fanned out per subscriber, and happens after the job is
+	 * `finished`. `sending_message` now means "everything is produced, distribution
+	 * is somebody else's turn", and this step is what earns the job that claim.
+	 *
+	 * The check has to live *here*, before `markFinished`. Noticing a missing audio
+	 * afterwards would mean moving a `finished` job back to `failed` — unpublishing
+	 * a brief already visible on the site. Failing here leaves the usual trail
+	 * instead: an `error`, a `category_job_events` row, and nothing published.
+	 *
+	 * Its other job is to let the fan-out trust the invariant rather than re-check
+	 * it: past this point a finished category job has a summary and an audio file.
+	 */
+	private async verifyDeliverable(context: CategoryJobContext) {
+		const { job, summary } = context;
+
+		if (!summary) {
+			throw new InternalError({
+				code: INTERNAL_ERROR_CODE.CATEGORY_JOB_MISSING_SUMMARY,
+				message: `Category job ${job.id} reached the delivery step without a summary`,
+			});
+		}
+
+		const audio = await this.db.query.files.findFirst({
+			columns: { id: true },
+			where: {
+				categoryJobId: job.id,
+				kind: FILE_KIND.AUDIO_FILE,
+				language: job.category.language,
+			},
+		});
+
+		if (!audio) {
+			throw new InternalError({
+				code: INTERNAL_ERROR_CODE.CATEGORY_JOB_MISSING_AUDIO,
+				message: `Category job ${job.id} has no ${job.category.language} audio file to deliver`,
+			});
+		}
 	}
 
 	private buildGetArticlesTool(

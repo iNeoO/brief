@@ -6,6 +6,7 @@ import {
 	ProvidersService,
 	S3Service,
 	SubscriptionsService,
+	TelegramClient,
 	TelegramPairingService,
 } from "@brief/services";
 import { AuthService } from "@brief/services/auth";
@@ -16,6 +17,11 @@ import { env } from "#/config/env";
 const createContainer = () => {
 	const db = createDb(env.PG_URL);
 	const redis = createRedis(env.REDIS_URL);
+
+	const telegramConfig = {
+		botToken: env.TELEGRAM_BOT_TOKEN,
+		botUsername: env.TELEGRAM_BOT_USERNAME,
+	};
 
 	const mailService = new MailService({
 		apiKey: env.RESEND_API_KEY,
@@ -42,10 +48,12 @@ const createContainer = () => {
 		categoriesService: new CategoriesService(db),
 		providersService: new ProvidersService(db),
 		subscriptionsService: new SubscriptionsService(db),
-		telegramPairingService: new TelegramPairingService(db, redis, {
-			botToken: env.TELEGRAM_BOT_TOKEN,
-			botUsername: env.TELEGRAM_BOT_USERNAME,
-		}),
+		telegramPairingService: new TelegramPairingService(
+			db,
+			redis,
+			telegramConfig,
+			new TelegramClient(telegramConfig),
+		),
 		s3Service: new S3Service(db, {
 			endpoint: `${env.S3_USE_SSL ? "https" : "http"}://${env.S3_ENDPOINT}:${env.S3_PORT}`,
 			region: env.S3_REGION,

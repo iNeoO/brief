@@ -3,6 +3,7 @@ import {
 	CATEGORY_JOB_STATUS,
 	CONNECTOR_KIND,
 	DEFAULT_LANGUAGE,
+	DEFAULT_LOCALE,
 	DEFAULT_USER_ROLE,
 	FILE_KIND,
 	JOB_STATUS,
@@ -310,30 +311,6 @@ export const categoryJobArticles = pgTable(
 	],
 );
 
-export const messageJobs = pgTable(
-	"message_jobs",
-	{
-		id: serial("id").primaryKey(),
-		categoryJobId: integer("category_job_id")
-			.notNull()
-			.unique()
-			.references(() => categoryJobs.id, { onDelete: "cascade" }),
-		status: jobStatus("status").notNull(),
-		error: text("error"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.defaultNow(),
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.notNull()
-			.defaultNow()
-			.$onUpdate(() => new Date()),
-		finishedAt: timestamp("finished_at", { withTimezone: true }),
-	},
-	(t) => [
-		index("message_jobs_status_created_at_idx").on(t.status, t.createdAt),
-	],
-);
-
 export const categoryJobEvents = pgTable(
 	"category_job_events",
 	{
@@ -513,6 +490,13 @@ export const telegramPairings = pgTable(
 		// address `sendMessage` takes, so it is never arithmetic.
 		chatId: text("chat_id").notNull(),
 		status: telegramPairingStatus("status").notNull(),
+		/**
+		 * The language we address this reader in — the captions around a brief, not
+		 * the brief itself, which follows its category. It rides in with the consent
+		 * (the page that showed the wording knew it) rather than living on `user`:
+		 * this is the only channel that needs it, and it arrives for free.
+		 */
+		locale: text("locale").notNull().default(DEFAULT_LOCALE),
 		optInAt: timestamp("opt_in_at", { withTimezone: true }).notNull(),
 		// Telegram's monotonic `update_id`, kept as the idempotency key: it is what
 		// tells a redelivered update apart from a code that never existed.
@@ -536,6 +520,79 @@ export const telegramPairings = pgTable(
 	],
 );
 
+/**
+ * One delivery of one category job to one reader. The unique key is the whole
+ * idempotency story: RabbitMQ redelivers, and a job already claimed or finished
+ * is a no-op rather than a second Telegram message.
+ *
+ * `(categoryJobId, userId)` in that order on purpose — the index also answers
+ * "which deliveries does this category job have?", which is the query the
+ * category worker runs when it publishes.
+ */
+export const messageJobs = pgTable(
+	"message_jobs",
+	{
+		id: serial("id").primaryKey(),
+		categoryJobId: integer("category_job_id")
+			.notNull()
+			.references(() => categoryJobs.id, { onDelete: "cascade" }),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		status: jobStatus("status").notNull(),
+		retry: integer("retry").notNull().default(0),
+		/**
+		 * Whether this delivery carries the day's opening line. Null until the job
+		 * is claimed, then fixed for good: recomputing it on a retry would ask
+		 * `message_announcements` a question this job has already answered, get
+		 * "someone else won" — because that someone is itself — and drop the
+		 * announcement the reader never received.
+		 */
+		isFirst: boolean("is_first"),
+		error: text("error"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+		finishedAt: timestamp("finished_at", { withTimezone: true }),
+	},
+	(t) => [
+		unique("message_jobs_category_job_user_unique").on(
+			t.categoryJobId,
+			t.userId,
+		),
+		index("message_jobs_status_created_at_idx").on(t.status, t.createdAt),
+		index("message_jobs_user_id_idx").on(t.userId),
+	],
+);
+
+/**
+ * Won once per reader per day, by whichever delivery gets there first. The insert
+ * *is* the decision: `on conflict do nothing returning` hands the row to exactly
+ * one caller, so two category jobs finishing in the same millisecond cannot both
+ * open the reader's day.
+ *
+ * Deliberately not a column on `message_jobs`: the fact belongs to the reader's
+ * day, not to any one delivery, and a nullable `category_job_id` with
+ * `nulls not distinct` would say the same thing less plainly.
+ */
+export const messageAnnouncements = pgTable(
+	"message_announcements",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		targetDate: date("target_date", { mode: "date" }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.targetDate] })],
+);
+
 export const relations = defineRelations(
 	{
 		categories,
@@ -551,6 +608,7 @@ export const relations = defineRelations(
 		categoryJobEvents,
 		files,
 		messageJobs,
+		messageAnnouncements,
 		user,
 		account,
 		verification,
@@ -616,7 +674,7 @@ export const relations = defineRelations(
 			}),
 			events: r.many.categoryJobEvents(),
 			files: r.many.files(),
-			messageJob: r.one.messageJobs(),
+			messageJobs: r.many.messageJobs(),
 		},
 
 		providerFetchJobs: {
@@ -667,6 +725,17 @@ export const relations = defineRelations(
 				from: r.messageJobs.categoryJobId,
 				to: r.categoryJobs.id,
 			}),
+			user: r.one.user({
+				from: r.messageJobs.userId,
+				to: r.user.id,
+			}),
+		},
+
+		messageAnnouncements: {
+			user: r.one.user({
+				from: r.messageAnnouncements.userId,
+				to: r.user.id,
+			}),
 		},
 
 		user: {
@@ -677,6 +746,8 @@ export const relations = defineRelations(
 				to: r.categories.id.through(r.subscriptions.categoryId),
 			}),
 			telegramPairing: r.one.telegramPairings(),
+			messageJobs: r.many.messageJobs(),
+			messageAnnouncements: r.many.messageAnnouncements(),
 		},
 
 		telegramPairings: {

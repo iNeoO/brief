@@ -4,8 +4,8 @@ import {
 	TELEGRAM_PAIRING_STATUS,
 } from "@brief/common/constants";
 import { and, type Database, eq, ne, schema } from "@brief/drizzle";
-import { getLoggerStore } from "@brief/infra/libs";
 import type { RedisClient } from "@brief/infra/redis";
+import type { TelegramClient } from "./telegram.client.js";
 import { generatePairingCode } from "./telegram.helper.js";
 import type {
 	ConfirmPairingInput,
@@ -16,8 +16,24 @@ import type {
 	TelegramConfig,
 } from "./telegram.type.js";
 
-/** A courtesy reply must never be what holds up a webhook. */
-const REPLY_TIMEOUT_MS = 5_000;
+/**
+ * Ends a pairing, keyed by chat rather than by user: an opt-out arrives from a
+ * chat — `/stop`, a block, or a `403` met while sending — and the account behind
+ * it is what we have to look up.
+ *
+ * A free function so the delivery path can call it without constructing
+ * `TelegramPairingService`, which needs Redis it would never use. One write, one
+ * implementation.
+ */
+export const optOutPairing = async (db: Database, chatId: string) => {
+	await db
+		.update(schema.telegramPairings)
+		.set({
+			status: TELEGRAM_PAIRING_STATUS.OPTED_OUT,
+			optedOutAt: new Date(),
+		})
+		.where(eq(schema.telegramPairings.chatId, chatId));
+};
 
 /**
  * The value under a pairing key. Anything else there is treated as no key at all:
@@ -69,6 +85,7 @@ export class TelegramPairingService {
 		private db: Database,
 		private redis: RedisClient,
 		private config: TelegramConfig,
+		private client: TelegramClient,
 	) {}
 
 	/**
@@ -158,6 +175,10 @@ export class TelegramPairingService {
 					userId,
 					chatId,
 					status: TELEGRAM_PAIRING_STATUS.VERIFIED,
+					// Persisted here and nowhere else: this is the only surface that
+					// needs to know which language to address the reader in, and the
+					// consent is what carries it.
+					locale,
 					optInAt: receivedAt,
 					optInUpdateId: updateId,
 					optInText: consentText,
@@ -167,6 +188,7 @@ export class TelegramPairingService {
 					set: {
 						chatId,
 						status: TELEGRAM_PAIRING_STATUS.VERIFIED,
+						locale,
 						optInAt: receivedAt,
 						optInUpdateId: updateId,
 						optInText: consentText,
@@ -182,19 +204,8 @@ export class TelegramPairingService {
 		return { outcome: "paired", userId, locale };
 	}
 
-	/**
-	 * Keyed by chat rather than by user: an opt-out arrives from a chat — `/stop`,
-	 * or the user blocking the bot — and the account behind it is what we have to
-	 * look up.
-	 */
 	async optOut({ chatId }: { chatId: string }) {
-		await this.db
-			.update(schema.telegramPairings)
-			.set({
-				status: TELEGRAM_PAIRING_STATUS.OPTED_OUT,
-				optedOutAt: new Date(),
-			})
-			.where(eq(schema.telegramPairings.chatId, chatId));
+		await optOutPairing(this.db, chatId);
 	}
 
 	/** Withdrawing the authorisation removes the record of it, consent included. */
@@ -205,39 +216,14 @@ export class TelegramPairingService {
 	}
 
 	/**
-	 * Never throws — the pairing is already recorded, and losing the
-	 * acknowledgement is not worth making Telegram retry the webhook.
+	 * Never throws, and deliberately discards the client's verdict — the pairing is
+	 * already recorded, and losing the acknowledgement is not worth making Telegram
+	 * retry the webhook. `TelegramClient` has already logged whatever went wrong.
 	 *
-	 * The token lives in the URL because that is where Telegram's API puts it, so
-	 * neither branch below may ever log the request: only the status, the response
-	 * body and the error itself.
+	 * A brief delivery wants the opposite and calls the client directly, so it can
+	 * tell a 429 apart from a reader who has blocked the bot.
 	 */
 	async sendMessage({ chatId, text }: { chatId: string; text: string }) {
-		const logger = getLoggerStore();
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), REPLY_TIMEOUT_MS);
-
-		try {
-			const response = await fetch(
-				`https://api.telegram.org/bot${this.config.botToken}/sendMessage`,
-				{
-					method: "POST",
-					headers: { "content-type": "application/json" },
-					body: JSON.stringify({ chat_id: chatId, text }),
-					signal: controller.signal,
-				},
-			);
-
-			if (!response.ok) {
-				logger.warn(
-					{ status: response.status, body: await response.text() },
-					"Telegram refused a sendMessage call",
-				);
-			}
-		} catch (error) {
-			logger.warn({ err: error }, "Could not send a Telegram message");
-		} finally {
-			clearTimeout(timeout);
-		}
+		await this.client.sendMessage({ chatId, text });
 	}
 }

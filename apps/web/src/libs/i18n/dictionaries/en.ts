@@ -23,7 +23,7 @@ export const en = {
 		signUp: {
 			title: "Create your account",
 			description:
-				"Choose your topics and get your first brief tomorrow at 7:00. One Telegram message a day, and unsubscribing takes one click.",
+				"Choose your topics and get your first briefs tomorrow at 7:00. One Telegram message per topic you follow, and unsubscribing takes one click.",
 		},
 		page: (page: number) => `page ${page}`,
 	},
@@ -58,7 +58,8 @@ export const en = {
 		title: "The essentials, without the noise.",
 		lead: "One short summary per topic you follow, waiting for you each morning.",
 		cta: "Start reading",
-		rhythm: "One Telegram message each morning, at 7:00. Nothing else.",
+		rhythm:
+			"One Telegram message per topic you follow, every morning at 7:00. Nothing else.",
 	},
 	method: {
 		title: "How it works",
@@ -79,7 +80,7 @@ export const en = {
 			details: [
 				{
 					title: "You choose your topics",
-					body: "Follow a topic and its brief joins your morning Telegram message. Unfollow it and it stops the next day — you can change your mind any morning.",
+					body: "Follow a topic and its brief reaches you on Telegram every morning. Unfollow it and it stops the next day — you can change your mind any morning.",
 				},
 				{
 					title: "We read the sources",
@@ -91,7 +92,7 @@ export const en = {
 				},
 				{
 					title: "It arrives at 7:00",
-					body: "Read the summary, or listen to its audio version — the same brief, voiced. One Telegram message a day, nothing else, and unsubscribing takes one click.",
+					body: "Read the summary on the site, or listen to it — every morning, the audio of each topic you follow arrives on Telegram. Nothing else, and unsubscribing takes one click.",
 				},
 			],
 		},
@@ -176,7 +177,7 @@ export const en = {
 		title: "Start tomorrow morning.",
 		body: "Choose your topics, and your first brief arrives at 7:00.",
 		cta: "Create my account",
-		note: "One Telegram message a day. Unsubscribe in one click.",
+		note: "One Telegram message per topic you follow, every morning. Unsubscribe in one click.",
 		signedIn: {
 			title: "Tomorrow morning, at 7:00.",
 			body: "Follow one more topic and it joins your next brief.",
@@ -371,7 +372,7 @@ export const en = {
 		},
 		topics: {
 			title: "Your topics",
-			lead: "Follow a topic and its brief joins your daily Telegram message. Unfollow whenever you like.",
+			lead: "Follow a topic and its brief reaches you on Telegram every morning. Unfollow whenever you like.",
 			back: "Back to my briefs",
 			loadError: "The topics could not be loaded.",
 			pagination: (page: number, pageCount: number) =>

@@ -5,10 +5,12 @@ import {
 } from "@brief/common/constants";
 import type { CategoryJobState } from "@brief/common/types";
 import { createDb, desc, eq, schema } from "@brief/drizzle";
+import { AmqpPublisher } from "@brief/infra/amqp";
 import { createCliLogger, wrapWithLogger } from "@brief/infra/libs";
 import {
 	ArticlesService,
 	CategoryJobsService,
+	MessageJobsService,
 	ProcessingService,
 	S3Service,
 } from "@brief/services";
@@ -24,9 +26,14 @@ const USAGE = `Usage:
   --job <id>          the category job to run
   --reset             replay from the first step, dropping the stored report
   --from <state>      replay from a given step (${STATES.join(" | ")})
+  --deliver           publish the Telegram deliveries once the job is finished
 
 --reset and --from put the job back to pending, so an already finished or
-failed job can be run again.`;
+failed job can be run again.
+
+Without --deliver a manual run produces the brief and sends nothing, which is
+what you want while iterating. With it, real readers receive real messages —
+though only for a job whose target date is today.`;
 
 const parseCliArgs = () => {
 	const { values } = parseArgs({
@@ -35,6 +42,7 @@ const parseCliArgs = () => {
 			job: { type: "string" },
 			reset: { type: "boolean", default: false },
 			from: { type: "string" },
+			deliver: { type: "boolean", default: false },
 		},
 	});
 
@@ -49,6 +57,7 @@ const parseCliArgs = () => {
 		jobId: values.job ? Number(values.job) : undefined,
 		reset: values.reset,
 		from: values.from as CategoryJobState | undefined,
+		deliver: values.deliver,
 	};
 };
 
@@ -206,6 +215,32 @@ const main = async () => {
 			const [finished] = await categoryJobsService.markFinished(jobId);
 			if (!finished)
 				throw new Error(`Job ${jobId} could not be marked finished`);
+
+			if (!args.deliver) {
+				console.log("\nNot delivered — pass --deliver to send it on Telegram.");
+				return;
+			}
+
+			// Same two steps as the consumer, and the same guards: `fanOut` refuses a
+			// job that is not finished or not dated today, so replaying an old brief
+			// cannot mail yesterday's paper.
+			const publisher = new AmqpPublisher({
+				id: "category-run",
+				url: env.AMQP_URL,
+				queue: env.MESSAGE_JOB_QUEUE,
+			});
+
+			try {
+				const messageJobIds = await new MessageJobsService(db).fanOut(jobId);
+
+				for (const id of messageJobIds) {
+					await publisher.publish({ id });
+				}
+
+				console.log(`\nPublished ${messageJobIds.length} deliveries.`);
+			} finally {
+				await publisher.close();
+			}
 		});
 	} catch (err) {
 		// Mirrors the consumer so a manual run leaves the same trace behind.

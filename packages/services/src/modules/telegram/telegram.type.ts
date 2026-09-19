@@ -47,3 +47,35 @@ export type PairingSummary = {
 	status: "verified" | "opted_out";
 	optInAt: Date;
 };
+
+export type SendMessageInput = { chatId: string; text: string };
+
+export type SendAudioInput = {
+	chatId: string;
+	/** Public URL Telegram fetches the file from. Capped at 20 MB on their side. */
+	audioUrl: string;
+	caption: string;
+	title: string;
+	performer: string;
+};
+
+/**
+ * A verdict rather than an exception, because the two callers want opposite
+ * things from a failure: the pairing acknowledgement discards it, a brief
+ * delivery has to act on it.
+ *
+ * `retryable` and `optOut` are independent readings of the same response —
+ * `retryable` asks whether trying again could work, `optOut` whether this chat is
+ * closed to us for good and the pairing should end.
+ */
+export type TelegramSendResult =
+	| { ok: true }
+	| {
+			ok: false;
+			retryable: boolean;
+			optOut: boolean;
+			status?: number;
+			description?: string;
+			/** Only on a 429: how long Telegram asked us to wait. */
+			retryAfterMs?: number;
+	  };

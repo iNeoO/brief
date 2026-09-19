@@ -11,7 +11,9 @@
 	},
 	"dependencies": {
 		"@brief/common": "workspace:*",
+		"@brief/drizzle": "workspace:*",
 		"@brief/infra": "workspace:*",
+		"@brief/services": "workspace:*",
 		"amqplib": "catalog:",
 		"zod": "catalog:"
 	},

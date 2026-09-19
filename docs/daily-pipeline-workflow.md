@@ -47,7 +47,8 @@ A selected article is a candidate that the LLM used in the summary. `category_jo
 | `provider_fetch_job_events` | Records provider fetch attempts. |
 | `category_job_events` | Records category processing attempts and states. |
 | `files` | Stores uploaded audio metadata. |
-| `message_jobs` | Placeholder for one delivery job per category job. Currently an empty scaffold: nothing inserts rows, claims them, or runs a `message-job` consumer against real recipients yet. |
+| `message_jobs` | One delivery of one category job to one reader, with its own status, retry counter and `is_first` flag. |
+| `message_announcements` | Which reader has already had the day's opening line, and on which target date. |
 
 ## Why both article link tables exist
 
@@ -114,6 +115,8 @@ The worker should write the articles, observation links, and final job status in
 
 On failure, the worker records an event with the attempt number and error. It either returns the job to `pending` or marks it `failed` after the retry limit. A terminal failure sets `finishedAt` because the job reached a terminal status.
 
+A returned job is not requeued with `nack(requeue = true)`, which would spend every attempt within seconds against a feed that has just failed to answer. The message is republished to `provider-fetch.retry`, the holding queue described under [Delivery failures](#delivery-failures), with the delay for the attempt that just failed taken from `PROVIDER_FETCH_RETRY_DELAYS_MS`. Those delays are the shortest of the three: the category jobs depending on this fetch stay in `waiting_for_providers` until it finishes.
+
 A failed provider fetch keeps dependent category jobs in `waiting_for_providers`. A later implementation may propagate a terminal failure to those category jobs, but it must not generate a partial summary without an explicit product decision.
 
 ## Step 3: release ready category jobs
@@ -177,16 +180,46 @@ The unique constraint makes audio generation idempotent at the metadata level. T
 
 After all requested languages exist, the worker changes the state to `sending_message`.
 
+### Category job failure
+
+A failure anywhere in steps 4 to 6 records an event with the attempt number and the error, then either returns the job to `pending` or marks it `failed` at `MAX_JOB_RETRY`. A few error codes are terminal on the first attempt — an unknown state, a missing category, a missing audio file — because a second attempt cannot change the answer.
+
+A returned job is not requeued with `nack(requeue = true)`, which would replay the LLM and the text-to-speech within seconds of the failure and burn every attempt against a rate limiter that has just said no. The message is republished to `category.retry`, the same holding-queue shape the message worker uses, with the delay for the attempt that just failed taken from `CATEGORY_RETRY_DELAYS_MS`. The attempt count lives on `category_jobs.retry`, because a republished message carries no history.
+
+The fan-out of step 6 uses the same holding queue when it cannot publish, so a queue that is briefly down does not spin the worker against a job that is already `finished`.
+
 ## Step 6: distribute the result
 
-Subscriber tables now exist: `user` holds accounts and `subscriptions` records which categories each user wants, so "who receives this category's brief?" is answerable. Nothing in the pipeline reads them yet. A `message_jobs` table and a standalone `message-job` consumer (`apps/message-worker`) exist as an empty scaffold — decoupling the future delivery step from the category worker's process — but nothing wires them together yet: no code inserts a `message_jobs` row, publishes to its queue, or claims one. The distribution step will load recipients for the category from `subscriptions`, deliver the correct language file, and update the corresponding `message_jobs` row. `message_jobs` deliberately has no `retry` column and no `message_job_events` table: a retry policy needs per-recipient delivery confirmation, which depends on the subscriber model this step is still waiting on. It does keep a plain `error` column for whatever a future implementer chooses to log there (a single global error, or a flattened list of per-recipient failures).
+Delivery is per reader and per topic, and it happens **after** the category job is finished — never from inside `sending_message`, whose only remaining job is to verify that the run produced a summary and an audio file (see Step 5).
 
-After successful delivery, the worker changes the category job to `finished` and sets `finishedAt`.
+The category worker publishes; `apps/message-worker` sends.
+
+1. `markFinished` moves the category job to `finished` and sets `finishedAt`. The brief is now published on the site.
+2. The category worker inserts one `message_jobs` row per subscriber of that category whose `telegram_pairings.status` is `verified` and whose `user.banned` is false, with `on conflict do nothing`.
+3. It then selects **every** row for that category job still `pending` — not only the ones it just inserted — and publishes one `{ "id": <message_job_id> }` per row. Selecting only the fresh inserts would leave a half-failed fan-out unrepairable: rows created but never published would sit `pending` for ever.
+4. The fan-out also runs on the redelivery path, when `claimJob` returns nothing because the job is already `finished`. That is what closes the crash window between step 1 and step 3.
+5. The fan-out refuses a job that is not `finished` or whose `targetDate` is not today, wherever it is called from — including the manual `--deliver` replay.
+
+The message worker claims a row (`pending` → `running`), re-reads the pairing at that moment, decides whether this delivery carries the day's opening line, and calls `sendAudio` with a link to `/api/briefs/audio/$fileId`.
+
+### Delivery failures
+
+| Telegram answer | Effect |
+| --- | --- |
+| `429` | Wait the `retry_after` it gives, then retry |
+| `5xx`, timeout, network error | Retry with a growing delay |
+| `403`, `400 chat not found` | End the pairing (`opted_out`), fail the job, acknowledge |
+| any other `400` | Fail the job, dead-letter |
+
+Retries do not use `nack(requeue = true)`, which would spin. The message is republished to `message-job.retry`, a queue with no consumer whose messages dead-letter back into `message-job` once their own `expiration` elapses — the same mechanism the category worker uses. The delay is carried per message so a 429's own figure can be honoured. The attempt count lives on `message_jobs.retry`, because a republished message carries no history; at `MAX_JOB_RETRY` the job is marked `failed` and dead-lettered.
+
+The message worker runs with `prefetch = 1`: Telegram allows roughly one message per second to the same chat, and concurrent deliveries to one reader would race into a 429.
 
 ## Retry and idempotency rules
 
 - RabbitMQ uses at-least-once delivery. Every consumer must accept duplicate messages.
 - A worker claims a job with a conditional status update. A message for an already claimed or completed job becomes a no-op.
+- A retryable failure is deferred through the queue's `.retry` holding queue, never redelivered immediately.
 - Scheduling relies on unique category/date and provider/date constraints.
 - Article insertion relies on `(providerId, url)`.
 - Fetch observation links and selected-article links use composite primary keys.

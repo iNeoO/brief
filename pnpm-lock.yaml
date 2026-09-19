@@ -82,9 +82,15 @@ importers:
       '@brief/common':
         specifier: workspace:*
         version: link:../../packages/common
+      '@brief/drizzle':
+        specifier: workspace:*
+        version: link:../../db/drizzle
       '@brief/infra':
         specifier: workspace:*
         version: link:../../packages/infra
+      '@brief/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       amqplib:
         specifier: 'catalog:'
         version: 2.0.1

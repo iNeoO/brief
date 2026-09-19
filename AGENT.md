@@ -61,9 +61,15 @@ The category job moves to `creating_audio`. An external text-to-speech service c
 
 ### 5. Distribution
 
-The category job moves to `sending_message` before distribution.
+`sending_message` no longer sends anything. It is the step where the category worker checks that the run produced everything a delivery needs — a summary and an audio file for the category's language — and fails the job otherwise. The check lives before `markFinished` on purpose: a job that reached `finished` is already published on the site, and noticing a missing audio afterwards would mean unpublishing it.
 
-Users and their category subscriptions now exist (`user`, `subscriptions`), so the database can answer "who wants this category?". What still does not exist is the delivery step itself: `message_jobs` remains one row per category job with no fan-out to recipients, `message-worker` still logs "not implemented", and nothing reads `subscriptions` from the pipeline yet.
+Delivery happens **after** the job is finished, one message per reader and per topic. The category worker fans out: one `message_jobs` row per subscriber whose Telegram pairing is `verified` and who is not banned, then one `{ id }` published to `MESSAGE_JOB_QUEUE` per row. `apps/message-worker` claims a row, sends the brief's audio to the reader's chat, and records the outcome.
+
+The audio travels as a **link** to `/api/briefs/audio/$fileId` rather than an upload: that endpoint only serves a brief whose category job is `finished`, which is the other reason the fan-out waits. Telegram fetches it itself, so object storage never enters the message worker.
+
+The first delivery of a reader's day carries an opening line in its caption; the rest name their topic only. Which one is first is decided by an insert into `message_announcements`, whose `(user_id, target_date)` primary key hands the day to exactly one delivery even when two category jobs finish in the same millisecond. The answer is then written to `message_jobs.is_first`, because asking again on a retry would find the row already there — put there by that very job — and drop the announcement.
+
+Captions are written in the reader's `locale`, stored on `telegram_pairings` at pairing time; the brief itself keeps its category's language. A French reader following an English topic gets a French caption over an English audio.
 
 ## Job status and state
 
@@ -105,6 +111,8 @@ creating_report -> creating_audio -> sending_message
 - `files`: uploaded audio metadata for a category job and language.
 - `user`, `account`, `verification`: owned by Better Auth. Singular names and `text` primary keys on purpose — these are the library's tables, not domain entities. `user` also carries the `admin` plugin's `role`, `banned`, `ban_reason` and `ban_expires` columns; only `role` is used today.
 - `subscriptions`: which categories a user wants briefs for. Composite primary key `(user_id, category_id)`, cascading both ways.
+- `message_jobs`: one delivery of one category job to one reader. Unique on `(category_job_id, user_id)`, in that order so the index also answers "which deliveries does this job have?". Carries its own `retry` counter and `is_first`.
+- `message_announcements`: `(user_id, target_date)`. Won once per reader per day by whichever delivery gets there first; the insert is the decision.
 
 There is deliberately **no `session` table**: sessions live in Redis as Better Auth's secondary storage. Two failure modes follow, and they are not the same. If Redis comes back empty (lost persistence, `FLUSHDB`, `maxmemory` eviction), the sessions are gone and everyone is logged out — a clean 401. If Redis becomes unreachable, session reads throw instead (`enableOfflineQueue: false` in `packages/infra/src/redis/index.ts`), so authenticated server functions answer 500, not 401. This is accepted: Redis down means the app is down, and a 500 is non-destructive — the session cookie survives, so the app recovers on its own once Redis is back. The 5-minute `cookieCache` delays the effect, with active users failing one by one as their cached cookie expires rather than all at once.
 
@@ -152,9 +160,9 @@ The same boundary holds inside `packages/services`: `auth` and `mail` are **not*
 ## Current boundaries
 
 - Services and workers have not been adapted to this schema yet.
-- Users, roles, and category subscriptions exist; delivery and per-recipient fan-out do not. A reader can now authorise Telegram — `telegram_pairings` holds the proven `chat_id` and the opt-in evidence — but nothing sends to it yet, and `message_jobs.category_job_id` being unique still blocks per-recipient fan-out.
+- Delivery is per topic, not aggregated: a reader following three topics receives three messages, each with its audio. A single daily digest would need a fan-in across the reader's category jobs and could not carry three summaries anyway — Telegram caps a message at 4096 characters and one summary already runs past 4000.
 - No admin surface: the role exists and is enforceable, but nothing reads it and there is no script to promote a user to `admin` yet.
-- The site copy names Telegram as the delivery channel (`hero.rhythm`, `closing.note`, `method.page.details`, `auth.topics.lead` in the i18n dictionaries), which nothing delivers on yet: a reader who pairs receives no brief until the fan-out lands. Email is now only the account address — sign-in, verification, password reset.
+- Email is now only the account address — sign-in, verification, password reset. Everything a reader receives about their briefs goes through Telegram.
 - The schema records the selected articles but does not version summaries or previous selections across retries.
 - The schema does not enforce that linked category and provider jobs share the same target date. The scheduler must create valid dependency rows.
 - The schema does not enforce that an article linked to a fetch job belongs to the same provider. The ingestion code must preserve that invariant.

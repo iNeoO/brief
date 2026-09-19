@@ -112,8 +112,14 @@ const tx = {
 	}),
 };
 
+/** What the delivery check finds; the happy path has an audio file. */
+const findAudioFile = vi.fn(
+	async () => ({ id: "file-1" }) as { id: string } | undefined,
+);
+
 const db = {
 	transaction: vi.fn((run: (t: typeof tx) => Promise<unknown>) => run(tx)),
+	query: { files: { findFirst: findAudioFile } },
 };
 
 const service = () =>
@@ -131,6 +137,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	rankings.length = 0;
 	modelSelection = [{ id: "article-1", rank: 0 }];
+	findAudioFile.mockResolvedValue({ id: "file-1" });
 
 	chatMock.mockImplementation(async (params: ChatCall) =>
 		isSelectionCall(params)
@@ -198,6 +205,46 @@ describe("runCategoryJob", () => {
 			LANGUAGE.FR,
 		);
 		expect(completeStep).toHaveBeenCalledTimes(2);
+	});
+
+	// The check has to fail *here* rather than after the job is finished: a brief
+	// that reached `finished` is already published on the site, and taking it back
+	// would mean unpublishing it. Failing now also lets the fan-out trust that a
+	// finished job has an audio file.
+	it("refuses to finish a job whose audio never landed", async () => {
+		findAudioFile.mockResolvedValue(undefined);
+
+		await expect(
+			service().runCategoryJob(
+				job({
+					state: CATEGORY_JOB_STATE.SENDING_MESSAGE,
+					summary: "Le brief déjà écrit.",
+				}),
+			),
+		).rejects.toMatchObject({ code: "CATEGORY_JOB_MISSING_AUDIO" });
+
+		// The step never completed, so the job cannot be marked finished.
+		expect(completeStep).not.toHaveBeenCalled();
+	});
+
+	it("lets a job with its audio through the delivery check", async () => {
+		await service().runCategoryJob(
+			job({
+				state: CATEGORY_JOB_STATE.SENDING_MESSAGE,
+				summary: "Le brief déjà écrit.",
+			}),
+		);
+
+		expect(findAudioFile).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({ categoryJobId: 42 }),
+			}),
+		);
+		expect(completeStep).toHaveBeenCalledWith(
+			42,
+			CATEGORY_JOB_STATE.SENDING_MESSAGE,
+			undefined,
+		);
 	});
 
 	it("refuses a job sitting in a state it has no step for", async () => {
