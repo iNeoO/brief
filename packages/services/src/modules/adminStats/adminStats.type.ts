@@ -1,10 +1,10 @@
-/** A calendar day as `YYYY-MM-DD`, in UTC — the pipeline's own notion of a day. */
-export type DayKey = string;
-
-/** The days the admin home covers, oldest first, with the instant it opens on. */
+/**
+ * The days the admin home covers, oldest first, with the instant it opens on.
+ * A day is `YYYY-MM-DD` in UTC — the pipeline's own notion of a day.
+ */
 export type StatsWindow = {
 	since: Date;
-	dayKeys: DayKey[];
+	dayKeys: string[];
 };
 
 /**
@@ -40,7 +40,7 @@ export type AdminStatsUsage = {
 
 export type AdminStatsOverview = {
 	windowDays: number;
-	since: DayKey;
+	since: string;
 	users: {
 		total: number;
 		emailVerified: number;
@@ -61,7 +61,7 @@ export type AdminStatsOverview = {
 
 /** One day of the pipeline, every figure zero when nothing ran. */
 export type AdminStatsDay = AdminStatsUsage & {
-	day: DayKey;
+	day: string;
 	articles: number;
 	briefsProduced: number;
 	briefsFailed: number;

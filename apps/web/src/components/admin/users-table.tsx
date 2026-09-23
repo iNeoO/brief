@@ -64,13 +64,13 @@ export function UsersTable({
 	isFetching,
 	isError,
 	onSearchChange,
-}: {
+}: Readonly<{
 	search: AdminUsersSearch;
 	result: Paginated<AdminUserRow> | undefined;
 	isFetching: boolean;
 	isError: boolean;
 	onSearchChange: (patch: Partial<AdminUsersSearch>) => void;
-}) {
+}>) {
 	const { t, locale } = useI18n();
 	const columns = useMemo(() => buildColumns(t, locale), [t, locale]);
 

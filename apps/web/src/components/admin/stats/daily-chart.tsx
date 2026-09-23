@@ -25,13 +25,13 @@ export function DailyChart({
 	days,
 	series,
 	kind = "line",
-}: {
+}: Readonly<{
 	title: string;
 	hint?: string;
 	days: readonly AdminStatsDay[];
 	series: readonly DailySeries[];
 	kind?: "line" | "bar";
-}) {
+}>) {
 	const { locale } = useI18n();
 
 	const definition = useMemo(

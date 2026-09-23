@@ -40,7 +40,7 @@ function AdminUsersPage() {
 
 	const handleSearchChange = useCallback(
 		(patch: Partial<AdminUsersSearch>) => {
-			void navigate({
+			navigate({
 				search: (previous) => ({ ...previous, ...patch }),
 				// Typing must not fill the history stack.
 				replace: "q" in patch,

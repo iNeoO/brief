@@ -15,7 +15,7 @@ import { normalizeListAdminUsersInput } from "./users.helper.js";
 import type { AdminUserRow, ListAdminUsersInput } from "./users.type.js";
 
 export class UsersService {
-	constructor(private db: Database) {}
+	constructor(private readonly db: Database) {}
 
 	/**
 	 * One page of the admin user list, with the aggregates it displays.

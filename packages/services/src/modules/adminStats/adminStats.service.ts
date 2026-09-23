@@ -17,7 +17,6 @@ import type {
 	AdminStatsOverview,
 	AdminStatsPricing,
 	AdminStatsProviderRow,
-	DayKey,
 } from "./adminStats.type.js";
 
 const count = sql<number>`count(*)::int`;
@@ -35,11 +34,11 @@ const countWhere = (condition: unknown) =>
 
 /** A plain `date` column as the key of its day. */
 const dayOfDate = (column: unknown) =>
-	sql<DayKey>`to_char(${column}, 'YYYY-MM-DD')`;
+	sql<string>`to_char(${column}, 'YYYY-MM-DD')`;
 
 /** A timestamptz read in UTC, so the day does not shift with the session zone. */
 const dayOfInstant = (column: unknown) =>
-	sql<DayKey>`to_char(${column} at time zone 'UTC', 'YYYY-MM-DD')`;
+	sql<string>`to_char(${column} at time zone 'UTC', 'YYYY-MM-DD')`;
 
 const briefFinished = eq(
 	schema.categoryJobs.status,
@@ -53,7 +52,7 @@ const briefFinished = eq(
  */
 const ttsCharacters = sql<number>`coalesce(sum(length(${schema.categoryJobs.summary})) filter (where ${briefFinished}), 0)::int`;
 
-const emptyDay = (day: DayKey): AdminStatsDay => ({
+const emptyDay = (day: string): AdminStatsDay => ({
 	day,
 	articles: 0,
 	briefsProduced: 0,
@@ -82,8 +81,8 @@ const emptyDay = (day: DayKey): AdminStatsDay => ({
  */
 export class AdminStatsService {
 	constructor(
-		private db: Database,
-		private pricing: AdminStatsPricing,
+		private readonly db: Database,
+		private readonly pricing: AdminStatsPricing,
 	) {}
 
 	async getOverview(now = new Date()): Promise<AdminStatsOverview> {
@@ -248,8 +247,8 @@ export class AdminStatsService {
 				.groupBy(briefDay),
 		]);
 
-		const merged = new Map<DayKey, AdminStatsDay>();
-		const dayOf = (day: DayKey) => {
+		const merged = new Map<string, AdminStatsDay>();
+		const dayOf = (day: string) => {
 			const existing = merged.get(day);
 			if (existing) return existing;
 

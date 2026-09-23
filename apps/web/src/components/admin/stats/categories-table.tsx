@@ -11,9 +11,9 @@ import classes from "./stats.module.css";
  */
 export function CategoriesTable({
 	categories,
-}: {
+}: Readonly<{
 	categories: readonly AdminStatsCategoryRow[];
-}) {
+}>) {
 	const { t, locale } = useI18n();
 	const labels = t.auth.admin.overview.categories;
 
@@ -51,11 +51,11 @@ export function CategoriesTable({
 							<Table.Tr key={category.id}>
 								<Table.Td>
 									{category.name}{" "}
-									{!category.isEnabled ? (
+									{category.isEnabled ? null : (
 										<Badge color="gray" variant="light" size="sm">
 											{labels.disabled}
 										</Badge>
-									) : null}
+									)}
 								</Table.Td>
 								<Table.Td className={classes.numeric}>
 									{formatInteger(category.subscribersCount, locale)}

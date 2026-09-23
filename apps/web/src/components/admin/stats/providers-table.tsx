@@ -15,6 +15,23 @@ const QUIET_AFTER_DAYS = 7;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+type ProviderState = "disabled" | "quiet" | "active";
+
+const STATE_COLORS: Record<ProviderState, string> = {
+	disabled: "gray",
+	quiet: "red",
+	active: "teal",
+};
+
+const providerState = (
+	provider: AdminStatsProviderRow,
+	quietBefore: number,
+): ProviderState => {
+	if (!provider.isEnabled) return "disabled";
+	if ((provider.lastArticleAt?.getTime() ?? 0) < quietBefore) return "quiet";
+	return "active";
+};
+
 /**
  * Every source, the ones to worry about first: never produced, then longest
  * silent, then the rest by what they brought in.
@@ -22,10 +39,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function ProvidersTable({
 	providers,
 	now,
-}: {
+}: Readonly<{
 	providers: readonly AdminStatsProviderRow[];
 	now: Date;
-}) {
+}>) {
 	const { t, locale } = useI18n();
 	const labels = t.auth.admin.overview.providers;
 
@@ -60,27 +77,19 @@ export function ProvidersTable({
 					</Table.Thead>
 					<Table.Tbody>
 						{rows.map((provider) => {
-							const isQuiet =
-								provider.isEnabled &&
-								(provider.lastArticleAt?.getTime() ?? 0) < quietBefore;
+							const state = providerState(provider, quietBefore);
 
 							return (
 								<Table.Tr key={provider.id}>
 									<Table.Td>{provider.name}</Table.Td>
 									<Table.Td>
-										{!provider.isEnabled ? (
-											<Badge color="gray" variant="light" size="sm">
-												{labels.state.disabled}
-											</Badge>
-										) : isQuiet ? (
-											<Badge color="red" variant="light" size="sm">
-												{labels.state.quiet}
-											</Badge>
-										) : (
-											<Badge color="teal" variant="light" size="sm">
-												{labels.state.active}
-											</Badge>
-										)}
+										<Badge
+											color={STATE_COLORS[state]}
+											variant="light"
+											size="sm"
+										>
+											{labels.state[state]}
+										</Badge>
 									</Table.Td>
 									<Table.Td className={classes.numeric}>
 										{formatInteger(provider.articlesInWindow, locale)}

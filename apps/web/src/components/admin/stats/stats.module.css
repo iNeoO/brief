@@ -13,6 +13,13 @@
 	--ts-chart-1: #2a78d6;
 	--ts-chart-2: #eb6834;
 	--ts-chart-3: #1baf7a;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1rem;
+	border: 1px solid var(--brief-line);
+	border-radius: var(--mantine-radius-md);
+	min-width: 0;
 }
 
 [data-mantine-color-scheme="dark"] .chartCard {
@@ -62,16 +69,6 @@
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
 	gap: 0.75rem;
-}
-
-.chartCard {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 1rem;
-	border: 1px solid var(--brief-line);
-	border-radius: var(--mantine-radius-md);
-	min-width: 0;
 }
 
 .chartTitle {

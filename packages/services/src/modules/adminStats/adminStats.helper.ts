@@ -3,14 +3,13 @@ import type {
 	AdminStatsCost,
 	AdminStatsPricing,
 	AdminStatsUsage,
-	DayKey,
 	StatsWindow,
 } from "./adminStats.type.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The UTC calendar day of an instant, the key every daily figure is filed under. */
-export const toDayKey = (date: Date): DayKey => date.toISOString().slice(0, 10);
+export const toDayKey = (date: Date): string => date.toISOString().slice(0, 10);
 
 /**
  * The last `days` calendar days up to and including today, in UTC. The
@@ -38,10 +37,10 @@ export const statsWindow = (now: Date, days: number): StatsWindow => {
  * ran on is a row of zeros rather than a gap the chart would draw a line
  * across. A row outside the window — a job dated tomorrow — is dropped.
  */
-export const fillDays = <TRow extends { day: DayKey }>(
-	dayKeys: readonly DayKey[],
+export const fillDays = <TRow extends { day: string }>(
+	dayKeys: readonly string[],
 	rows: readonly TRow[],
-	empty: (day: DayKey) => TRow,
+	empty: (day: string) => TRow,
 ): TRow[] => {
 	const byDay = new Map(rows.map((row) => [row.day, row]));
 
