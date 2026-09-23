@@ -11,6 +11,7 @@ import {
 	SubscriptionsService,
 	TelegramClient,
 	TelegramPairingService,
+	UsersService,
 } from "@brief/services";
 import { AuthService } from "@brief/services/auth";
 import { MailService } from "@brief/services/mail";
@@ -60,6 +61,7 @@ const createContainer = () => {
 			new TelegramClient(telegramConfig),
 		),
 		s3Service: new S3Service(db, createS3Config(env)),
+		usersService: new UsersService(db),
 	};
 };
 

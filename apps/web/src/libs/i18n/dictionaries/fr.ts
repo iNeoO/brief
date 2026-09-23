@@ -646,6 +646,7 @@ export const fr: Dictionary = {
 				toggle: "Afficher ou masquer la navigation",
 				categories: "Catégories",
 				jobs: "Jobs",
+				users: "Utilisateurs",
 				backToBriefs: "Retour à mes briefs",
 			},
 			table: {
@@ -759,6 +760,32 @@ export const fr: Dictionary = {
 					disabled: (name: string) => `« ${name} » est maintenant inactive.`,
 					deleted: (name: string) => `Catégorie « ${name} » supprimée.`,
 				},
+			},
+			users: {
+				title: "Utilisateurs",
+				lead: "Chaque lecteur inscrit, ses abonnements et le dernier brief qu'il a reçu.",
+				search: {
+					label: "Rechercher un utilisateur",
+					placeholder: "Rechercher un nom ou un email",
+					clear: "Effacer la recherche",
+				},
+				columns: {
+					name: "Nom",
+					email: "Email",
+					createdAt: "Inscription",
+					subscriptionsCount: "Abonnements",
+					lastBriefAt: "Dernier brief reçu",
+				},
+				empty: {
+					title: "Aucun utilisateur",
+					body: "Les lecteurs qui créent un compte apparaissent ici.",
+				},
+				noResults: {
+					title: "Aucun résultat",
+					body: (term: string) =>
+						`Aucun utilisateur ne correspond à « ${term} ».`,
+				},
+				error: "Les utilisateurs n'ont pas pu être chargés.",
 			},
 			jobs: {
 				title: "Jobs du pipeline",

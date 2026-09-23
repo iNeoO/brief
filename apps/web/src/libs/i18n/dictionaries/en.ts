@@ -644,6 +644,7 @@ export const en = {
 				toggle: "Toggle navigation",
 				categories: "Categories",
 				jobs: "Jobs",
+				users: "Users",
 				backToBriefs: "Back to my briefs",
 			},
 			table: {
@@ -757,6 +758,31 @@ export const en = {
 					disabled: (name: string) => `“${name}” is now inactive.`,
 					deleted: (name: string) => `Category “${name}” deleted.`,
 				},
+			},
+			users: {
+				title: "Users",
+				lead: "Every registered reader, their subscriptions and the last brief they received.",
+				search: {
+					label: "Search users",
+					placeholder: "Search a name or an email",
+					clear: "Clear the search",
+				},
+				columns: {
+					name: "Name",
+					email: "Email",
+					createdAt: "Signed up",
+					subscriptionsCount: "Subscriptions",
+					lastBriefAt: "Last brief received",
+				},
+				empty: {
+					title: "No user yet",
+					body: "Readers who create an account show up here.",
+				},
+				noResults: {
+					title: "No match",
+					body: (term: string) => `No user matches “${term}”.`,
+				},
+				error: "The users could not be loaded.",
 			},
 			jobs: {
 				title: "Pipeline jobs",

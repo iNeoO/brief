@@ -38,3 +38,6 @@ export * from "./modules/telegram/telegram.client.js";
 export * from "./modules/telegram/telegram.helper.js";
 export * from "./modules/telegram/telegram.service.js";
 export * from "./modules/telegram/telegram.type.js";
+export * from "./modules/users/users.helper.js";
+export * from "./modules/users/users.service.js";
+export * from "./modules/users/users.type.js";

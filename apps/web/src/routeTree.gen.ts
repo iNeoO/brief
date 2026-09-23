@@ -30,6 +30,7 @@ import { Route as ValidateEmailRouteImport } from './routes/validate-email'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
 import { Route as AdminJobsRouteRouteImport } from './routes/admin/jobs/route'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as BriefsIndexRouteImport } from './routes/briefs/index'
 import { Route as BriefsIdRouteImport } from './routes/briefs/$id'
 import { Route as AdminJobsIndexRouteImport } from './routes/admin/jobs/index'
@@ -143,6 +144,11 @@ const AdminJobsRouteRoute = AdminJobsRouteRouteImport.update({
   path: '/jobs',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const BriefsIndexRoute = BriefsIndexRouteImport.update({
   id: '/briefs/',
   path: '/briefs/',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/validate-email': typeof ValidateEmailRoute
   '/admin/jobs': typeof AdminJobsRouteRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
   '/briefs/': typeof BriefsIndexRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/topics': typeof TopicsRoute
   '/validate-email': typeof ValidateEmailRoute
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/briefs/$id': typeof BriefsIdRoute
   '/admin': typeof AdminIndexRoute
   '/briefs': typeof BriefsIndexRoute
@@ -259,6 +267,7 @@ export interface FileRoutesById {
   '/validate-email': typeof ValidateEmailRoute
   '/admin/jobs': typeof AdminJobsRouteRouteWithChildren
   '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/briefs/$id': typeof BriefsIdRoute
   '/admin/': typeof AdminIndexRoute
   '/briefs/': typeof BriefsIndexRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/validate-email'
     | '/admin/jobs'
     | '/admin/categories'
+    | '/admin/users'
     | '/briefs/$id'
     | '/admin/'
     | '/briefs/'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/topics'
     | '/validate-email'
     | '/admin/categories'
+    | '/admin/users'
     | '/briefs/$id'
     | '/admin'
     | '/briefs'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/validate-email'
     | '/admin/jobs'
     | '/admin/categories'
+    | '/admin/users'
     | '/briefs/$id'
     | '/admin/'
     | '/briefs/'
@@ -533,6 +545,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminJobsRouteRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/briefs/': {
       id: '/briefs/'
       path: '/briefs'
@@ -604,12 +623,14 @@ const AdminJobsRouteRouteWithChildren = AdminJobsRouteRoute._addFileChildren(
 interface AdminRouteRouteChildren {
   AdminJobsRouteRoute: typeof AdminJobsRouteRouteWithChildren
   AdminCategoriesRoute: typeof AdminCategoriesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminJobsRouteRoute: AdminJobsRouteRouteWithChildren,
   AdminCategoriesRoute: AdminCategoriesRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

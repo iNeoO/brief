@@ -16,6 +16,7 @@ export const ROUTES = {
 	adminJobs: "/admin/jobs",
 	adminJobsCategory: "/admin/jobs/category",
 	adminJobsFetch: "/admin/jobs/fetch",
+	adminUsers: "/admin/users",
 	topics: "/topics",
 	howItWorks: "/how-it-works",
 	about: "/about",
