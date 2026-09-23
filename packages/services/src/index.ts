@@ -5,6 +5,9 @@
 export * from "./modules/adminJobs/adminJobs.helper.js";
 export * from "./modules/adminJobs/adminJobs.service.js";
 export * from "./modules/adminJobs/adminJobs.type.js";
+export * from "./modules/adminStats/adminStats.helper.js";
+export * from "./modules/adminStats/adminStats.service.js";
+export * from "./modules/adminStats/adminStats.type.js";
 export * from "./modules/articles/articles.service.js";
 export * from "./modules/briefs/briefs.helper.js";
 export * from "./modules/briefs/briefs.service.js";
@@ -38,3 +41,6 @@ export * from "./modules/telegram/telegram.client.js";
 export * from "./modules/telegram/telegram.helper.js";
 export * from "./modules/telegram/telegram.service.js";
 export * from "./modules/telegram/telegram.type.js";
+export * from "./modules/users/users.helper.js";
+export * from "./modules/users/users.service.js";
+export * from "./modules/users/users.type.js";

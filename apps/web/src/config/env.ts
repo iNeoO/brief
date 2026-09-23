@@ -55,6 +55,13 @@ const envSchema = z.object({
 	// call. Without it the endpoint would take instructions from anyone who found
 	// the URL.
 	TELEGRAM_WEBHOOK_SECRET: z.string().min(16),
+	// The cost grid of the admin home, in USD per million units, as the vendors
+	// quote them. Optional: the model is not recorded per job, so this is what
+	// the estimate is priced on, and an unfilled grid shows "not configured"
+	// rather than a wrong figure. Fill in both LLM prices or neither.
+	LLM_PRICE_PROMPT_PER_MTOK: z.coerce.number().nonnegative().optional(),
+	LLM_PRICE_COMPLETION_PER_MTOK: z.coerce.number().nonnegative().optional(),
+	TTS_PRICE_PER_MCHAR: z.coerce.number().nonnegative().optional(),
 	ADMIN_USER_IDS: z
 		.string()
 		.default("")
