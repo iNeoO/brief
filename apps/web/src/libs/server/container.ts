@@ -2,6 +2,8 @@ import { createDb } from "@brief/drizzle";
 import { createRedis } from "@brief/infra/redis";
 import {
 	AdminJobsService,
+	type AdminStatsPricing,
+	AdminStatsService,
 	BriefsService,
 	CategoriesService,
 	createS3Config,
@@ -17,6 +19,23 @@ import { AuthService } from "@brief/services/auth";
 import { MailService } from "@brief/services/mail";
 import { createServerOnlyFn } from "@tanstack/react-start";
 import { env } from "#/config/env";
+
+/**
+ * Both LLM prices or neither: a grid with only the prompt price filled in
+ * would price half the tokens and present it as the LLM cost.
+ */
+const readPricing = (): AdminStatsPricing => ({
+	...(env.LLM_PRICE_PROMPT_PER_MTOK !== undefined &&
+		env.LLM_PRICE_COMPLETION_PER_MTOK !== undefined && {
+			llm: {
+				promptPerMillionTokens: env.LLM_PRICE_PROMPT_PER_MTOK,
+				completionPerMillionTokens: env.LLM_PRICE_COMPLETION_PER_MTOK,
+			},
+		}),
+	...(env.TTS_PRICE_PER_MCHAR !== undefined && {
+		tts: { perMillionCharacters: env.TTS_PRICE_PER_MCHAR },
+	}),
+});
 
 const createContainer = () => {
 	const db = createDb(env.PG_URL);
@@ -49,6 +68,7 @@ const createContainer = () => {
 			},
 		}),
 		adminJobsService: new AdminJobsService(db),
+		adminStatsService: new AdminStatsService(db, readPricing()),
 		briefsService: new BriefsService(db),
 		categoriesService: new CategoriesService(db),
 		pipelineMetricsService: new PipelineMetricsService(db),
