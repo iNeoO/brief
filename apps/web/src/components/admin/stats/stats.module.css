@@ -1,0 +1,116 @@
+/*
+ * The chart palette: the three validated categorical slots of the data-viz
+ * reference palette, stepped for each surface. Charts inherit `currentColor`
+ * for their axes and grid, so the card sets the ink too.
+ */
+.chartCard,
+.tile {
+	color: var(--brief-text);
+	background: var(--brief-bg);
+}
+
+.chartCard {
+	--ts-chart-1: #2a78d6;
+	--ts-chart-2: #eb6834;
+	--ts-chart-3: #1baf7a;
+}
+
+[data-mantine-color-scheme="dark"] .chartCard {
+	--ts-chart-1: #3987e5;
+	--ts-chart-2: #d95926;
+	--ts-chart-3: #199e70;
+}
+
+.tiles {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+	gap: 0.75rem;
+}
+
+.tile {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 0.875rem 1rem;
+	border: 1px solid var(--brief-line);
+	border-radius: var(--mantine-radius-md);
+}
+
+.tileLabel {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-sm);
+}
+
+/* Proportional figures on purpose: tabular digits look loose at this size. */
+.tileValue {
+	margin: 0;
+	font-family: var(--mantine-font-family-headings);
+	font-size: 1.75rem;
+	font-weight: 600;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+}
+
+.tileHint {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+}
+
+.charts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+	gap: 0.75rem;
+}
+
+.chartCard {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 1rem;
+	border: 1px solid var(--brief-line);
+	border-radius: var(--mantine-radius-md);
+	min-width: 0;
+}
+
+.chartTitle {
+	margin: 0;
+	font-size: var(--mantine-font-size-md);
+	font-weight: 600;
+}
+
+.chartHint {
+	margin: 0;
+	color: var(--brief-muted);
+	font-size: var(--mantine-font-size-xs);
+}
+
+.tables {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+	gap: 0.75rem;
+	align-items: start;
+}
+
+.tableCard {
+	border: 1px solid var(--brief-line);
+	border-radius: var(--mantine-radius-md);
+	overflow: hidden;
+}
+
+.tableHeading {
+	margin: 0;
+	padding: 0.875rem 1rem 0.5rem;
+	font-size: var(--mantine-font-size-md);
+	font-weight: 600;
+}
+
+.tableScroll {
+	overflow-x: auto;
+}
+
+.numeric {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}

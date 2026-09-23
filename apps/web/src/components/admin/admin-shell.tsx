@@ -18,6 +18,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
 	const sections = [
 		{
+			to: ROUTES.admin,
+			label: t.auth.admin.nav.overview,
+			// Exact: every other section also lives under `/admin`.
+			active: Boolean(matchRoute({ to: ROUTES.admin })),
+		},
+		{
 			to: ROUTES.adminCategories,
 			label: t.auth.admin.nav.categories,
 			active: Boolean(matchRoute({ to: ROUTES.adminCategories, fuzzy: true })),

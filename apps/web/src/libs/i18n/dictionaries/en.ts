@@ -642,6 +642,7 @@ export const en = {
 			nav: {
 				label: "Admin sections",
 				toggle: "Toggle navigation",
+				overview: "Overview",
 				categories: "Categories",
 				jobs: "Jobs",
 				users: "Users",
@@ -671,6 +672,86 @@ export const en = {
 				creating_report: "Writing",
 				creating_audio: "Voicing",
 				sending_message: "Sending",
+			},
+			overview: {
+				title: "Overview",
+				lead: (days: number) =>
+					`The pipeline and its readers over the last ${days} days.`,
+				error: "Some of the figures could not be loaded.",
+				tiles: {
+					users: "Users",
+					newUsers: (count: number) =>
+						`${count} sign-up${count === 1 ? "" : "s"} in the period`,
+					telegramPaired: "Paired on Telegram",
+					subscribed: (count: number) =>
+						`${count} following at least one topic`,
+					briefsProduced: "Briefs produced",
+					deliveries: (count: number) =>
+						`${count} Telegram deliver${count === 1 ? "y" : "ies"}`,
+					tokens: "Tokens used",
+					tokensBreakdown: (prompt: string, completion: string) =>
+						`${prompt} prompt, ${completion} completion`,
+					cost: "Estimated cost",
+					costBreakdown: (llm: string, tts: string) =>
+						`${llm} LLM, ${tts} text-to-speech`,
+					costLlmOnly: "LLM only: the text-to-speech price is not set.",
+					costTtsOnly: "Text-to-speech only: the LLM prices are not set.",
+					costNotConfigured: "Not configured",
+					costHowTo: "Fill in the price grid in the environment variables.",
+					audioStorage: "Audio stored",
+					audioStorageHint: "Every audio file kept",
+				},
+				charts: {
+					articles: {
+						title: "Articles fetched per day",
+						hint: "Articles stored, every source together.",
+						series: "Articles",
+					},
+					briefs: {
+						title: "Briefs per day",
+						hint: "Produced by the pipeline, and delivered on Telegram.",
+						produced: "Produced",
+						delivered: "Delivered",
+					},
+					tokens: {
+						title: "Tokens per day",
+						hint: "Selection and writing, retries included.",
+						prompt: "Prompt",
+						completion: "Completion",
+					},
+					failures: {
+						title: "Failures per day",
+						hint: "By pipeline stage.",
+						fetches: "Fetches",
+						briefs: "Briefs",
+						deliveries: "Deliveries",
+					},
+				},
+				providers: {
+					title: "Sources",
+					columns: {
+						name: "Source",
+						state: "State",
+						articles: "Articles",
+						lastArticle: "Last article",
+						failedFetches: "Failed fetches",
+					},
+					state: {
+						active: "Active",
+						quiet: "Quiet",
+						disabled: "Disabled",
+					},
+				},
+				categories: {
+					title: "Categories",
+					columns: {
+						name: "Category",
+						subscribers: "Subscribers",
+						briefs: "Briefs",
+						tokens: "Tokens",
+					},
+					disabled: "Inactive",
+				},
 			},
 			categories: {
 				title: "Categories",

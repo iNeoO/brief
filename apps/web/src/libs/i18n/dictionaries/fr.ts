@@ -644,6 +644,7 @@ export const fr: Dictionary = {
 			nav: {
 				label: "Sections admin",
 				toggle: "Afficher ou masquer la navigation",
+				overview: "Vue d'ensemble",
 				categories: "Catégories",
 				jobs: "Jobs",
 				users: "Utilisateurs",
@@ -673,6 +674,89 @@ export const fr: Dictionary = {
 				creating_report: "Rédaction",
 				creating_audio: "Synthèse vocale",
 				sending_message: "Envoi",
+			},
+			overview: {
+				title: "Vue d'ensemble",
+				lead: (days: number) =>
+					`Le pipeline et ses lecteurs sur les ${days} derniers jours.`,
+				error: "Une partie des chiffres n'a pas pu être chargée.",
+				tiles: {
+					users: "Utilisateurs",
+					newUsers: (count: number) =>
+						`${count} inscription${count > 1 ? "s" : ""} sur la période`,
+					telegramPaired: "Appairés Telegram",
+					subscribed: (count: number) =>
+						`${count} abonné${count > 1 ? "s" : ""} à au moins un topic`,
+					briefsProduced: "Briefs produits",
+					deliveries: (count: number) =>
+						`${count} envoi${count > 1 ? "s" : ""} Telegram`,
+					tokens: "Tokens consommés",
+					tokensBreakdown: (prompt: string, completion: string) =>
+						`${prompt} en entrée, ${completion} en sortie`,
+					cost: "Coût estimé",
+					costBreakdown: (llm: string, tts: string) =>
+						`${llm} de LLM, ${tts} de synthèse vocale`,
+					costLlmOnly:
+						"LLM seul : le prix de la synthèse vocale n'est pas renseigné.",
+					costTtsOnly:
+						"Synthèse vocale seule : les prix du LLM ne sont pas renseignés.",
+					costNotConfigured: "Non configuré",
+					costHowTo:
+						"Renseignez la grille de prix dans les variables d'environnement.",
+					audioStorage: "Audio stocké",
+					audioStorageHint: "Tous les fichiers audio conservés",
+				},
+				charts: {
+					articles: {
+						title: "Articles collectés par jour",
+						hint: "Articles stockés, toutes sources confondues.",
+						series: "Articles",
+					},
+					briefs: {
+						title: "Briefs par jour",
+						hint: "Produits par le pipeline, et envoyés sur Telegram.",
+						produced: "Produits",
+						delivered: "Envoyés",
+					},
+					tokens: {
+						title: "Tokens par jour",
+						hint: "Sélection et rédaction, toutes reprises comprises.",
+						prompt: "Entrée",
+						completion: "Sortie",
+					},
+					failures: {
+						title: "Échecs par jour",
+						hint: "Par étape du pipeline.",
+						fetches: "Collectes",
+						briefs: "Briefs",
+						deliveries: "Envois",
+					},
+				},
+				providers: {
+					title: "Sources",
+					columns: {
+						name: "Source",
+						state: "État",
+						articles: "Articles",
+						lastArticle: "Dernier article",
+						failedFetches: "Collectes échouées",
+					},
+					state: {
+						active: "Active",
+						quiet: "Silencieuse",
+						disabled: "Désactivée",
+					},
+				},
+				categories: {
+					title: "Catégories",
+					columns: {
+						name: "Catégorie",
+						subscribers: "Abonnés",
+						briefs: "Briefs",
+						tokens: "Tokens",
+					},
+					disabled: "Inactive",
+				},
 			},
 			categories: {
 				title: "Catégories",
