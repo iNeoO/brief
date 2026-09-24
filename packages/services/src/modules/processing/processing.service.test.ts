@@ -26,6 +26,12 @@ vi.mock("@tanstack/ai", () => ({
 		...definition,
 		server: (handler: unknown) => ({ ...definition, handler }),
 	}),
+	// Same semantics as the real strategy: keep looping while the run has made
+	// fewer than `max` tool calls.
+	maxToolCalls:
+		(max: number) =>
+		({ toolCallCount }: { toolCallCount: number }) =>
+			toolCallCount < max,
 }));
 
 vi.mock("@tanstack/ai-openai", () => ({ openaiText: vi.fn(() => "adapter") }));
@@ -43,6 +49,7 @@ type ChatCall = {
 	systemPrompts: string[];
 	messages: { content: string }[];
 	tools: ToolStub[];
+	agentLoopStrategy?: (state: { toolCallCount: number }) => boolean;
 };
 
 const chatMock = chat as unknown as Mock;
@@ -426,6 +433,17 @@ describe("makeSummary", () => {
 		await summarize(10);
 
 		expect(chatCalls()[0].messages[0].content).toContain("about 750 words");
+	});
+
+	it("leaves room to fetch every selected article one call at a time", async () => {
+		await summarize(10);
+
+		const { agentLoopStrategy } = chatCalls()[0];
+
+		// The prompt asks for one getArticle call per article, and nothing
+		// guarantees the model batches them: the loop must survive nine fetches
+		// and still allow the tenth.
+		expect(agentLoopStrategy?.({ toolCallCount: 9 })).toBe(true);
 	});
 });
 

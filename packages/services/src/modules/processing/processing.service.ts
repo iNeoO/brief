@@ -7,7 +7,7 @@ import type { Language } from "@brief/common/types";
 import { type Database, eq, schema } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
-import { chat, toolDefinition } from "@tanstack/ai";
+import { chat, maxToolCalls, toolDefinition } from "@tanstack/ai";
 import { openaiText } from "@tanstack/ai-openai";
 import { z } from "zod";
 import type { ArticlesService } from "../articles/articles.service.js";
@@ -372,6 +372,13 @@ export class ProcessingService {
 				},
 			],
 			tools: [this.getArticleTool],
+			// The prompt asks for one getArticle call per selected article. The
+			// default loop strategy allows 5 model turns, which only holds while
+			// the model batches those calls in parallel: fetch them one per turn
+			// and the loop ends early, the summary then gets written from the
+			// handful of articles that made it through, with no error raised.
+			// Bound the tool calls instead, with room for a retry or two.
+			agentLoopStrategy: maxToolCalls(MAX_SELECTED_ARTICLES + 2),
 			outputSchema: z.object({ summary: z.string(), sources: z.string() }),
 		});
 
