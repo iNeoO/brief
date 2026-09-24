@@ -42,6 +42,10 @@ setup: up ## First-time setup: S3 bucket, schema, seed data
 
 PROD = docker compose --env-file .env.docker -f docker-compose.prod.yaml
 
+# Baked into the web build and shown in the admin shell, so a deployment says
+# which commit it runs. Exported for the compose build args.
+export GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
+
 prod-build: ## Build the production image
 	$(PROD) build
 

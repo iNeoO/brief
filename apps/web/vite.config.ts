@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -30,8 +31,30 @@ const previewAllowedHosts = () => {
 	return [...new Set(hosts)];
 };
 
+/**
+ * The short hash of the commit this build is cut from, shown in the admin
+ * shell so an admin can tell which code a deployment runs. The Docker build
+ * has no `.git` — `.dockerignore` drops it — so the image build passes the
+ * hash in through `GIT_COMMIT`; a local build reads it off the checkout.
+ */
+const buildCommit = () => {
+	const fromEnv = process.env.GIT_COMMIT?.trim();
+	if (fromEnv) return fromEnv;
+
+	try {
+		return execSync("git rev-parse --short HEAD", {
+			stdio: ["ignore", "pipe", "ignore"],
+		})
+			.toString()
+			.trim();
+	} catch {
+		return "unknown";
+	}
+};
+
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
+	define: { __BUILD_COMMIT__: JSON.stringify(buildCommit()) },
 	plugins: [tanstackStart(), viteReact()],
 	server: {
 		/**

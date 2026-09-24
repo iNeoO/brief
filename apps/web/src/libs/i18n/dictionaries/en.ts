@@ -647,6 +647,7 @@ export const en = {
 				jobs: "Jobs",
 				users: "Users",
 				backToBriefs: "Back to my briefs",
+				version: (commit: string) => `Version ${commit}`,
 			},
 			table: {
 				sort: {

@@ -649,6 +649,7 @@ export const fr: Dictionary = {
 				jobs: "Jobs",
 				users: "Utilisateurs",
 				backToBriefs: "Retour à mes briefs",
+				version: (commit: string) => `Version ${commit}`,
 			},
 			table: {
 				sort: {

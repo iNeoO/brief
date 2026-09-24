@@ -34,6 +34,11 @@ RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
 
+# The short hash of the commit being built, shown in the admin shell. Passed in
+# because `.git` is not part of the build context.
+ARG GIT_COMMIT
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 COPY apps apps
 COPY db db
 COPY packages packages

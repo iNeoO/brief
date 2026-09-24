@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, NavLink, Stack } from "@mantine/core";
+import { AppShell, Burger, Group, NavLink, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { AccountMenu } from "#/components/layout/account-menu";
@@ -103,12 +103,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 						))}
 					</div>
 
-					<NavLink
-						component={Link}
-						to={ROUTES.home}
-						label={t.auth.admin.nav.backToBriefs}
-						onClick={closeNavbar}
-					/>
+					<div>
+						<NavLink
+							component={Link}
+							to={ROUTES.home}
+							label={t.auth.admin.nav.backToBriefs}
+							onClick={closeNavbar}
+						/>
+
+						{/* Which commit this deployment runs — see `define` in vite.config.ts. */}
+						<Text size="xs" c="dimmed" px="sm" pt="xs">
+							{t.auth.admin.nav.version(__BUILD_COMMIT__)}
+						</Text>
+					</div>
 				</Stack>
 			</AppShell.Navbar>
 

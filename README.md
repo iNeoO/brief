@@ -89,6 +89,12 @@ make prod-up                         # build, migrate, start, wait for healthy
 | `make prod-build` | Build the image alone |
 | `make prod-migrate` | Re-run the migrations and the provider seed |
 
+The image bakes the short hash of the commit it was built from into the web
+bundle, and the admin navigation shows it. `make` reads it off the checkout
+and passes it as the `GIT_COMMIT` build argument; a `docker compose build` run
+by hand needs `GIT_COMMIT=$(git rev-parse --short HEAD)` in its environment,
+or the admin shows `Version unknown`.
+
 The web server listens on 3000 and is published on loopback only
 (`WEB_HOST_PORT`): TLS and the public hostname belong to the reverse proxy in
 front, which is what `SITE_URL` names. Register the Telegram webhook against it

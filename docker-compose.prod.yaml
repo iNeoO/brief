@@ -5,6 +5,9 @@ x-app: &app
   build:
     context: .
     dockerfile: ./Dockerfile
+    args:
+      # The Makefile sets it from the checkout; the admin shell shows it.
+      GIT_COMMIT: ${GIT_COMMIT:-}
   env_file:
     - ./.env.docker
   environment:
