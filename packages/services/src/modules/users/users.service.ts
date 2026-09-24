@@ -53,9 +53,11 @@ export class UsersService {
 		// delivery counts: a pending or failed one has not been received.
 		const lastDelivery = this.db
 			.select({
-				finishedAt: sql<Date | null>`max(${schema.messageJobs.finishedAt})`.as(
-					"finished_at",
-				),
+				finishedAt: sql<Date | null>`max(${schema.messageJobs.finishedAt})`
+					// A raw expression comes back as the driver string; only a column
+					// decoder turns a timestamptz into a Date.
+					.mapWith(schema.messageJobs.finishedAt)
+					.as("finished_at"),
 			})
 			.from(schema.messageJobs)
 			.where(

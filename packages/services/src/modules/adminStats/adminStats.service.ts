@@ -278,9 +278,11 @@ export class AdminStatsService {
 				inWindow: countWhere(gte(schema.articles.createdAt, since)).as(
 					"in_window",
 				),
-				lastAt: sql<Date | null>`max(${schema.articles.createdAt})`.as(
-					"last_at",
-				),
+				lastAt: sql<Date | null>`max(${schema.articles.createdAt})`
+					// A raw expression comes back as the driver string; only a column
+					// decoder turns a timestamptz into a Date.
+					.mapWith(schema.articles.createdAt)
+					.as("last_at"),
 			})
 			.from(schema.articles)
 			.where(eq(schema.articles.providerId, schema.providers.id))
