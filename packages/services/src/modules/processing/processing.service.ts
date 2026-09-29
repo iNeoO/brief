@@ -230,34 +230,51 @@ export class ProcessingService {
 		});
 	}
 
-	private readonly getArticleTool = toolDefinition({
-		name: "getArticle",
-		description: "Get an article by its ID",
-		inputSchema: z.object({ id: z.string() }),
-		outputSchema: z
-			.object({
-				id: z.string(),
-				providerId: z.string(),
-				title: z.string(),
-				description: z.string().nullable(),
-				content: z.string(),
-				url: z.string(),
-				publishedAt: z.iso.datetime().nullable(),
-			})
-			.nullable(),
-	}).server(async ({ id }) => {
-		const article = await this.articlesService.getArticle(id);
-		if (!article) return null;
-		return {
-			id: article.id,
-			providerId: article.providerId,
-			title: article.title,
-			description: article.description,
-			content: article.content,
-			url: article.url,
-			publishedAt: article.publishedAt?.toISOString() ?? null,
-		};
-	});
+	private buildGetArticleTool(selection: { id: string }[]) {
+		const selected = new Set(selection.map((article) => article.id));
+
+		return toolDefinition({
+			name: "getArticle",
+			description: "Get an article by its ID",
+			inputSchema: z.object({ id: z.string() }),
+			outputSchema: z
+				.object({
+					id: z.string(),
+					providerId: z.string(),
+					title: z.string(),
+					description: z.string().nullable(),
+					content: z.string(),
+					url: z.string(),
+					publishedAt: z.iso.datetime().nullable(),
+				})
+				.nullable(),
+			// `getArticle` reads the whole articles table, so the tool is scoped to
+			// the ids this job ranked, the way `getArticles` is scoped to its fetch
+			// snapshot. An id the model made up would otherwise return a real
+			// article from another category or day, and it would be summarised and
+			// cited while `category_job_articles` never mentions it.
+		}).server(async ({ id }) => {
+			if (!selected.has(id)) {
+				getLoggerStore().warn(
+					{ articleId: id },
+					"getArticle asked for an article outside the ranked selection",
+				);
+				return null;
+			}
+
+			const article = await this.articlesService.getArticle(id);
+			if (!article) return null;
+			return {
+				id: article.id,
+				providerId: article.providerId,
+				title: article.title,
+				description: article.description,
+				content: article.content,
+				url: article.url,
+				publishedAt: article.publishedAt?.toISOString() ?? null,
+			};
+		});
+	}
 
 	async setRanking(
 		categoryJobId: number,
@@ -371,7 +388,7 @@ export class ProcessingService {
 					}),
 				},
 			],
-			tools: [this.getArticleTool],
+			tools: [this.buildGetArticleTool(articles)],
 			// The prompt asks for one getArticle call per selected article. The
 			// default loop strategy allows 5 model turns, which only holds while
 			// the model batches those calls in parallel: fetch them one per turn

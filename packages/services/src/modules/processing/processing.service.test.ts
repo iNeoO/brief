@@ -512,3 +512,55 @@ describe("the getArticles tool", () => {
 		]);
 	});
 });
+
+describe("the getArticle tool", () => {
+	const callTool = async (input: Record<string, unknown>) => {
+		await service().makeSummary(
+			[
+				{ id: "article-1", title: "Article 1", rank: 0 },
+				{ id: "article-2", title: "Article 2", rank: 1 },
+			],
+			TARGET_DATE,
+			{ name: "Économie", language: LANGUAGE.FR },
+		);
+
+		const [tool] = chatCalls().filter((call) => !isSelectionCall(call))[0]
+			.tools;
+		return tool.handler(input);
+	};
+
+	beforeEach(() => {
+		getArticle.mockResolvedValue({
+			id: "article-1",
+			providerId: "provider-1",
+			title: "Article 1",
+			description: "Description 1",
+			content: "Le corps de l'article.",
+			url: "https://example.test/article-1",
+			publishedAt: new Date("2026-08-17T01:00:00.000Z"),
+		});
+	});
+
+	it("serves a ranked article, dates as strings", async () => {
+		await expect(callTool({ id: "article-1" })).resolves.toEqual({
+			id: "article-1",
+			providerId: "provider-1",
+			title: "Article 1",
+			description: "Description 1",
+			content: "Le corps de l'article.",
+			url: "https://example.test/article-1",
+			publishedAt: "2026-08-17T01:00:00.000Z",
+		});
+	});
+
+	it("refuses an id outside the ranked selection without reading the table", async () => {
+		await expect(callTool({ id: "article-99" })).resolves.toBeNull();
+		expect(getArticle).not.toHaveBeenCalled();
+	});
+
+	it("reports a ranked article that has since disappeared", async () => {
+		getArticle.mockResolvedValue(undefined);
+
+		await expect(callTool({ id: "article-1" })).resolves.toBeNull();
+	});
+});
