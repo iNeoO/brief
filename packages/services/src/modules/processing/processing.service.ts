@@ -10,6 +10,7 @@ import { getLoggerStore } from "@brief/infra/libs";
 import { chat, maxToolCalls, toolDefinition } from "@tanstack/ai";
 import { openaiText } from "@tanstack/ai-openai";
 import { z } from "zod";
+import { withDeadline } from "../../helpers/withDeadline.helper.js";
 import type { ArticlesService } from "../articles/articles.service.js";
 import type { CategoryJobsService } from "../categoryJobs/categoryJobs.service.js";
 import type { ClaimedCategoryJob } from "../categoryJobs/categoryJobs.type.js";
@@ -25,6 +26,15 @@ import {
 import type { CategoryJobContext, CategoryJobStep } from "./processing.type.js";
 
 const MAX_SELECTED_ARTICLES = 10;
+
+/**
+ * Wall-clock ceilings for the two model runs, not budgets for a single request:
+ * one `AbortController` covers a whole agentic run, tool calls included, and the
+ * summary can spend a turn per article. Generous on purpose — the point is to
+ * catch a run that has stopped progressing, not to cut a slow one short.
+ */
+const SELECTION_DEADLINE_MS = 300_000;
+const SUMMARY_DEADLINE_MS = 600_000;
 const BASE_SUMMARY_WORDS = 190;
 const WORDS_PER_ARTICLE = 130;
 const MAX_SUMMARY_WORDS = 750;
@@ -320,33 +330,40 @@ export class ProcessingService {
 			await this.articlesService.getObservedArticles(categoryJobId);
 		const providerIds = [...new Set(observed.map((a) => a.providerId))];
 
-		const selection = await chat({
-			adapter: openaiText("gpt-5.5"),
-			stream: false,
-			debug: { logger: createAiDebugLogger(getLoggerStore()) },
-			systemPrompts: [ARTICLE_SELECTION_SYSTEM_PROMPT],
-			messages: [
-				{
-					role: "user",
-					content: buildArticleSelectionUserPrompt({
-						categoryName: category.name,
-						categoryDescription: category.description,
-						targetDate,
-						providerIds,
-						maxArticles: MAX_SELECTED_ARTICLES,
+		const selection = await withDeadline({
+			context: "Article selection",
+			timeoutMs: SELECTION_DEADLINE_MS,
+			timeoutCode: INTERNAL_ERROR_CODE.AI_TIMEOUT,
+			run: (abortController) =>
+				chat({
+					abortController,
+					adapter: openaiText("gpt-5.5"),
+					stream: false,
+					debug: { logger: createAiDebugLogger(getLoggerStore()) },
+					systemPrompts: [ARTICLE_SELECTION_SYSTEM_PROMPT],
+					messages: [
+						{
+							role: "user",
+							content: buildArticleSelectionUserPrompt({
+								categoryName: category.name,
+								categoryDescription: category.description,
+								targetDate,
+								providerIds,
+								maxArticles: MAX_SELECTED_ARTICLES,
+							}),
+						},
+					],
+					tools: [this.buildGetArticlesTool(observed)],
+					// The selection is wrapped in an object: a structured output whose root
+					// is an array comes back empty, the model never fills it.
+					//
+					// Ids and ranks only. Making the model copy titles back verbatim spends
+					// its output budget on text the database already holds — on a busy day
+					// it runs out before finishing, and the call returns nothing at all.
+					outputSchema: z.object({
+						articles: z.array(z.object({ id: z.string(), rank: z.number() })),
 					}),
-				},
-			],
-			tools: [this.buildGetArticlesTool(observed)],
-			// The selection is wrapped in an object: a structured output whose root
-			// is an array comes back empty, the model never fills it.
-			//
-			// Ids and ranks only. Making the model copy titles back verbatim spends
-			// its output budget on text the database already holds — on a busy day
-			// it runs out before finishing, and the call returns nothing at all.
-			outputSchema: z.object({
-				articles: z.array(z.object({ id: z.string(), rank: z.number() })),
-			}),
+				}),
 		});
 
 		const byId = new Map(observed.map((article) => [article.id, article]));
@@ -371,32 +388,39 @@ export class ProcessingService {
 			MAX_SUMMARY_WORDS,
 		);
 
-		const resume = await chat({
-			adapter: openaiText("gpt-5.5"),
-			stream: false,
-			debug: { logger: createAiDebugLogger(getLoggerStore()) },
-			systemPrompts: [RESUME_SYSTEM_PROMPT],
-			messages: [
-				{
-					role: "user",
-					content: buildResumeUserPrompt({
-						categoryName: category.name,
-						targetDate,
-						language: category.language,
-						targetWordCount,
-						articles,
-					}),
-				},
-			],
-			tools: [this.buildGetArticleTool(articles)],
-			// The prompt asks for one getArticle call per selected article. The
-			// default loop strategy allows 5 model turns, which only holds while
-			// the model batches those calls in parallel: fetch them one per turn
-			// and the loop ends early, the summary then gets written from the
-			// handful of articles that made it through, with no error raised.
-			// Bound the tool calls instead, with room for a retry or two.
-			agentLoopStrategy: maxToolCalls(MAX_SELECTED_ARTICLES + 2),
-			outputSchema: z.object({ summary: z.string(), sources: z.string() }),
+		const resume = await withDeadline({
+			context: "Brief writing",
+			timeoutMs: SUMMARY_DEADLINE_MS,
+			timeoutCode: INTERNAL_ERROR_CODE.AI_TIMEOUT,
+			run: (abortController) =>
+				chat({
+					abortController,
+					adapter: openaiText("gpt-5.5"),
+					stream: false,
+					debug: { logger: createAiDebugLogger(getLoggerStore()) },
+					systemPrompts: [RESUME_SYSTEM_PROMPT],
+					messages: [
+						{
+							role: "user",
+							content: buildResumeUserPrompt({
+								categoryName: category.name,
+								targetDate,
+								language: category.language,
+								targetWordCount,
+								articles,
+							}),
+						},
+					],
+					tools: [this.buildGetArticleTool(articles)],
+					// The prompt asks for one getArticle call per selected article. The
+					// default loop strategy allows 5 model turns, which only holds while
+					// the model batches those calls in parallel: fetch them one per turn
+					// and the loop ends early, the summary then gets written from the
+					// handful of articles that made it through, with no error raised.
+					// Bound the tool calls instead, with room for a retry or two.
+					agentLoopStrategy: maxToolCalls(MAX_SELECTED_ARTICLES + 2),
+					outputSchema: z.object({ summary: z.string(), sources: z.string() }),
+				}),
 		});
 
 		return { summary: resume.summary, sources: resume.sources };
