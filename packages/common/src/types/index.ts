@@ -6,6 +6,7 @@ export * from "./files.type.js";
 export * from "./internalErrorCode.type.js";
 export * from "./jobs.type.js";
 export * from "./language.type.js";
+export * from "./llm.type.js";
 export * from "./locale.type.js";
 export * from "./pagination.type.js";
 export * from "./users.type.js";

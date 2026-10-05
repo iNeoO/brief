@@ -9,13 +9,15 @@
 		"build": "rm -rf dist && tsc -p tsconfig.build.json",
 		"start": "node dist/index.js",
 		"test": "vitest run",
-		"job:run": "tsx src/scripts/runCategoryJob.ts"
+		"job:run": "tsx src/scripts/runCategoryJob.ts",
+		"llm:ping": "tsx src/scripts/pingLlm.ts"
 	},
 	"dependencies": {
 		"@brief/common": "workspace:*",
 		"@brief/drizzle": "workspace:*",
 		"@brief/infra": "workspace:*",
 		"@brief/services": "workspace:*",
+		"@tanstack/ai": "^0.42.0",
 		"amqplib": "catalog:",
 		"zod": "catalog:"
 	},

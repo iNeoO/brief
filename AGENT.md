@@ -49,7 +49,7 @@ category_jobs
   -> articles
 ```
 
-The LLM selects the relevant articles and creates the summary.
+The LLM selects the relevant articles and creates the summary. `LLM_PROVIDER` picks who answers: OpenAI's gpt-5.5 (the default) or a self-hosted FreeLLMAPI router over free model tiers, whose `auto` model falls over between providers as their quotas run out. Text-to-speech stays on OpenAI either way.
 
 - `category_jobs.summary` stores the generated text.
 - `category_job_articles` stores the selected articles.
