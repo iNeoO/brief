@@ -38,7 +38,9 @@ const main = async () => {
 	}
 };
 
-main().catch((error: unknown) => {
+try {
+	await main();
+} catch (error) {
 	console.error("The model could not be reached:", error);
 	process.exitCode = 1;
-});
+}

@@ -59,7 +59,7 @@ export class ProcessingService {
 		private categoryJobsService: CategoryJobsService,
 		private db: Database,
 		private s3Service: S3Service,
-		private textAdapter: AnyTextAdapter,
+		private readonly textAdapter: AnyTextAdapter,
 	) {}
 
 	private readonly steps: CategoryJobStep[] = [
