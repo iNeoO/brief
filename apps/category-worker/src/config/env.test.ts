@@ -6,9 +6,13 @@ const VARS = {
 	AMQP_URL: "amqp://localhost:5672",
 	CATEGORY_QUEUE: "category-jobs",
 	MESSAGE_JOB_QUEUE: "message-jobs",
+	FREE_LLM_API_URL: "http://freellmapi:3001/v1",
+	FREE_LLM_API_KEY: "freellmapi-client-key",
 } as const;
 
-type Overrides = Partial<Record<keyof typeof VARS, string | undefined>>;
+type Overrides = Partial<
+	Record<keyof typeof VARS | "LLM_PROVIDER", string | undefined>
+>;
 
 /**
  * The module parses `process.env` as it loads, so each case stubs the
@@ -33,7 +37,7 @@ afterEach(() => {
 });
 
 describe("the worker environment", () => {
-	it("reads the five settings the worker runs on", async () => {
+	it("reads the settings the worker runs on", async () => {
 		await expect(load()).resolves.toEqual(expect.objectContaining(VARS));
 	});
 
@@ -47,5 +51,29 @@ describe("the worker environment", () => {
 
 	it("refuses an empty setting as firmly as a missing one", async () => {
 		await expect(load({ AMQP_URL: "" })).rejects.toThrow(/AMQP_URL/);
+	});
+
+	it("prompts OpenAI unless told otherwise", async () => {
+		await expect(load()).resolves.toEqual(
+			expect.objectContaining({ LLM_PROVIDER: "openai" }),
+		);
+	});
+
+	it("prompts FreeLLMAPI when it is the chosen provider", async () => {
+		await expect(load({ LLM_PROVIDER: "freellmapi" })).resolves.toEqual(
+			expect.objectContaining({ LLM_PROVIDER: "freellmapi" }),
+		);
+	});
+
+	it("refuses a provider it does not know", async () => {
+		await expect(load({ LLM_PROVIDER: "mistral" })).rejects.toThrow(
+			/LLM_PROVIDER/,
+		);
+	});
+
+	it("refuses a FreeLLMAPI address that is not a URL", async () => {
+		await expect(load({ FREE_LLM_API_URL: "freellmapi" })).rejects.toThrow(
+			/FREE_LLM_API_URL/,
+		);
 	});
 });

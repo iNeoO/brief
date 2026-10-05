@@ -23,6 +23,7 @@
 		"drizzle:build": "pnpm --filter @brief/drizzle build",
 		"drizzle:seed": "dotenv -e .env -- pnpm --filter @brief/drizzle seed",
 		"category:run": "dotenv -e .env -- pnpm --filter @brief/category-worker job:run",
+		"llm:ping": "dotenv -e .env -- pnpm --filter @brief/category-worker llm:ping",
 		"scheduler:dev": "dotenv -e .env -- pnpm --filter @brief/scheduler dev",
 		"scheduler:run": "dotenv -e .env -- pnpm --filter @brief/scheduler job:run",
 		"providerFetch-worker:dev": "dotenv -e .env -- pnpm --filter @brief/providerFetch-worker dev",

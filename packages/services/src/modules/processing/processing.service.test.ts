@@ -9,7 +9,7 @@ import {
 } from "@brief/common/constants";
 import type { CategoryJobState } from "@brief/common/types";
 import type { Database } from "@brief/drizzle";
-import { chat } from "@tanstack/ai";
+import { type AnyTextAdapter, chat } from "@tanstack/ai";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { ArticlesService } from "../articles/articles.service.js";
 import type { CategoryJobsService } from "../categoryJobs/categoryJobs.service.js";
@@ -35,8 +35,6 @@ vi.mock("@tanstack/ai", () => ({
 			toolCallCount < max,
 }));
 
-vi.mock("@tanstack/ai-openai", () => ({ openaiText: vi.fn(() => "adapter") }));
-
 vi.mock("../tts/tts.helper.js", () => ({
 	TextToSpeechHelper: { textToAudio: vi.fn() },
 }));
@@ -58,6 +56,7 @@ type MiddlewareStub = {
 };
 
 type ChatCall = {
+	adapter: unknown;
 	systemPrompts: string[];
 	messages: { content: string }[];
 	tools: ToolStub[];
@@ -166,6 +165,8 @@ const db = {
 	query: { files: { findFirst: findAudioFile } },
 };
 
+const textAdapter = { name: "text-adapter" } as unknown as AnyTextAdapter;
+
 const service = () =>
 	new ProcessingService(
 		{ getObservedArticles, getArticle } as unknown as ArticlesService,
@@ -177,6 +178,7 @@ const service = () =>
 		} as unknown as CategoryJobsService,
 		db as unknown as Database,
 		{ uploadFile } as unknown as S3Service,
+		textAdapter,
 	);
 
 /** What the model answers, per call; each test overrides what it cares about. */
@@ -249,6 +251,15 @@ describe("runCategoryJob", () => {
 			],
 			[42, CATEGORY_JOB_STATE.SENDING_MESSAGE, undefined],
 		]);
+	});
+
+	it("prompts the model it was given for both the selection and the brief", async () => {
+		await service().runCategoryJob(job());
+
+		const adapters = chatMock.mock.calls.map(
+			([params]) => (params as ChatCall).adapter,
+		);
+		expect(adapters).toEqual([textAdapter, textAdapter]);
 	});
 
 	it("records what each call cost against the job", async () => {

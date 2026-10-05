@@ -99,6 +99,14 @@ services:
     # A brief in flight is bounded by its own deadlines: selection 5min,
     # writing 10min, speech 5min.
     stop_grace_period: 1200s
+    # The only service that prompts the model, so the only one on FreeLLMAPI's
+    # network. The list repeats the anchor's: an explicit key replaces it.
+    networks:
+      - brief-network
+      - redis-network
+      - garage-network
+      - rabbitmq-network
+      - freellmapi-network
     depends_on: *app-depends
 
   message-worker:
@@ -124,6 +132,9 @@ networks:
     external: true
   rabbitmq-network:
     name: ${RABBITMQ_NETWORK:-rabbitmq-network}
+    external: true
+  freellmapi-network:
+    name: ${FREELLMAPI_NETWORK:-freellmapi-network}
     external: true
   monitoring-shared:
     name: ${MONITORING_SHARED_NETWORK:-monitoring-shared}

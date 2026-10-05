@@ -8,8 +8,12 @@ import type { CategoryJobOutcome, Language } from "@brief/common/types";
 import { type Database, eq, schema } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
-import { chat, maxToolCalls, toolDefinition } from "@tanstack/ai";
-import { openaiText } from "@tanstack/ai-openai";
+import {
+	type AnyTextAdapter,
+	chat,
+	maxToolCalls,
+	toolDefinition,
+} from "@tanstack/ai";
 import { z } from "zod";
 import { withDeadline } from "../../helpers/withDeadline.helper.js";
 import type { ArticlesService } from "../articles/articles.service.js";
@@ -55,6 +59,7 @@ export class ProcessingService {
 		private categoryJobsService: CategoryJobsService,
 		private db: Database,
 		private s3Service: S3Service,
+		private textAdapter: AnyTextAdapter,
 	) {}
 
 	private readonly steps: CategoryJobStep[] = [
@@ -423,7 +428,7 @@ export class ProcessingService {
 			run: (abortController) =>
 				chat({
 					abortController,
-					adapter: openaiText("gpt-5.5"),
+					adapter: this.textAdapter,
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
 					middleware: [usage.middleware],
@@ -489,7 +494,7 @@ export class ProcessingService {
 			run: (abortController) =>
 				chat({
 					abortController,
-					adapter: openaiText("gpt-5.5"),
+					adapter: this.textAdapter,
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
 					middleware: [usage.middleware],

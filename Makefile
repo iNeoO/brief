@@ -5,6 +5,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help dev dev-all test check up down logs setup \
 	prod-build prod-up prod-down prod-logs prod-migrate prod-ps \
+	prod-llm-ping prod-category-run \
 	telegram-webhook telegram-webhook-info telegram-webhook-delete
 
 help: ## List the available targets
@@ -63,6 +64,14 @@ prod-ps: ## Show the production containers
 
 prod-migrate: ## Re-run the migrations and the provider seed on their own
 	$(PROD) run --rm db-migrate
+
+# Both run inside the live category worker, so they go through its networks and
+# its environment exactly as a scheduled brief would.
+prod-llm-ping: ## Prompt the configured LLM once from the category worker
+	$(PROD) exec category-worker pnpm --silent --filter @brief/category-worker llm:ping
+
+prod-category-run: ## Run category:run in prod, e.g. ARGS="--list" or ARGS="--job 42 --reset"
+	$(PROD) exec category-worker pnpm --silent --filter @brief/category-worker job:run $(ARGS)
 
 # --- Telegram webhook ------------------------------------------------------
 # One-off per environment, and nobody remembers the curl. The token and the
