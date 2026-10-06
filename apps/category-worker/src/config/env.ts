@@ -13,6 +13,10 @@ const envSchema = z
 		MESSAGE_JOB_QUEUE: z.string().min(1),
 		LLM_PROVIDER: z.enum(LLM_PROVIDER).default(DEFAULT_LLM_PROVIDER),
 		OPENAI_MODEL: z.enum(OPENAI_TEXT_MODELS).default(DEFAULT_OPENAI_MODEL),
+		OPENAI_SELECTION_MODEL: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z.enum(OPENAI_TEXT_MODELS).optional(),
+		),
 		FREE_LLM_API_URL: z.url(),
 		FREE_LLM_API_KEY: z.string().min(1),
 		// The example env files ship the variable empty.

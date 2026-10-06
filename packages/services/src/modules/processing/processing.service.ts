@@ -87,7 +87,10 @@ export class ProcessingService {
 		private categoryJobsService: CategoryJobsService,
 		private db: Database,
 		private s3Service: S3Service,
-		private readonly textAdapter: AnyTextAdapter,
+		private readonly textAdapters: {
+			selection: AnyTextAdapter;
+			summary: AnyTextAdapter;
+		},
 	) {}
 
 	private readonly steps: CategoryJobStep[] = [
@@ -480,7 +483,10 @@ export class ProcessingService {
 			await this.articlesService.getObservedArticles(categoryJobId);
 		const providerIds = [...new Set(observed.map((a) => a.providerId))];
 
-		const usage = createUsageCollector("selection");
+		const usage = createUsageCollector(
+			"selection",
+			this.textAdapters.selection.model,
+		);
 		const runError = createRunErrorCollector();
 		const served: ServedArticles = { calls: 0, refs: new Set() };
 
@@ -491,7 +497,7 @@ export class ProcessingService {
 			run: (abortController) =>
 				chat({
 					abortController,
-					adapter: this.textAdapter,
+					adapter: this.textAdapters.selection,
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
 					middleware: [usage.middleware, runError.middleware],
@@ -571,7 +577,10 @@ export class ProcessingService {
 			MAX_SUMMARY_WORDS,
 		);
 
-		const usage = createUsageCollector("summary");
+		const usage = createUsageCollector(
+			"summary",
+			this.textAdapters.summary.model,
+		);
 		const runError = createRunErrorCollector();
 		const fetched = new Set<number>();
 
@@ -582,7 +591,7 @@ export class ProcessingService {
 			run: (abortController) =>
 				chat({
 					abortController,
-					adapter: this.textAdapter,
+					adapter: this.textAdapters.summary,
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
 					middleware: [usage.middleware, runError.middleware],

@@ -49,7 +49,7 @@ category_jobs
   -> articles
 ```
 
-The LLM selects the relevant articles and creates the summary. `LLM_PROVIDER` picks who answers: OpenAI (the default, on the model `OPENAI_MODEL` names, gpt-5.5 unless set) or a self-hosted FreeLLMAPI router over free model tiers. FreeLLMAPI is pinned to one model (`FREE_LLM_MODEL`) and never `auto`: on 2026-10-06 `auto` routed to a model that answered without calling `getArticles`, invented every id, and emptied the three briefs. Tools and the output schema go in separate requests for the same reason. Text-to-speech stays on OpenAI either way.
+The LLM selects the relevant articles and creates the summary. `LLM_PROVIDER` picks who answers: OpenAI (the default, on the model `OPENAI_MODEL` names, gpt-5.5 unless set; `OPENAI_SELECTION_MODEL` can move the article selection alone to a cheaper model, while the summary stays on `OPENAI_MODEL`) or a self-hosted FreeLLMAPI router over free model tiers. FreeLLMAPI is pinned to one model (`FREE_LLM_MODEL`) and never `auto`: on 2026-10-06 `auto` routed to a model that answered without calling `getArticles`, invented every id, and emptied the three briefs. Tools and the output schema go in separate requests for the same reason. Text-to-speech stays on OpenAI either way.
 
 A selection made without calling `getArticles`, or holding an id it never served, and a brief written without fetching every selected article, fail the job as `AI_PROTOCOL_VIOLATION` and are retried, rather than being filtered into a quiet day.
 
