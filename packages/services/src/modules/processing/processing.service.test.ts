@@ -170,7 +170,10 @@ const db = {
 	query: { files: { findFirst: findAudioFile } },
 };
 
-const textAdapter = { name: "text-adapter" } as unknown as AnyTextAdapter;
+const selectionAdapter = {
+	name: "selection-adapter",
+} as unknown as AnyTextAdapter;
+const summaryAdapter = { name: "summary-adapter" } as unknown as AnyTextAdapter;
 
 const service = () =>
 	new ProcessingService(
@@ -183,7 +186,7 @@ const service = () =>
 		} as unknown as CategoryJobsService,
 		db as unknown as Database,
 		{ uploadFile } as unknown as S3Service,
-		textAdapter,
+		{ selection: selectionAdapter, summary: summaryAdapter },
 	);
 
 /** What the model answers, per call; each test overrides what it cares about. */
@@ -289,13 +292,13 @@ describe("runCategoryJob", () => {
 		]);
 	});
 
-	it("prompts the model it was given for both the selection and the brief", async () => {
+	it("selects with the selection model and writes the brief with the summary model", async () => {
 		await service().runCategoryJob(job());
 
 		const adapters = chatMock.mock.calls.map(
 			([params]) => (params as ChatCall).adapter,
 		);
-		expect(adapters).toEqual([textAdapter, textAdapter]);
+		expect(adapters).toEqual([selectionAdapter, summaryAdapter]);
 	});
 
 	it("records what each call cost against the job", async () => {

@@ -12,7 +12,11 @@ const VARS = {
 
 type Overrides = Partial<
 	Record<
-		keyof typeof VARS | "LLM_PROVIDER" | "OPENAI_MODEL" | "FREE_LLM_MODEL",
+		| keyof typeof VARS
+		| "LLM_PROVIDER"
+		| "OPENAI_MODEL"
+		| "OPENAI_SELECTION_MODEL"
+		| "FREE_LLM_MODEL",
 		string | undefined
 	>
 >;
@@ -114,6 +118,24 @@ describe("the worker environment", () => {
 		await expect(load({ OPENAI_MODEL: "gpt-5.5-turbo" })).rejects.toThrow(
 			/OPENAI_MODEL/,
 		);
+	});
+
+	it("leaves the selection model unset unless told otherwise", async () => {
+		await expect(
+			load({ OPENAI_SELECTION_MODEL: undefined }),
+		).resolves.not.toHaveProperty("OPENAI_SELECTION_MODEL", expect.anything());
+	});
+
+	it("reads an empty selection model as unset, the way the example env ships it", async () => {
+		await expect(load({ OPENAI_SELECTION_MODEL: "" })).resolves.toEqual(
+			expect.objectContaining({ OPENAI_SELECTION_MODEL: undefined }),
+		);
+	});
+
+	it("refuses a selection model it does not know", async () => {
+		await expect(
+			load({ OPENAI_SELECTION_MODEL: "gpt-5.5-turbo" }),
+		).rejects.toThrow(/OPENAI_SELECTION_MODEL/);
 	});
 
 	it("refuses a FreeLLMAPI address that is not a URL", async () => {

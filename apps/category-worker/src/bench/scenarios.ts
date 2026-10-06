@@ -111,7 +111,7 @@ export const processingFor = (
 		{} as CategoryJobsService,
 		{} as Database,
 		{} as S3Service,
-		adapter,
+		{ selection: adapter, summary: adapter },
 	);
 
 const asDbRow = (article: FixtureArticle) => ({

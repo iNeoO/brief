@@ -25,7 +25,7 @@ const emptyTokenUsage = (): TokenUsageTotals => ({
  * A call that quietly ran out of turns shows up here as a round number against
  * its own ceiling, long before the summary it produced looks odd.
  */
-export const createUsageCollector = (call: string) => {
+export const createUsageCollector = (call: string, model: string) => {
 	const totals = emptyTokenUsage();
 	let iterations = 0;
 
@@ -45,7 +45,10 @@ export const createUsageCollector = (call: string) => {
 		middleware,
 		/** Reports the run at `info` and returns its totals. */
 		report(): TokenUsageTotals {
-			getLoggerStore().info({ call, ...totals, iterations }, "llm usage");
+			getLoggerStore().info(
+				{ call, model, ...totals, iterations },
+				"llm usage",
+			);
 			return { ...totals };
 		},
 	};

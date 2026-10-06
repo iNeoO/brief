@@ -9,7 +9,7 @@ import {
 	S3Service,
 } from "@brief/services";
 import { env } from "./config/env.js";
-import { createConfiguredTextAdapter } from "./config/llm.js";
+import { createConfiguredTextAdapters } from "./config/llm.js";
 import { createS3Config } from "./config/s3.js";
 import { CategoryConsumer } from "./consumer.js";
 
@@ -21,7 +21,7 @@ const main = async (id: string, url: string, queue: string) => {
 		categoryJobsService,
 		db,
 		new S3Service(db, createS3Config()),
-		createConfiguredTextAdapter(),
+		createConfiguredTextAdapters(),
 	);
 
 	const messagePublisher = new AmqpPublisher({
