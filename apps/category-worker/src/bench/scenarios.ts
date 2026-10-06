@@ -165,13 +165,13 @@ export const runToolsProbe = async ({
 			adapter,
 			stream: false,
 			systemPrompts: [
-				"Tu réponds uniquement avec la sortie structurée demandée. Tu ne devines jamais une valeur : tu la lis via l'outil.",
+				"Answer only with the requested structured output. Never guess a value: read it through the tool.",
 			],
 			messages: [
 				{
 					role: "user",
 					content:
-						"Appelle l'outil getSecret pour la clé « alpha » et pour la clé « beta », puis renvoie les deux valeurs exactes, recopiées caractère pour caractère.",
+						"Call the getSecret tool for the key 'alpha' and for the key 'beta', then return both exact values, copied character for character.",
 				},
 			],
 			tools: [getSecret],
