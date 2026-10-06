@@ -17,27 +17,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 	const matchRoute = useMatchRoute();
 
 	const sections = [
-		{
-			to: ROUTES.admin,
-			label: t.auth.admin.nav.overview,
-			// Exact: every other section also lives under `/admin`.
-			active: Boolean(matchRoute({ to: ROUTES.admin })),
-		},
+		// Exact: every other section also lives under `/admin`.
+		{ to: ROUTES.admin, label: t.auth.admin.nav.overview, exact: true },
 		{
 			to: ROUTES.adminCategories,
 			label: t.auth.admin.nav.categories,
-			active: Boolean(matchRoute({ to: ROUTES.adminCategories, fuzzy: true })),
+			exact: false,
 		},
-		{
-			to: ROUTES.adminJobs,
-			label: t.auth.admin.nav.jobs,
-			active: Boolean(matchRoute({ to: ROUTES.adminJobs, fuzzy: true })),
-		},
-		{
-			to: ROUTES.adminUsers,
-			label: t.auth.admin.nav.users,
-			active: Boolean(matchRoute({ to: ROUTES.adminUsers, fuzzy: true })),
-		},
+		{ to: ROUTES.adminJobs, label: t.auth.admin.nav.jobs, exact: false },
+		{ to: ROUTES.adminUsers, label: t.auth.admin.nav.users, exact: false },
 	];
 
 	return (
@@ -95,7 +83,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 								component={Link}
 								to={section.to}
 								label={section.label}
-								active={section.active}
+								active={Boolean(
+									matchRoute({ to: section.to, fuzzy: !section.exact }),
+								)}
+								// Mantine also styles the Link's own `aria-current`, which is fuzzy by default.
+								activeOptions={{ exact: section.exact, includeSearch: false }}
 								// Tapping a section on mobile should reveal the page, not
 								// leave the drawer covering it.
 								onClick={closeNavbar}
