@@ -52,7 +52,7 @@ class ToolProtocolError extends InternalError {
 	}
 }
 
-type ServedArticles = { calls: number; ids: Set<string> };
+type ServedArticles = { calls: number; refs: Set<number> };
 
 /**
  * Wall-clock ceilings for the two model runs, not budgets for a single request:
@@ -65,6 +65,21 @@ const SUMMARY_DEADLINE_MS = 600_000;
 const BASE_SUMMARY_WORDS = 190;
 const WORDS_PER_ARTICLE = 130;
 const MAX_SUMMARY_WORDS = 750;
+
+const isSchemaViolation = (err: unknown): err is Error =>
+	err instanceof Error &&
+	"code" in err &&
+	err.code === "structured-output-validation-failed";
+
+// Strict structured outputs enforce min/max, so the model cannot decode an index outside the list.
+const boundedIndex = (min: number, count: number) =>
+	count > 0
+		? z
+				.number()
+				.int()
+				.min(min)
+				.max(min + count - 1)
+		: z.number().int();
 
 export class ProcessingService {
 	constructor(
@@ -323,7 +338,8 @@ export class ProcessingService {
 			// JSON Schema, which has no way to express a `Date`.
 			outputSchema: z.array(
 				z.object({
-					id: z.string(),
+					// Small models copy a short integer reliably where they mangle a uuid.
+					ref: z.number().int(),
 					providerId: z.string(),
 					title: z.string(),
 					description: z.string().nullable(),
@@ -336,13 +352,15 @@ export class ProcessingService {
 			// day — only `providerIds` narrows the result.
 		}).server(async ({ providerIds }) => {
 			served.calls += 1;
-			const matching = observed.filter(
-				(article) =>
-					!providerIds?.length || providerIds.includes(article.providerId),
-			);
-			for (const { id } of matching) served.ids.add(id);
+			const matching = observed
+				.map((article, index) => ({ ...article, ref: index + 1 }))
+				.filter(
+					(article) =>
+						!providerIds?.length || providerIds.includes(article.providerId),
+				);
+			for (const { ref } of matching) served.refs.add(ref);
 			return matching.map((article) => ({
-				id: article.id,
+				ref: article.ref,
 				providerId: article.providerId,
 				title: article.title,
 				description: article.description,
@@ -352,18 +370,17 @@ export class ProcessingService {
 	}
 
 	private buildGetArticleTool(
-		selection: { id: string }[],
-		fetched: Set<string>,
+		selection: { id: string; rank: number }[],
+		fetched: Set<number>,
 	) {
-		const selected = new Set(selection.map((article) => article.id));
+		const byRank = new Map(selection.map((article) => [article.rank, article]));
 
 		return toolDefinition({
 			name: "getArticle",
-			description: "Get an article by its ID",
-			inputSchema: z.object({ id: z.string() }),
+			description: "Get a selected article by its rank",
+			inputSchema: z.object({ rank: boundedIndex(0, selection.length) }),
 			outputSchema: z
 				.object({
-					id: z.string(),
 					providerId: z.string(),
 					title: z.string(),
 					description: z.string().nullable(),
@@ -372,25 +389,22 @@ export class ProcessingService {
 					publishedAt: z.iso.datetime().nullable(),
 				})
 				.nullable(),
-			// `getArticle` reads the whole articles table, so the tool is scoped to
-			// the ids this job ranked, the way `getArticles` is scoped to its fetch
-			// snapshot. An id the model made up would otherwise return a real
-			// article from another category or day, and it would be summarised and
-			// cited while `category_job_articles` never mentions it.
-		}).server(async ({ id }) => {
-			fetched.add(id);
-			if (!selected.has(id)) {
+			// Only the ranks this job selected resolve, so the tool can never hand the
+			// model an article from another category or day.
+		}).server(async ({ rank }) => {
+			fetched.add(rank);
+			const selected = byRank.get(rank);
+			if (!selected) {
 				getLoggerStore().warn(
-					{ articleId: id },
-					"getArticle asked for an article outside the ranked selection",
+					{ rank },
+					"getArticle asked for a rank outside the selection",
 				);
 				return null;
 			}
 
-			const article = await this.articlesService.getArticle(id);
+			const article = await this.articlesService.getArticle(selected.id);
 			if (!article) return null;
 			return {
-				id: article.id,
 				providerId: article.providerId,
 				title: article.title,
 				description: article.description,
@@ -435,23 +449,23 @@ export class ProcessingService {
 			.map((article, index) => ({ ...article, rank: index }));
 	}
 
-	// Filtering out a skipped call or invented ids would pass a broken run off as a quiet day.
+	// Filtering out a skipped call or invented refs would pass a broken run off as a quiet day.
 	private assertSelectionProtocol(
-		selection: { id: string }[],
+		selection: { ref: number }[],
 		served: ServedArticles,
 		usage: TokenUsageTotals,
 	) {
 		if (served.calls === 0) {
 			throw new ToolProtocolError(
-				`Article selection answered without calling getArticles (${selection.length} ids returned)`,
+				`Article selection answered without calling getArticles (${selection.length} refs returned)`,
 				usage,
 			);
 		}
 
-		const invented = selection.filter(({ id }) => !served.ids.has(id));
+		const invented = selection.filter(({ ref }) => !served.refs.has(ref));
 		if (invented.length > 0) {
 			throw new ToolProtocolError(
-				`Article selection returned ${invented.length} ids that getArticles never served`,
+				`Article selection returned ${invented.length} refs that getArticles never served`,
 				usage,
 			);
 		}
@@ -468,7 +482,7 @@ export class ProcessingService {
 
 		const usage = createUsageCollector("selection");
 		const runError = createRunErrorCollector();
-		const served: ServedArticles = { calls: 0, ids: new Set() };
+		const served: ServedArticles = { calls: 0, refs: new Set() };
 
 		const selection = await withDeadline({
 			context: "Article selection",
@@ -498,13 +512,25 @@ export class ProcessingService {
 					// The selection is wrapped in an object: a structured output whose root
 					// is an array comes back empty, the model never fills it.
 					//
-					// Ids and ranks only. Making the model copy titles back verbatim spends
+					// Refs and ranks only. Making the model copy titles back verbatim spends
 					// its output budget on text the database already holds — on a busy day
 					// it runs out before finishing, and the call returns nothing at all.
 					outputSchema: z.object({
-						articles: z.array(z.object({ id: z.string(), rank: z.number() })),
+						articles: z.array(
+							z.object({
+								ref: boundedIndex(1, observed.length),
+								rank: z.number(),
+							}),
+						),
 					}),
 				}).catch((err) => {
+					// A non-strict upstream can still answer a ref outside the bounds; it is the same broken protocol, and its cost must be recorded.
+					if (isSchemaViolation(err)) {
+						throw new ToolProtocolError(
+							`Article selection answered outside its schema: ${err.message}`,
+							usage.report(),
+						);
+					}
 					throw runError.explain(err);
 				}),
 		});
@@ -512,25 +538,34 @@ export class ProcessingService {
 		const report = usage.report();
 		this.assertSelectionProtocol(selection.articles, served, report);
 
-		const byId = new Map(observed.map((article) => [article.id, article]));
-
-		const articles = this.normalizeSelection(selection.articles)
-			.map(({ id, rank }) => {
-				const article = byId.get(id);
+		const articles = this.normalizeSelection(
+			selection.articles.flatMap(({ ref, rank }) => {
+				const article = observed[ref - 1];
 				return article
-					? { id, rank, providerId: article.providerId, title: article.title }
-					: null;
-			})
-			.filter((article) => article !== null);
+					? [
+							{
+								id: article.id,
+								rank,
+								providerId: article.providerId,
+								title: article.title,
+							},
+						]
+					: [];
+			}),
+		);
 
 		return { articles, usage: report };
 	}
 
 	async makeSummary(
-		articles: { id: string; title: string; rank: number }[],
+		selection: { id: string; title: string; rank: number }[],
 		targetDate: Date,
 		category: { name: string; language: Language },
 	) {
+		// getArticle's bounds assume ranks 0..n-1, whatever spacing the caller used.
+		const articles = [...selection]
+			.sort((a, b) => a.rank - b.rank)
+			.map((article, rank) => ({ ...article, rank }));
 		const targetWordCount = Math.min(
 			BASE_SUMMARY_WORDS + articles.length * WORDS_PER_ARTICLE,
 			MAX_SUMMARY_WORDS,
@@ -538,7 +573,7 @@ export class ProcessingService {
 
 		const usage = createUsageCollector("summary");
 		const runError = createRunErrorCollector();
-		const fetched = new Set<string>();
+		const fetched = new Set<number>();
 
 		const resume = await withDeadline({
 			context: "Brief writing",
@@ -579,7 +614,7 @@ export class ProcessingService {
 		});
 
 		const report = usage.report();
-		const unread = articles.filter(({ id }) => !fetched.has(id));
+		const unread = articles.filter(({ rank }) => !fetched.has(rank));
 		if (unread.length > 0) {
 			throw new ToolProtocolError(
 				`Brief written without fetching ${unread.length} of its ${articles.length} articles: ${unread.map(({ id }) => id).join(", ")}`,

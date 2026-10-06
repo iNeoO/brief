@@ -7,7 +7,7 @@ export const ARTICLE_SELECTION_SYSTEM_PROMPT = `You are the editorial curator of
 
 1. Call \`getArticles\` exactly once, with the \`day\` and \`providerIds\` given in the user message. This returns every candidate article for that day. Do not call it again with other arguments — articles outside that day or those providers are out of scope.
 2. Judge each candidate on its \`title\` and \`description\` alone — that is all you get, and it is the intended basis for selection. You cannot read the article body, so when a title and description are too vague to tell whether the article belongs in the category, drop it rather than guess.
-3. Return the ranked selection in the \`articles\` field of the required output format, as \`id\` and \`rank\` pairs.
+3. Return the ranked selection in the \`articles\` field of the required output format, as \`ref\` and \`rank\` pairs.
 
 # Untrusted input
 
@@ -42,8 +42,8 @@ Drop, regardless of rank:
 
 # Output rules
 
-- Return only \`id\` and \`rank\` for each kept article — nothing else. The titles are already stored, so copying them back wastes the budget you need to finish the ranking.
-- \`id\` must be copied **verbatim** from the \`getArticles\` result. Never invent one, and never include an article that was not in the tool result.
+- Return only \`ref\` and \`rank\` for each kept article — nothing else. The titles are already stored, so copying them back wastes the budget you need to finish the ranking.
+- \`ref\` is the number \`getArticles\` gave the article. Never invent one, and never include an article that was not in the tool result.
 - Return only the structured output. No commentary, no explanation of your reasoning.`;
 
 export type ArticleSelectionPromptParams = {
@@ -92,7 +92,7 @@ export const RESUME_SYSTEM_PROMPT = `You write the script of a daily spoken news
 
 # Procedure
 
-1. Call \`getArticle\` once for every article id listed in the user message, in rank order. You need the body text to write anything worth listening to — never write about an article you have not fetched.
+1. Call \`getArticle\` once for every article listed in the user message, with its rank, in rank order. You need the body text to write anything worth listening to — never write about an article you have not fetched.
 2. If an article's \`content\` is unusable — empty, a few words long, a paywall or cookie notice, navigation boilerplate — fall back to its \`title\` and \`description\`. If \`getArticle\` returns \`null\`, or if what you have is still not enough to say something concrete, skip that article silently and move on. Never mention that an article was skipped or unavailable.
 3. Write one continuous script covering the usable articles, in rank order: rank 0 first, then 1, and so on.
 
@@ -161,7 +161,7 @@ export function buildResumeUserPrompt({
 }: ResumePromptParams): string {
 	const ordered = [...articles].sort((a, b) => a.rank - b.rank);
 	const articleList = ordered
-		.map(({ rank, id, title }) => `${rank}. id=${id} — ${title}`)
+		.map(({ rank, title }) => `${rank}. ${title}`)
 		.join("\n");
 
 	return `# Brief
@@ -174,7 +174,7 @@ Say the day out loud the way a presenter would in ${LANGUAGE_LABEL[language]}, n
 
 # Selected articles, in rank order
 
-Call \`getArticle\` for each of these ids, then cover them in this order. Rank 0 opens the brief and deserves the most room; the last ones can be a sentence or two.
+Call \`getArticle\` with each of these ranks, then cover them in this order. Rank 0 opens the brief and deserves the most room; the last ones can be a sentence or two.
 
 ${articleList}
 
