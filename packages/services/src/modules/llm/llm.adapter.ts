@@ -1,18 +1,14 @@
 import { LLM_PROVIDER } from "@brief/common/constants";
 import type { LlmProvider } from "@brief/common/types";
 import type { AnyTextAdapter } from "@tanstack/ai";
-import {
-	OPENAI_CHAT_MODELS,
-	type OpenAIChatModel,
-	openaiText,
-} from "@tanstack/ai-openai";
+import { type OpenAIChatModel, openaiText } from "@tanstack/ai-openai";
 import { OpenAIBaseChatCompletionsTextAdapter } from "@tanstack/openai-base";
 // TanStack's adapters are typed against openai v6; the app's own SDK is v7.
 import OpenAI from "openai-tanstack";
 
 type FreeLlmConfig = { baseUrl: string; apiKey: string };
 
-export const OPENAI_TEXT_MODELS = OPENAI_CHAT_MODELS;
+export { OPENAI_CHAT_MODELS as OPENAI_TEXT_MODELS } from "@tanstack/ai-openai";
 
 export const DEFAULT_OPENAI_MODEL = "gpt-5.5" satisfies OpenAIChatModel;
 
