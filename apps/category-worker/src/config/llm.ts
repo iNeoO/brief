@@ -5,4 +5,5 @@ export const createConfiguredTextAdapter = () =>
 	createTextAdapter({
 		provider: env.LLM_PROVIDER,
 		freeLlm: { baseUrl: env.FREE_LLM_API_URL, apiKey: env.FREE_LLM_API_KEY },
+		openai: { model: env.OPENAI_MODEL },
 	});

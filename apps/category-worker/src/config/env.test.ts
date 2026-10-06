@@ -11,7 +11,10 @@ const VARS = {
 } as const;
 
 type Overrides = Partial<
-	Record<keyof typeof VARS | "LLM_PROVIDER", string | undefined>
+	Record<
+		keyof typeof VARS | "LLM_PROVIDER" | "OPENAI_MODEL",
+		string | undefined
+	>
 >;
 
 /**
@@ -68,6 +71,24 @@ describe("the worker environment", () => {
 	it("refuses a provider it does not know", async () => {
 		await expect(load({ LLM_PROVIDER: "mistral" })).rejects.toThrow(
 			/LLM_PROVIDER/,
+		);
+	});
+
+	it("prompts gpt-5.5 unless told otherwise", async () => {
+		await expect(load()).resolves.toEqual(
+			expect.objectContaining({ OPENAI_MODEL: "gpt-5.5" }),
+		);
+	});
+
+	it("prompts the OpenAI model it is given", async () => {
+		await expect(load({ OPENAI_MODEL: "gpt-5.4-mini" })).resolves.toEqual(
+			expect.objectContaining({ OPENAI_MODEL: "gpt-5.4-mini" }),
+		);
+	});
+
+	it("refuses an OpenAI model it does not know", async () => {
+		await expect(load({ OPENAI_MODEL: "gpt-5.5-turbo" })).rejects.toThrow(
+			/OPENAI_MODEL/,
 		);
 	});
 

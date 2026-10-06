@@ -43,6 +43,18 @@ describe("createTextAdapter", () => {
 		expect(adapter).toMatchObject({ name: "openai", model: "gpt-5.5" });
 	});
 
+	it("prompts the OpenAI model it is given", () => {
+		vi.stubEnv("OPENAI_API_KEY", "sk-test");
+
+		const adapter = createTextAdapter({
+			provider: LLM_PROVIDER.OPENAI,
+			freeLlm: FREE_LLM,
+			openai: { model: "gpt-5.4-mini" },
+		});
+
+		expect(adapter).toMatchObject({ name: "openai", model: "gpt-5.4-mini" });
+	});
+
 	it("prompts FreeLLMAPI with the brief key and lets its router pick the model", async () => {
 		const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
 			streamedReply("pong"),

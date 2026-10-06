@@ -1,4 +1,5 @@
 import { DEFAULT_LLM_PROVIDER, LLM_PROVIDER } from "@brief/common/constants";
+import { DEFAULT_OPENAI_MODEL, OPENAI_TEXT_MODELS } from "@brief/services/llm";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -10,6 +11,7 @@ const envSchema = z.object({
 	// finished it publishes one delivery per subscriber.
 	MESSAGE_JOB_QUEUE: z.string().min(1),
 	LLM_PROVIDER: z.enum(LLM_PROVIDER).default(DEFAULT_LLM_PROVIDER),
+	OPENAI_MODEL: z.enum(OPENAI_TEXT_MODELS).default(DEFAULT_OPENAI_MODEL),
 	FREE_LLM_API_URL: z.url(),
 	FREE_LLM_API_KEY: z.string().min(1),
 });
