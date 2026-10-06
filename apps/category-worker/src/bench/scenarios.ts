@@ -84,7 +84,7 @@ const getArticlesArgs = z.object({
 	day: z.string(),
 	providerIds: z.array(z.string()).optional(),
 });
-const getArticleArgs = z.object({ id: z.string() });
+const getArticleArgs = z.object({ rank: z.number() });
 
 const lastJson = (exchanges: Exchange[]): unknown => {
 	const content = [...exchanges]
@@ -221,7 +221,7 @@ export const runToolsProbe = async ({
 };
 
 const selectionOutputSchema = z.object({
-	articles: z.array(z.object({ id: z.string(), rank: z.number() })),
+	articles: z.array(z.object({ ref: z.number(), rank: z.number() })),
 });
 
 export const runSelection = async (
@@ -259,7 +259,14 @@ export const runSelection = async (
 	}).length;
 
 	const raw = selectionOutputSchema.safeParse(lastJson(exchanges));
-	const picks = raw.success ? raw.data.articles : [];
+	// The service serves refs, the 1-based position of each candidate in the
+	// fixture; an out-of-range ref counts as an invented id.
+	const picks = raw.success
+		? raw.data.articles.map(({ ref, rank }) => ({
+				id: category.articles[ref - 1]?.id ?? `invented-ref-${ref}`,
+				rank,
+			}))
+		: [];
 	const byId = new Map(
 		category.articles.map((article) => [article.id, article]),
 	);
@@ -382,9 +389,11 @@ export const runSummary = async (
 	await settle();
 
 	const calls = toolCallsOf(exchanges, "getArticle");
-	const requested = calls.map(
-		(call) => parseArguments(getArticleArgs, call.arguments)?.id,
-	);
+	const idAtRank = new Map(listed.map(({ id, rank }) => [rank, id]));
+	const requested = calls.map((call) => {
+		const rank = parseArguments(getArticleArgs, call.arguments)?.rank;
+		return rank === undefined ? undefined : idAtRank.get(rank);
+	});
 	const listedIds = new Set(listed.map(({ id }) => id));
 	const missingArticles = listed.filter(
 		({ id }) => !requested.includes(id),

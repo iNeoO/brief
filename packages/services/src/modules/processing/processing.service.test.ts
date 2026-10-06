@@ -12,6 +12,7 @@ import type { CategoryJobState } from "@brief/common/types";
 import type { Database } from "@brief/drizzle";
 import { type AnyTextAdapter, chat } from "@tanstack/ai";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import type { z } from "zod";
 import type { ArticlesService } from "../articles/articles.service.js";
 import type { CategoryJobsService } from "../categoryJobs/categoryJobs.service.js";
 import type { ClaimedCategoryJob } from "../categoryJobs/categoryJobs.type.js";
@@ -42,6 +43,7 @@ vi.mock("../tts/tts.helper.js", () => ({
 
 type ToolStub = {
 	name: string;
+	inputSchema: z.ZodType;
 	handler: (input: Record<string, unknown>) => Promise<unknown>;
 };
 
@@ -62,6 +64,7 @@ type ChatCall = {
 	systemPrompts: string[];
 	messages: { content: string }[];
 	tools: ToolStub[];
+	outputSchema: z.ZodType;
 	middleware?: MiddlewareStub[];
 	agentLoopStrategy?: (state: { toolCallCount: number }) => boolean;
 };
@@ -184,31 +187,33 @@ const service = () =>
 	);
 
 /** What the model answers, per call; each test overrides what it cares about. */
-let modelSelection: { id: string; rank: number }[];
+let modelSelection: { ref: number; rank: number }[];
 let modelCallsTools: boolean;
-let modelSkipsFetching: string[];
+let modelAsksProviders: string[] | undefined;
+let modelSkipsFetching: number[];
 
 /** Calls the tools the way a compliant model would before it answers. */
 const useToolsLikeTheModel = async (call: ChatCall) => {
 	const [tool] = call.tools;
 	if (!modelCallsTools || !tool) return;
 	if (isSelectionCall(call)) {
-		await tool.handler({ day: "2026-08-17" });
+		await tool.handler({ day: "2026-08-17", providerIds: modelAsksProviders });
 		return;
 	}
-	const listed = [...call.messages[0].content.matchAll(/id=(\S+)/g)].map(
-		([, id]) => id,
+	const listed = [...call.messages[0].content.matchAll(/^(\d+)\. /gm)].map(
+		([, rank]) => Number(rank),
 	);
-	for (const id of listed) {
-		if (id && !modelSkipsFetching.includes(id)) await tool.handler({ id });
+	for (const rank of listed) {
+		if (!modelSkipsFetching.includes(rank)) await tool.handler({ rank });
 	}
 };
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	rankings.length = 0;
-	modelSelection = [{ id: "article-1", rank: 0 }];
+	modelSelection = [{ ref: 1, rank: 0 }];
 	modelCallsTools = true;
+	modelAsksProviders = undefined;
 	modelSkipsFetching = [];
 	findAudioFile.mockResolvedValue({ id: "file-1" });
 
@@ -217,9 +222,17 @@ beforeEach(() => {
 		reportUsage(params, selecting ? 1 : SUMMARY_ITERATIONS);
 		await useToolsLikeTheModel(params);
 
-		return selecting
+		// chat() validates the answer against the output schema, the way the real one does.
+		const answer = selecting
 			? { articles: modelSelection }
 			: { summary: SUMMARY, sources: SOURCES };
+		const parsed = params.outputSchema.safeParse(answer);
+		if (!parsed.success) {
+			throw Object.assign(new Error(parsed.error.message), {
+				code: "structured-output-validation-failed",
+			});
+		}
+		return parsed.data;
 	});
 
 	getObservedArticles.mockResolvedValue([observedArticle(1)]);
@@ -469,8 +482,8 @@ describe("runCategoryJob", () => {
 			observedArticle(2),
 		]);
 		modelSelection = [
-			{ id: "article-2", rank: 1 },
-			{ id: "article-1", rank: 0 },
+			{ ref: 2, rank: 1 },
+			{ ref: 1, rank: 0 },
 		];
 
 		await service().runCategoryJob(job());
@@ -487,7 +500,7 @@ describe("runCategoryJob", () => {
 
 describe("a run that broke the tool protocol", () => {
 	it("still records what the selection cost before failing", async () => {
-		modelSelection = [{ id: "hallucinated", rank: 0 }];
+		modelSelection = [{ ref: 99, rank: 0 }];
 
 		await expect(service().runCategoryJob(job())).rejects.toMatchObject({
 			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
@@ -496,7 +509,7 @@ describe("a run that broke the tool protocol", () => {
 	});
 
 	it("still records what the summary cost before failing", async () => {
-		modelSkipsFetching = ["article-1"];
+		modelSkipsFetching = [0];
 
 		await expect(service().runCategoryJob(job())).rejects.toMatchObject({
 			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
@@ -518,8 +531,8 @@ describe("makeSelection", () => {
 			observedArticle(2, "provider-2"),
 		]);
 		modelSelection = [
-			{ id: "article-2", rank: 5 },
-			{ id: "article-1", rank: 2 },
+			{ ref: 2, rank: 5 },
+			{ ref: 1, rank: 2 },
 		];
 
 		// Ranks come back contiguous from zero, whatever spacing the model used.
@@ -542,11 +555,11 @@ describe("makeSelection", () => {
 		});
 	});
 
-	it("drops the ids the model repeated", async () => {
+	it("drops the articles the model repeated", async () => {
 		getObservedArticles.mockResolvedValue([observedArticle(1)]);
 		modelSelection = [
-			{ id: "article-1", rank: 0 },
-			{ id: "article-1", rank: 1 },
+			{ ref: 1, rank: 0 },
+			{ ref: 1, rank: 1 },
 		];
 
 		await expect(select()).resolves.toEqual({
@@ -562,14 +575,55 @@ describe("makeSelection", () => {
 		});
 	});
 
-	it("fails the run when the model invents an id", async () => {
+	it("fails the run when the model invents a ref", async () => {
 		modelSelection = [
-			{ id: "article-1", rank: 0 },
-			{ id: "hallucinated", rank: 1 },
+			{ ref: 1, rank: 0 },
+			{ ref: 99, rank: 1 },
 		];
 
 		await expect(select()).rejects.toMatchObject({
 			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+	});
+
+	it("only lets the structured output name a candidate's ref", async () => {
+		getObservedArticles.mockResolvedValue([
+			observedArticle(1),
+			observedArticle(2),
+		]);
+
+		await select();
+
+		const { outputSchema } = chatCalls()[0];
+		const answer = (ref: number) => ({ articles: [{ ref, rank: 0 }] });
+		expect(outputSchema.safeParse(answer(2)).success).toBe(true);
+		expect(outputSchema.safeParse(answer(0)).success).toBe(false);
+		expect(outputSchema.safeParse(answer(3)).success).toBe(false);
+	});
+
+	it("fails the run when the model names a candidate getArticles never served", async () => {
+		getObservedArticles.mockResolvedValue([
+			observedArticle(1),
+			observedArticle(2, "provider-2"),
+		]);
+		modelAsksProviders = ["provider-2"];
+		modelSelection = [{ ref: 1, rank: 0 }];
+
+		await expect(select()).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+	});
+
+	it("resolves a ref to its article when getArticles was narrowed to a provider", async () => {
+		getObservedArticles.mockResolvedValue([
+			observedArticle(1),
+			observedArticle(2, "provider-2"),
+		]);
+		modelAsksProviders = ["provider-2"];
+		modelSelection = [{ ref: 2, rank: 0 }];
+
+		await expect(select()).resolves.toMatchObject({
+			articles: [{ id: "article-2", rank: 0 }],
 		});
 	});
 
@@ -686,11 +740,26 @@ describe("makeSummary", () => {
 	});
 
 	it("fails the run when the brief was written without fetching every article", async () => {
-		modelSkipsFetching = ["article-1"];
+		modelSkipsFetching = [1];
 
 		await expect(summarize(3)).rejects.toMatchObject({
 			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
 		});
+	});
+
+	it("lists the articles from rank 0 whatever ranks it was handed", async () => {
+		await service().makeSummary(
+			[
+				{ id: "article-b", title: "Article B", rank: 7 },
+				{ id: "article-a", title: "Article A", rank: 3 },
+			],
+			TARGET_DATE,
+			{ name: "Économie", language: LANGUAGE.FR },
+		);
+
+		const prompt = chatCalls()[0].messages[0].content;
+		expect(prompt).toContain("0. Article A\n1. Article B");
+		expect(getArticle.mock.calls).toEqual([["article-a"], ["article-b"]]);
 	});
 
 	it("leaves room to fetch every selected article one call at a time", async () => {
@@ -726,14 +795,14 @@ describe("the getArticles tool", () => {
 	it("hands over the day's candidates, dates as strings", async () => {
 		await expect(callTool({ day: "2026-08-17" })).resolves.toEqual([
 			{
-				id: "article-1",
+				ref: 1,
 				providerId: "provider-1",
 				title: "Article 1",
 				description: "Description 1",
 				publishedAt: "2026-08-17T01:00:00.000Z",
 			},
 			{
-				id: "article-2",
+				ref: 2,
 				providerId: "provider-2",
 				title: "Article 2",
 				description: "Description 2",
@@ -742,20 +811,20 @@ describe("the getArticles tool", () => {
 		]);
 	});
 
-	it("narrows the candidates to the providers asked for", async () => {
+	it("narrows the candidates to the providers asked for, keeping their refs", async () => {
 		const articles = (await callTool({
 			day: "2026-08-17",
 			providerIds: ["provider-2"],
-		})) as { id: string }[];
+		})) as { ref: number }[];
 
-		expect(articles.map(({ id }) => id)).toEqual(["article-2"]);
+		expect(articles.map(({ ref }) => ref)).toEqual([2]);
 	});
 
 	it("keeps every candidate when the provider list comes back empty", async () => {
 		const articles = (await callTool({
 			day: "2026-08-17",
 			providerIds: [],
-		})) as { id: string }[];
+		})) as { ref: number }[];
 
 		expect(articles).toHaveLength(2);
 	});
@@ -772,7 +841,7 @@ describe("the getArticles tool", () => {
 });
 
 describe("the getArticle tool", () => {
-	const callTool = async (input: Record<string, unknown>) => {
+	const getArticleTool = async () => {
 		await service().makeSummary(
 			[
 				{ id: "article-1", title: "Article 1", rank: 0 },
@@ -785,8 +854,11 @@ describe("the getArticle tool", () => {
 		const [tool] = chatCalls().filter((call) => !isSelectionCall(call))[0]
 			.tools;
 		getArticle.mockClear();
-		return tool.handler(input);
+		return tool;
 	};
+
+	const callTool = async (input: Record<string, unknown>) =>
+		(await getArticleTool()).handler(input);
 
 	beforeEach(() => {
 		getArticle.mockResolvedValue({
@@ -801,8 +873,7 @@ describe("the getArticle tool", () => {
 	});
 
 	it("serves a ranked article, dates as strings", async () => {
-		await expect(callTool({ id: "article-1" })).resolves.toEqual({
-			id: "article-1",
+		await expect(callTool({ rank: 0 })).resolves.toEqual({
 			providerId: "provider-1",
 			title: "Article 1",
 			description: "Description 1",
@@ -810,16 +881,25 @@ describe("the getArticle tool", () => {
 			url: "https://example.test/article-1",
 			publishedAt: "2026-08-17T01:00:00.000Z",
 		});
+		expect(getArticle).toHaveBeenCalledWith("article-1");
 	});
 
-	it("refuses an id outside the ranked selection without reading the table", async () => {
-		await expect(callTool({ id: "article-99" })).resolves.toBeNull();
+	it("refuses a rank outside the selection without reading the table", async () => {
+		await expect(callTool({ rank: 99 })).resolves.toBeNull();
 		expect(getArticle).not.toHaveBeenCalled();
+	});
+
+	it("only lets the model ask for a selected rank", async () => {
+		const { inputSchema } = await getArticleTool();
+
+		expect(inputSchema.safeParse({ rank: 1 }).success).toBe(true);
+		expect(inputSchema.safeParse({ rank: -1 }).success).toBe(false);
+		expect(inputSchema.safeParse({ rank: 2 }).success).toBe(false);
 	});
 
 	it("reports a ranked article that has since disappeared", async () => {
 		getArticle.mockResolvedValue(undefined);
 
-		await expect(callTool({ id: "article-1" })).resolves.toBeNull();
+		await expect(callTool({ rank: 0 })).resolves.toBeNull();
 	});
 });

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { LLM_PROVIDER } from "@brief/common/constants";
 import { createTextAdapter } from "@brief/services";
+import { OPENAI_TEXT_MODELS } from "@brief/services/llm";
 import { z } from "zod";
 import { createCapture, type Exchange } from "../bench/capture.js";
 import {
@@ -115,6 +116,37 @@ const resolveDirs = (dirs: string[] | undefined) =>
 		isAbsolute(dir) ? dir : join(RESULTS_DIR, basename(dir)),
 	);
 
+const OPENAI_PREFIX = "openai/";
+
+// `openai/<model>` goes through the production OpenAI adapter, so its mode is the
+// adapter's own and --mode has no effect on it.
+const adapterFor = (
+	model: string,
+	mode: Mode,
+	fetch: typeof globalThis.fetch,
+) => {
+	if (!model.startsWith(OPENAI_PREFIX)) {
+		return createTextAdapter({
+			provider: LLM_PROVIDER.FREELLMAPI,
+			freeLlm: {
+				baseUrl,
+				apiKey,
+				model,
+				combinedToolsAndSchema: mode === MODE.COMBINED,
+				fetch,
+				maxRetries: 0,
+			},
+		});
+	}
+	const openAiModel = z
+		.enum(OPENAI_TEXT_MODELS)
+		.parse(model.slice(OPENAI_PREFIX.length));
+	return createTextAdapter({
+		provider: LLM_PROVIDER.OPENAI,
+		openai: { model: openAiModel, fetch },
+	});
+};
+
 const contextFor = (
 	model: string,
 	mode: Mode,
@@ -122,17 +154,7 @@ const contextFor = (
 ): RunContext => {
 	const capture = createCapture(budget, live);
 	return {
-		adapter: createTextAdapter({
-			provider: LLM_PROVIDER.FREELLMAPI,
-			freeLlm: {
-				baseUrl,
-				apiKey,
-				model,
-				combinedToolsAndSchema: mode === MODE.COMBINED,
-				fetch: capture.fetch,
-				maxRetries: 0,
-			},
-		}),
+		adapter: adapterFor(model, mode, capture.fetch),
 		exchanges: capture.exchanges,
 		settle: capture.settle,
 		abort: capture.abort,

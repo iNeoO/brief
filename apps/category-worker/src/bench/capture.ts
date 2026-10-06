@@ -20,7 +20,9 @@ type ChatRequest = {
 	model?: string;
 	tools?: unknown[];
 	response_format?: unknown;
+	text?: { format?: { type?: string } };
 	messages?: { role?: string }[];
+	input?: { type?: string }[] | string;
 };
 
 type ChoiceDelta = {
@@ -42,6 +44,29 @@ export type CompletionChunk = {
 	error?: { message?: string };
 };
 
+type ResponsesItem = {
+	type?: string;
+	call_id?: string;
+	name?: string;
+	arguments?: string;
+	content?: { text?: string }[];
+};
+
+type ResponsesBody = {
+	object?: string;
+	status?: string;
+	output?: ResponsesItem[];
+	usage?: { input_tokens?: number; output_tokens?: number } | null;
+	error?: { message?: string } | null;
+	incomplete_details?: { reason?: string } | null;
+};
+
+export type ResponsesEvent = ResponsesBody & {
+	type?: string;
+	message?: string;
+	response?: ResponsesBody;
+};
+
 const parseJson = <T>(text: string): T | undefined => {
 	try {
 		return JSON.parse(text);
@@ -53,10 +78,10 @@ const parseJson = <T>(text: string): T | undefined => {
 const parseRequest = (body: unknown): ChatRequest =>
 	(typeof body === "string" && parseJson<ChatRequest>(body)) || {};
 
-const readChunks = (text: string): CompletionChunk[] => {
+const readChunks = <Chunk>(text: string): Chunk[] => {
 	const trimmed = text.trim();
-	if (!trimmed.startsWith("data:")) {
-		const body = parseJson<CompletionChunk>(trimmed);
+	if (!/^(data|event):/m.test(trimmed)) {
+		const body = parseJson<Chunk>(trimmed);
 		return body ? [body] : [];
 	}
 	return trimmed
@@ -64,8 +89,45 @@ const readChunks = (text: string): CompletionChunk[] => {
 		.filter((line) => line.startsWith("data:"))
 		.map((line) => line.slice(5).trim())
 		.filter((payload) => payload && payload !== "[DONE]")
-		.flatMap((payload) => parseJson<CompletionChunk>(payload) ?? []);
+		.flatMap((payload) => parseJson<Chunk>(payload) ?? []);
 };
+
+// The Responses API that openaiText speaks closes its stream, or its plain
+// body, with the whole response, so that final object is all that is read.
+export const assembleResponses = (events: ResponsesEvent[]) => {
+	const final =
+		events.findLast((event) => event.response)?.response ??
+		events.findLast((event) => event.object === "response");
+	const streamError = events.findLast((event) => event.type === "error");
+	const output = final?.output ?? [];
+	return {
+		content: output
+			.filter((item) => item.type === "message")
+			.flatMap((item) => item.content ?? [])
+			.map((part) => part.text ?? "")
+			.join(""),
+		finishReason: final?.incomplete_details?.reason ?? final?.status ?? null,
+		promptTokens: final?.usage?.input_tokens ?? 0,
+		completionTokens: final?.usage?.output_tokens ?? 0,
+		error:
+			final?.error?.message ??
+			streamError?.message ??
+			streamError?.error?.message ??
+			null,
+		toolCalls: output
+			.filter((item) => item.type === "function_call")
+			.map((item) => ({
+				id: item.call_id ?? "",
+				name: item.name ?? "",
+				arguments: item.arguments ?? "",
+			})),
+	};
+};
+
+const isResponsesCall = (input: Parameters<typeof globalThis.fetch>[0]) =>
+	new URL(input instanceof Request ? input.url : input).pathname.endsWith(
+		"/responses",
+	);
 
 const mergeToolCallDeltas = (
 	calls: Map<number, CapturedToolCall>,
@@ -142,10 +204,16 @@ export const createCapture = (
 		const base = {
 			model: request.model ?? "",
 			hasTools: (request.tools?.length ?? 0) > 0,
-			hasResponseFormat: request.response_format !== undefined,
+			hasResponseFormat:
+				request.response_format !== undefined ||
+				request.text?.format?.type === "json_schema",
 			toolResultsSent:
-				request.messages?.filter((message) => message.role === "tool").length ??
-				0,
+				(request.messages?.filter((message) => message.role === "tool")
+					.length ?? 0) +
+				(Array.isArray(request.input)
+					? request.input.filter((item) => item.type === "function_call_output")
+							.length
+					: 0),
 			content: "",
 			toolCalls: [],
 			finishReason: null,
@@ -176,7 +244,9 @@ export const createCapture = (
 			.clone()
 			.text()
 			.then((text) => {
-				const assembled = assemble(readChunks(text));
+				const assembled = isResponsesCall(input)
+					? assembleResponses(readChunks<ResponsesEvent>(text))
+					: assemble(readChunks<CompletionChunk>(text));
 				record({
 					...base,
 					...assembled,

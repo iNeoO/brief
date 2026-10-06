@@ -85,7 +85,7 @@ const DISQUALIFIERS: [label: string, applies: (rows: Row[]) => boolean][] = [
 		"JSON non conforme",
 		(rows) => rows.some((row) => row.schemaValid === false),
 	],
-	["UUID inventé", (rows) => rows.some((row) => (row.inventedIds ?? 0) > 0)],
+	["réf. inventée", (rows) => rows.some((row) => (row.inventedIds ?? 0) > 0)],
 	["sélection vide", (rows) => rows.some((row) => row.unjustifiedEmpty)],
 	[
 		"getArticles ≠ 1 appel",
@@ -257,7 +257,7 @@ const rankScore = (entry: Aggregate) =>
 const DETAIL_HEADER: Record<string, string> = {
 	tools: "appels",
 	selection:
-		"UUID inventés / vides / pièges / paires doublons / recouvrement réf.",
+		"réf. inventées / vides / pièges / paires doublons / recouvrement réf.",
 	summary:
 		"non lus / fuite injection / ratio longueur / hallu. graves+mineures / note",
 };
