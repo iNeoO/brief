@@ -9,7 +9,10 @@ export { OPENAI_CHAT_MODELS as OPENAI_TEXT_MODELS } from "@tanstack/ai-openai";
 
 export const DEFAULT_OPENAI_MODEL = "gpt-5.5" satisfies OpenAIChatModel;
 
-export type OpenAiConfig = { model?: OpenAIChatModel };
+export type OpenAiConfig = {
+	model?: OpenAIChatModel;
+	fetch?: typeof globalThis.fetch;
+};
 
 type FreeLlmConfig = {
 	baseUrl: string;
@@ -52,4 +55,6 @@ class FreeLlmTextAdapter extends OpenAIBaseChatCompletionsTextAdapter<string> {
 export const createTextAdapter = (config: TextAdapterConfig): AnyTextAdapter =>
 	config.provider === LLM_PROVIDER.FREELLMAPI
 		? new FreeLlmTextAdapter(config.freeLlm)
-		: openaiText(config.openai?.model ?? DEFAULT_OPENAI_MODEL);
+		: openaiText(config.openai?.model ?? DEFAULT_OPENAI_MODEL, {
+				fetch: config.openai?.fetch,
+			});
