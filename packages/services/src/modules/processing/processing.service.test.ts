@@ -669,6 +669,22 @@ describe("makeSummary", () => {
 		expect(chatCalls()[0].messages[0].content).toContain("about 750 words");
 	});
 
+	it("names the router's error when the brief could not be written", async () => {
+		chatMock.mockImplementation(async (params: ChatCall) => {
+			for (const middleware of params.middleware ?? []) {
+				middleware.onChunk?.(undefined, {
+					type: "RUN_ERROR",
+					message: "502 empty_completion",
+				});
+			}
+			throw new Error("structured output finalization produced no result");
+		});
+
+		await expect(summarize(1)).rejects.toThrow(
+			"structured output finalization produced no result ← 502 empty_completion",
+		);
+	});
+
 	it("fails the run when the brief was written without fetching every article", async () => {
 		modelSkipsFetching = ["article-1"];
 
