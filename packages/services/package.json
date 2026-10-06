@@ -48,6 +48,12 @@
 				"types": "./dist/modules/mail/mail.service.d.ts",
 				"default": "./dist/modules/mail/mail.service.js"
 			}
+		},
+		"./llm": {
+			"import": {
+				"types": "./dist/modules/llm/llm.adapter.d.ts",
+				"default": "./dist/modules/llm/llm.adapter.js"
+			}
 		}
 	},
 	"devDependencies": {
