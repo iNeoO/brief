@@ -6,8 +6,11 @@ type WithDeadlineOptions<T> = {
 	context: string;
 	timeoutMs: number;
 	timeoutCode: InternalErrorCode;
+	abortGraceMs?: number;
 	run: (abortController: AbortController) => Promise<T>;
 };
+
+const DEFAULT_ABORT_GRACE_MS = 30_000;
 
 /**
  * Runs `run` under a wall-clock deadline and turns a hit deadline into an
@@ -27,20 +30,31 @@ export const withDeadline = async <T>({
 	context,
 	timeoutMs,
 	timeoutCode,
+	abortGraceMs = DEFAULT_ABORT_GRACE_MS,
 	run,
 }: WithDeadlineOptions<T>): Promise<T> => {
 	const abortController = new AbortController();
+	const message = `${context} passed its ${timeoutMs}ms deadline`;
+	let giveUp: NodeJS.Timeout | undefined;
 	const timeout = setTimeout(() => abortController.abort(), timeoutMs);
 
+	// chat() can stay pending after its abort when no request is in flight to cancel.
+	const abandoned = new Promise<never>((_, reject) => {
+		giveUp = setTimeout(
+			() => reject(new InternalError({ message, code: timeoutCode })),
+			timeoutMs + abortGraceMs,
+		);
+	});
+
 	try {
-		return await run(abortController);
+		return await Promise.race([run(abortController), abandoned]);
 	} catch (err) {
 		if (!abortController.signal.aborted) throw err;
 
-		const message = `${context} passed its ${timeoutMs}ms deadline`;
 		getLoggerStore().warn({ err }, message);
 		throw new InternalError({ message, code: timeoutCode });
 	} finally {
 		clearTimeout(timeout);
+		clearTimeout(giveUp);
 	}
 };

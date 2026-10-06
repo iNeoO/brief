@@ -3,6 +3,7 @@ import {
 	CATEGORY_JOB_OUTCOME,
 	CATEGORY_JOB_STATE,
 	FILE_KIND,
+	INTERNAL_ERROR_CODE,
 	JOB_STATUS,
 	LANGUAGE,
 	MIME_TYPE,
@@ -53,6 +54,7 @@ type UsageTotals = {
 type MiddlewareStub = {
 	onIteration?: () => void;
 	onUsage?: (ctx: unknown, usage: UsageTotals) => void;
+	onChunk?: (ctx: unknown, chunk: { type: string; message?: string }) => void;
 };
 
 type ChatCall = {
@@ -183,16 +185,37 @@ const service = () =>
 
 /** What the model answers, per call; each test overrides what it cares about. */
 let modelSelection: { id: string; rank: number }[];
+let modelCallsTools: boolean;
+let modelSkipsFetching: string[];
+
+/** Calls the tools the way a compliant model would before it answers. */
+const useToolsLikeTheModel = async (call: ChatCall) => {
+	const [tool] = call.tools;
+	if (!modelCallsTools || !tool) return;
+	if (isSelectionCall(call)) {
+		await tool.handler({ day: "2026-08-17" });
+		return;
+	}
+	const listed = [...call.messages[0].content.matchAll(/id=(\S+)/g)].map(
+		([, id]) => id,
+	);
+	for (const id of listed) {
+		if (id && !modelSkipsFetching.includes(id)) await tool.handler({ id });
+	}
+};
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	rankings.length = 0;
 	modelSelection = [{ id: "article-1", rank: 0 }];
+	modelCallsTools = true;
+	modelSkipsFetching = [];
 	findAudioFile.mockResolvedValue({ id: "file-1" });
 
 	chatMock.mockImplementation(async (params: ChatCall) => {
 		const selecting = isSelectionCall(params);
 		reportUsage(params, selecting ? 1 : SUMMARY_ITERATIONS);
+		await useToolsLikeTheModel(params);
 
 		return selecting
 			? { articles: modelSelection }
@@ -462,6 +485,26 @@ describe("runCategoryJob", () => {
 	});
 });
 
+describe("a run that broke the tool protocol", () => {
+	it("still records what the selection cost before failing", async () => {
+		modelSelection = [{ id: "hallucinated", rank: 0 }];
+
+		await expect(service().runCategoryJob(job())).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+		expect(addTokenUsage).toHaveBeenCalledWith(42, ITERATION_USAGE);
+	});
+
+	it("still records what the summary cost before failing", async () => {
+		modelSkipsFetching = ["article-1"];
+
+		await expect(service().runCategoryJob(job())).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+		expect(addTokenUsage).toHaveBeenCalledTimes(2);
+	});
+});
+
 describe("makeSelection", () => {
 	const select = () =>
 		service().makeSelection(42, TARGET_DATE, {
@@ -499,12 +542,11 @@ describe("makeSelection", () => {
 		});
 	});
 
-	it("drops the ids the model invented and the ones it repeated", async () => {
+	it("drops the ids the model repeated", async () => {
 		getObservedArticles.mockResolvedValue([observedArticle(1)]);
 		modelSelection = [
 			{ id: "article-1", rank: 0 },
 			{ id: "article-1", rank: 1 },
-			{ id: "hallucinated", rank: 2 },
 		];
 
 		await expect(select()).resolves.toEqual({
@@ -520,6 +562,34 @@ describe("makeSelection", () => {
 		});
 	});
 
+	it("fails the run when the model invents an id", async () => {
+		modelSelection = [
+			{ id: "article-1", rank: 0 },
+			{ id: "hallucinated", rank: 1 },
+		];
+
+		await expect(select()).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+	});
+
+	it("fails the run when the model ranked articles it never asked for", async () => {
+		modelCallsTools = false;
+
+		await expect(select()).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+	});
+
+	it("does not take an empty selection for a quiet day when getArticles was never called", async () => {
+		modelCallsTools = false;
+		modelSelection = [];
+
+		await expect(select()).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
+	});
+
 	it("returns nothing when no candidate fits the category", async () => {
 		modelSelection = [];
 
@@ -527,6 +597,22 @@ describe("makeSelection", () => {
 			articles: [],
 			usage: ITERATION_USAGE,
 		});
+	});
+
+	it("names the router's error instead of the empty structured output it caused", async () => {
+		chatMock.mockImplementation(async (params: ChatCall) => {
+			for (const middleware of params.middleware ?? []) {
+				middleware.onChunk?.(undefined, {
+					type: "RUN_ERROR",
+					message: "429 All models exhausted",
+				});
+			}
+			throw new Error("structured output finalization produced no result");
+		});
+
+		await expect(select()).rejects.toThrow(
+			"structured output finalization produced no result ← 429 All models exhausted",
+		);
 	});
 
 	it("gives the model the distinct providers of the day, once each", async () => {
@@ -581,6 +667,14 @@ describe("makeSummary", () => {
 		await summarize(10);
 
 		expect(chatCalls()[0].messages[0].content).toContain("about 750 words");
+	});
+
+	it("fails the run when the brief was written without fetching every article", async () => {
+		modelSkipsFetching = ["article-1"];
+
+		await expect(summarize(3)).rejects.toMatchObject({
+			code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION,
+		});
 	});
 
 	it("leaves room to fetch every selected article one call at a time", async () => {
@@ -674,6 +768,7 @@ describe("the getArticle tool", () => {
 
 		const [tool] = chatCalls().filter((call) => !isSelectionCall(call))[0]
 			.tools;
+		getArticle.mockClear();
 		return tool.handler(input);
 	};
 

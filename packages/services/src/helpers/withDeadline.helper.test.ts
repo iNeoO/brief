@@ -46,6 +46,17 @@ describe("withDeadline", () => {
 		expect(err.message).toBe("Article selection passed its 10ms deadline");
 	});
 
+	it("gives up on a run that ignores its abort", async () => {
+		const err = await withDeadline({
+			...options,
+			abortGraceMs: 10,
+			run: () => new Promise<never>(() => undefined),
+		}).catch((e) => e);
+
+		expect(err).toBeInstanceOf(InternalError);
+		expect(err.code).toBe("AI_TIMEOUT");
+	});
+
 	it("leaves a failure of its own alone", async () => {
 		const err = new Error("429 Too Many Requests");
 

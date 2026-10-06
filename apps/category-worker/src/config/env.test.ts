@@ -12,7 +12,7 @@ const VARS = {
 
 type Overrides = Partial<
 	Record<
-		keyof typeof VARS | "LLM_PROVIDER" | "OPENAI_MODEL",
+		keyof typeof VARS | "LLM_PROVIDER" | "OPENAI_MODEL" | "FREE_LLM_MODEL",
 		string | undefined
 	>
 >;
@@ -62,10 +62,34 @@ describe("the worker environment", () => {
 		);
 	});
 
-	it("prompts FreeLLMAPI when it is the chosen provider", async () => {
-		await expect(load({ LLM_PROVIDER: "freellmapi" })).resolves.toEqual(
-			expect.objectContaining({ LLM_PROVIDER: "freellmapi" }),
+	it("prompts FreeLLMAPI's pinned model when it is the chosen provider", async () => {
+		await expect(
+			load({ LLM_PROVIDER: "freellmapi", FREE_LLM_MODEL: "gemini-3.5-flash" }),
+		).resolves.toEqual(
+			expect.objectContaining({
+				LLM_PROVIDER: "freellmapi",
+				FREE_LLM_MODEL: "gemini-3.5-flash",
+			}),
 		);
+	});
+
+	it("ignores the empty model the example env ships when OpenAI answers", async () => {
+		await expect(load({ FREE_LLM_MODEL: "" })).resolves.toEqual(
+			expect.objectContaining({ LLM_PROVIDER: "openai" }),
+		);
+	});
+
+	it("refuses FreeLLMAPI without a pinned model", async () => {
+		await expect(load({ LLM_PROVIDER: "freellmapi" })).rejects.toThrow(
+			/FREE_LLM_MODEL/,
+		);
+	});
+
+	it("refuses FreeLLMAPI's auto routing", async () => {
+		// `auto` picked a model that skipped getArticles on 2026-10-06 and emptied every brief.
+		await expect(
+			load({ LLM_PROVIDER: "freellmapi", FREE_LLM_MODEL: "auto:fast" }),
+		).rejects.toThrow(/FREE_LLM_MODEL/);
 	});
 
 	it("refuses a provider it does not know", async () => {
