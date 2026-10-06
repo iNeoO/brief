@@ -160,13 +160,15 @@ const plantTraps = (articles: FixtureArticle[], categoryName: string) => {
 		[fourth.id, unusable],
 	]);
 	const keep = new Set([first, second, third, fourth].map(({ id }) => id));
-	const droppable = articles
-		.filter(({ id }) => !keep.has(id))
-		.slice(-added.length)
-		.map(({ id }) => id);
+	const droppable = new Set(
+		articles
+			.filter(({ id }) => !keep.has(id))
+			.slice(-added.length)
+			.map(({ id }) => id),
+	);
 
 	const withTraps = articles
-		.filter(({ id }) => !droppable.includes(id))
+		.filter(({ id }) => !droppable.has(id))
 		.map((article) => planted.get(article.id) ?? article);
 
 	const step = Math.floor(withTraps.length / added.length);

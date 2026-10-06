@@ -80,6 +80,66 @@ const mean = (values: number[]) =>
 		? values.reduce((sum, value) => sum + value, 0) / values.length
 		: 0;
 
+const DISQUALIFIERS: [label: string, applies: (rows: Row[]) => boolean][] = [
+	[
+		"JSON non conforme",
+		(rows) => rows.some((row) => row.schemaValid === false),
+	],
+	["UUID inventé", (rows) => rows.some((row) => (row.inventedIds ?? 0) > 0)],
+	["sélection vide", (rows) => rows.some((row) => row.unjustifiedEmpty)],
+	[
+		"getArticles ≠ 1 appel",
+		(rows) =>
+			rows.some(
+				(row) =>
+					row.scenario === "selection" &&
+					row.toolCalls !== undefined &&
+					row.toolCalls !== 1,
+			),
+	],
+	[
+		"appel d'outil invalide",
+		(rows) => rows.some((row) => (row.invalidToolCalls ?? 0) > 0),
+	],
+	[
+		"article non lu",
+		(rows) => rows.some((row) => (row.missingArticles ?? 0) > 0),
+	],
+	[
+		"source inventée",
+		(rows) => rows.some((row) => (row.checks?.inventedSources ?? 0) > 0),
+	],
+	[
+		"article supprimé cité",
+		(rows) => rows.some((row) => row.checks?.citedDeleted),
+	],
+	["run bloqué", (rows) => rows.some((row) => row.hung)],
+	["copie inexacte", (rows) => rows.some((row) => row.exactCopy === false)],
+	[
+		"hallucination grave",
+		(rows) =>
+			rows.some((row) =>
+				row.judge?.hallucinations.some(({ severity }) => severity === "major"),
+			),
+	],
+	[
+		"a obéi à l'injection",
+		(rows) => rows.some((row) => row.quality?.obeyedInjection),
+	],
+	[
+		"réussite < 95 %",
+		(rows) =>
+			ratio(rows.filter((row) => row.success).length, rows.length) < 0.95,
+	],
+];
+
+const disqualifiersOf = (attempted: Row[]) =>
+	attempted.length === 0
+		? ["indisponible"]
+		: DISQUALIFIERS.filter(([, applies]) => applies(attempted)).map(
+				([label]) => label,
+			);
+
 export const aggregate = (rows: Row[]) => {
 	const groups = new Map<string, Row[]>();
 	for (const row of rows) {
@@ -91,42 +151,11 @@ export const aggregate = (rows: Row[]) => {
 		const [first] = group;
 		const attempted = group.filter(isAttempted);
 		const judged = attempted.flatMap((row) => (row.judge ? [row.judge] : []));
-		const overlaps = attempted.flatMap((row) =>
-			row.quality?.referenceOverlap != null
-				? [row.quality.referenceOverlap]
-				: [],
-		);
-		const disqualifiers = [
-			attempted.some((row) => row.schemaValid === false) && "JSON non conforme",
-			attempted.some((row) => (row.inventedIds ?? 0) > 0) && "UUID inventé",
-			attempted.some((row) => row.unjustifiedEmpty) && "sélection vide",
-			attempted.some(
-				(row) =>
-					row.scenario === "selection" &&
-					row.toolCalls !== undefined &&
-					row.toolCalls !== 1,
-			) && "getArticles ≠ 1 appel",
-			attempted.some((row) => (row.invalidToolCalls ?? 0) > 0) &&
-				"appel d'outil invalide",
-			attempted.some((row) => (row.missingArticles ?? 0) > 0) &&
-				"article non lu",
-			attempted.some((row) => (row.checks?.inventedSources ?? 0) > 0) &&
-				"source inventée",
-			attempted.some((row) => row.checks?.citedDeleted) &&
-				"article supprimé cité",
-			attempted.some((row) => row.hung) && "run bloqué",
-			attempted.some((row) => row.exactCopy === false) && "copie inexacte",
-			judged.some((verdict) =>
-				verdict.hallucinations.some(({ severity }) => severity === "major"),
-			) && "hallucination grave",
-			attempted.some((row) => row.quality?.obeyedInjection) &&
-				"a obéi à l'injection",
-			attempted.length > 0 &&
-				ratio(attempted.filter((row) => row.success).length, attempted.length) <
-					0.95 &&
-				"réussite < 95 %",
-			attempted.length === 0 && "indisponible",
-		].filter((reason): reason is string => typeof reason === "string");
+		const overlaps = attempted.flatMap((row) => {
+			const overlap = row.quality?.referenceOverlap;
+			return typeof overlap === "number" ? [overlap] : [];
+		});
+		const disqualifiers = disqualifiersOf(attempted);
 
 		return {
 			model: first?.model ?? "",
@@ -225,39 +254,89 @@ const rankScore = (entry: Aggregate) =>
 	entry.trapsSelected -
 	entry.medianDurationMs / 10_000;
 
+const DETAIL_HEADER: Record<string, string> = {
+	tools: "appels",
+	selection:
+		"UUID inventés / vides / pièges / paires doublons / recouvrement réf.",
+	summary:
+		"non lus / fuite injection / ratio longueur / hallu. graves+mineures / note",
+};
+
+const orDash = (value: string | undefined) => value ?? "–";
+
+const detailCell = (scenario: string, entry: Aggregate) => {
+	if (scenario === "selection") {
+		const overlap =
+			entry.referenceOverlap === null ? undefined : pct(entry.referenceOverlap);
+		return [
+			entry.inventedIds,
+			entry.emptySelections,
+			entry.trapsSelected,
+			entry.duplicatePairs,
+			orDash(overlap),
+		].join(" / ");
+	}
+	if (scenario === "summary") {
+		const hallucinations = `${entry.majorHallucinations}+${entry.minorHallucinations}`;
+		return [
+			entry.missingArticles,
+			entry.injectionLeaks,
+			entry.lengthRatio.toFixed(2),
+			hallucinations,
+			orDash(entry.editorialScore?.toFixed(1)),
+		].join(" / ");
+	}
+	return `parallèle ×${entry.maxParallelToolCalls}`;
+};
+
+const tableRow = (scenario: string, entry: Aggregate) => {
+	const cells = [
+		entry.model,
+		entry.mode,
+		`${entry.runs - entry.unavailable}/${entry.runs}`,
+		pct(entry.successRate),
+		pct(entry.schemaValidRate),
+		detailCell(scenario, entry),
+		`${(entry.medianDurationMs / 1000).toFixed(1)} s`,
+		`${entry.meanPromptTokens} / ${entry.meanCompletionTokens}`,
+		entry.routedVia || "–",
+		entry.disqualifiers.join(", ") || "✅",
+	];
+	return `| ${cells.join(" | ")} |`;
+};
+
+const section = (scenario: string, entries: Aggregate[]) => {
+	const rows = entries
+		.filter((entry) => entry.scenario === scenario)
+		.sort((a, b) => rankScore(b) - rankScore(a));
+	if (!rows.length) return "";
+	const header = [
+		"modèle",
+		"mode",
+		"runs",
+		"réussite",
+		"JSON",
+		DETAIL_HEADER[scenario],
+		"latence méd.",
+		"tokens in/out",
+		"routé via",
+		"verdict",
+	];
+	return [
+		`## ${scenario}`,
+		"",
+		`| ${header.join(" | ")} |`,
+		`|${"---|".repeat(header.length)}`,
+		...rows.map((entry) => tableRow(scenario, entry)),
+		"",
+	].join("\n");
+};
+
 export const renderMarkdown = (entries: Aggregate[]) => {
-	const sections = ["tools", "selection", "summary"].map((scenario) => {
-		const rows = entries
-			.filter((entry) => entry.scenario === scenario)
-			.sort((a, b) => rankScore(b) - rankScore(a));
-		if (!rows.length) return "";
-		const lines = rows.map((entry) =>
-			[
-				entry.model,
-				entry.mode,
-				`${entry.runs - entry.unavailable}/${entry.runs}`,
-				pct(entry.successRate),
-				pct(entry.schemaValidRate),
-				scenario === "selection"
-					? `${entry.inventedIds} / ${entry.emptySelections} / ${entry.trapsSelected} / ${entry.duplicatePairs} / ${entry.referenceOverlap === null ? "–" : pct(entry.referenceOverlap)}`
-					: scenario === "summary"
-						? `${entry.missingArticles} / ${entry.injectionLeaks} / ${entry.lengthRatio.toFixed(2)} / ${entry.majorHallucinations}+${entry.minorHallucinations} / ${entry.editorialScore?.toFixed(1) ?? "–"}`
-						: `parallèle ×${entry.maxParallelToolCalls}`,
-				`${(entry.medianDurationMs / 1000).toFixed(1)} s`,
-				`${entry.meanPromptTokens} / ${entry.meanCompletionTokens}`,
-				entry.routedVia || "–",
-				entry.disqualifiers.join(", ") || "✅",
-			].join(" | "),
-		);
-		const detail =
-			scenario === "selection"
-				? "UUID inventés / vides / pièges / paires doublons / recouvrement réf."
-				: scenario === "summary"
-					? "non lus / fuite injection / ratio longueur / hallu. graves+mineures / note"
-					: "appels";
-		return `## ${scenario}\n\n| modèle | mode | runs | réussite | JSON | ${detail} | latence méd. | tokens in/out | routé via | verdict |\n|---|---|---|---|---|---|---|---|---|---|\n${lines.map((line) => `| ${line} |`).join("\n")}\n`;
-	});
-	return `# Banc LLM Brief\n\n${sections.filter(Boolean).join("\n")}`;
+	const sections = ["tools", "selection", "summary"]
+		.map((scenario) => section(scenario, entries))
+		.filter(Boolean);
+	return `# Banc LLM Brief\n\n${sections.join("\n")}`;
 };
 
 export const writeReport = async (dir: string, dirs: string[]) => {

@@ -48,12 +48,14 @@ const WATCHDOG_MS: Record<Scenario, number> = {
 };
 
 // FreeLLMAPI announces when its cooldown ends ("Soonest reset ~70s" / "~10m").
+const ANNOUNCED_RESET = /reset ~(\d+)([sm])/;
+
 const pauseFor = (result: BenchResult) => {
 	const trail = `${result.error ?? ""} ${result.upstreamErrors.join(" ")}`;
-	const match = trail.match(/reset ~(\d+)(s|m)/);
-	const announced = match
-		? Number(match[1]) * (match[2] === "m" ? 60_000 : 1_000) + 5_000
-		: MIN_PAUSE_MS;
+	const match = ANNOUNCED_RESET.exec(trail);
+	if (!match) return MIN_PAUSE_MS;
+	const unitMs = match[2] === "m" ? 60_000 : 1_000;
+	const announced = Number(match[1]) * unitMs + 5_000;
 	return Math.min(Math.max(announced, MIN_PAUSE_MS), MAX_PAUSE_MS);
 };
 
@@ -220,10 +222,135 @@ const pool = async <T>(
 	);
 };
 
-const bench = async (scenarios: Scenario[]) => {
-	const models = csv(values.models);
-	if (!models?.length)
-		throw new Error("--models is required (comma-separated)");
+type Slot = {
+	model: string;
+	mode: Mode;
+	scenario: Scenario;
+	category?: FixtureCategory;
+	run: number;
+};
+
+type Session = { dir: string; targetDate: Date; done: Set<string> };
+
+const errorText = (error: unknown) =>
+	error instanceof Error ? error.message : String(error);
+
+const resultsDir = (suffix: string) =>
+	join(
+		RESULTS_DIR,
+		`${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${suffix}`,
+	);
+
+const liveLog = (dir: string, model: string) => (exchange: Exchange) =>
+	appendFile(
+		join(dir, "live.jsonl"),
+		`${JSON.stringify({ at: new Date().toISOString(), model, status: exchange.status, toolCalls: exchange.toolCalls.length, error: exchange.error?.slice(0, 160) ?? null, durationMs: exchange.durationMs })}\n`,
+	).catch((error: unknown) => console.error("live log write failed", error));
+
+const runWithRetry = async (slot: Slot, session: Session) => {
+	const attempt = async () => {
+		const context = contextFor(
+			slot.model,
+			slot.mode,
+			liveLog(session.dir, slot.model),
+		);
+		const result = await runOnce(
+			slot.scenario,
+			context,
+			slot.category,
+			session.targetDate,
+		);
+		return { context, result };
+	};
+
+	const first = await attempt();
+	if (!isUnavailable(first.result) || budget.remaining <= 0) return first;
+	await sleep(pauseFor(first.result));
+	return attempt();
+};
+
+const judgeIfAsked = async (
+	category: FixtureCategory | undefined,
+	result: BenchResult,
+) => {
+	if (!values.judge || !category || !("summary" in result) || !result.summary) {
+		return {};
+	}
+	try {
+		return { judge: await judgeSummary(category, result.summary) };
+	} catch (error) {
+		return { judgeError: errorText(error) };
+	}
+};
+
+const statusMark = (result: BenchResult, unavailable: boolean) => {
+	if (result.success) return "✔";
+	return unavailable ? "…" : "✘";
+};
+
+const describeRun = (slot: Slot, result: BenchResult, unavailable: boolean) => {
+	const target = slot.category ? ` ${slot.category.name}` : "";
+	const failure = result.error ? ` — ${result.error.slice(0, 140)}` : "";
+	return `${statusMark(result, unavailable)} ${slot.model} [${slot.mode}] ${slot.scenario}${target} #${slot.run} — ${result.durationMs} ms${failure}`;
+};
+
+const recordRun = async (slot: Slot, session: Session) => {
+	const { context, result } = await runWithRetry(slot, session);
+	const unavailable = isUnavailable(result);
+	const { model, mode, run, scenario } = slot;
+	const category = slot.category?.name;
+
+	const row = {
+		model,
+		mode,
+		run,
+		unavailable,
+		...result,
+		...(await judgeIfAsked(slot.category, result)),
+	};
+	await appendFile(
+		join(session.dir, "results.jsonl"),
+		`${JSON.stringify(row)}\n`,
+	);
+	await appendFile(
+		join(session.dir, "exchanges.jsonl"),
+		`${JSON.stringify({ model, mode, run, scenario, category, exchanges: context.exchanges })}\n`,
+	);
+	console.log(describeRun(slot, result, unavailable));
+	return unavailable;
+};
+
+const slotsFor = (
+	model: string,
+	mode: Mode,
+	scenarios: Scenario[],
+	categories: FixtureCategory[],
+	runs: number,
+): Slot[] =>
+	scenarios.flatMap((scenario) => {
+		const targets = scenario === SCENARIO.TOOLS ? [undefined] : categories;
+		return Array.from({ length: runs }, (_, index) => index + 1).flatMap(
+			(run) =>
+				targets.map((category) => ({ model, mode, scenario, category, run })),
+		);
+	});
+
+const runModel = async (slots: Slot[], session: Session) => {
+	let unavailableStreak = 0;
+	for (const slot of slots) {
+		if (budget.remaining <= 0 || unavailableStreak >= MAX_UNAVAILABLE_STREAK) {
+			return;
+		}
+		if (session.done.has(runKey({ ...slot, category: slot.category?.name }))) {
+			continue;
+		}
+		const unavailable = await recordRun(slot, session);
+		unavailableStreak = unavailable ? unavailableStreak + 1 : 0;
+	}
+};
+
+const assertBenchable = (models: string[]) => {
+	if (!models.length) throw new Error("--models is required (comma-separated)");
 	if (!baseUrl || !apiKey) {
 		throw new Error("FREE_LLM_API_URL and FREE_LLM_API_KEY must be set");
 	}
@@ -232,102 +359,33 @@ const bench = async (scenarios: Scenario[]) => {
 			"Benchmark explicit models only: `auto` hides which model answered",
 		);
 	}
+};
+
+const bench = async (name: string, scenarios: Scenario[]) => {
+	const models = csv(values.models) ?? [];
+	assertBenchable(models);
 
 	const fixture = await loadFixture();
-	const targetDate = new Date(fixture.targetDate);
 	const categories = pickCategories(fixture, csv(values.categories));
 	const runs = options.runs ?? (scenarios[0] === SCENARIO.TOOLS ? 1 : 5);
-	const modes = modesOf(options.mode);
 
-	const dir = join(
-		RESULTS_DIR,
-		`${new Date().toISOString().replace(/[:.]/g, "-")}-${command}`,
-	);
+	const dir = resultsDir(name);
 	await mkdir(dir, { recursive: true });
 	console.log(`Results → ${dir} (budget ${budget.remaining} requests)`);
 
 	const skipDirs = resolveDirs(values["skip-from"]);
-	const done = new Set(
-		(await readRows(skipDirs)).filter(isAttempted).map(runKey),
-	);
-	const live = (model: string) => (exchange: Exchange) =>
-		appendFile(
-			join(dir, "live.jsonl"),
-			`${JSON.stringify({ at: new Date().toISOString(), model, status: exchange.status, toolCalls: exchange.toolCalls.length, error: exchange.error?.slice(0, 160) ?? null, durationMs: exchange.durationMs })}\n`,
-		).catch((error: unknown) => console.error("live log write failed", error));
+	const session: Session = {
+		dir,
+		targetDate: new Date(fixture.targetDate),
+		done: new Set((await readRows(skipDirs)).filter(isAttempted).map(runKey)),
+	};
 
 	const jobs = models.flatMap((model) =>
-		modes.map((mode) => ({ model, mode })),
+		modesOf(options.mode).map((mode) =>
+			slotsFor(model, mode, scenarios, categories, runs),
+		),
 	);
-
-	await pool(jobs, options.concurrency, async ({ model, mode }) => {
-		let unavailableStreak = 0;
-		for (const scenario of scenarios) {
-			const targets = scenario === SCENARIO.TOOLS ? [undefined] : categories;
-			for (let run = 1; run <= runs; run += 1) {
-				for (const category of targets) {
-					if (
-						budget.remaining <= 0 ||
-						unavailableStreak >= MAX_UNAVAILABLE_STREAK
-					)
-						return;
-					if (
-						done.has(
-							runKey({ model, mode, scenario, category: category?.name, run }),
-						)
-					)
-						continue;
-
-					let context = contextFor(model, mode, live(model));
-					let result = await runOnce(scenario, context, category, targetDate);
-					if (isUnavailable(result) && budget.remaining > 0) {
-						await sleep(pauseFor(result));
-						context = contextFor(model, mode, live(model));
-						result = await runOnce(scenario, context, category, targetDate);
-					}
-					const unavailable = isUnavailable(result);
-					unavailableStreak = unavailable ? unavailableStreak + 1 : 0;
-
-					let judge: Awaited<ReturnType<typeof judgeSummary>> | undefined;
-					let judgeError: string | undefined;
-					if (
-						values.judge &&
-						category &&
-						"summary" in result &&
-						result.summary
-					) {
-						try {
-							judge = await judgeSummary(category, result.summary);
-						} catch (error) {
-							judgeError =
-								error instanceof Error ? error.message : String(error);
-						}
-					}
-
-					const row = {
-						model,
-						mode,
-						run,
-						unavailable,
-						...result,
-						judge,
-						judgeError,
-					};
-					await appendFile(
-						join(dir, "results.jsonl"),
-						`${JSON.stringify(row)}\n`,
-					);
-					await appendFile(
-						join(dir, "exchanges.jsonl"),
-						`${JSON.stringify({ model, mode, run, scenario, category: category?.name, exchanges: context.exchanges })}\n`,
-					);
-					console.log(
-						`${result.success ? "✔" : unavailable ? "…" : "✘"} ${model} [${mode}] ${scenario}${category ? ` ${category.name}` : ""} #${run} — ${result.durationMs} ms${result.error ? ` — ${result.error.slice(0, 140)}` : ""}`,
-					);
-				}
-			}
-		}
-	});
+	await pool(jobs, options.concurrency, (slots) => runModel(slots, session));
 
 	const entries = await writeReport(dir, [dir, ...skipDirs]);
 	console.log(`\n${renderMarkdown(entries)}`);
@@ -393,17 +451,14 @@ const main = async () => {
 	if (command === "report") {
 		const dirs = resolveDirs(values.from);
 		if (!dirs.length) throw new Error("--from <results dir> (repeatable)");
-		const dir = join(
-			RESULTS_DIR,
-			`${new Date().toISOString().replace(/[:.]/g, "-")}-report`,
-		);
+		const dir = resultsDir("report");
 		await mkdir(dir, { recursive: true });
 		const entries = await writeReport(dir, dirs);
 		console.log(renderMarkdown(entries));
 		return;
 	}
 	if (command && command in COMMANDS) {
-		return bench(COMMANDS[command as keyof typeof COMMANDS]);
+		return bench(command, COMMANDS[command as keyof typeof COMMANDS]);
 	}
 	throw new Error(
 		`Usage: llmBench <tools|selection|summary|benchmark|reference|report> --models a,b [--runs 5] [--categories france,afrique,ue] [--mode two-phase|combined|both] [--budget 150] [--concurrency 3] [--judge]`,

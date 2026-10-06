@@ -177,9 +177,9 @@ export const runToolsProbe = async ({
 			tools: [getSecret],
 			outputSchema: z.object({ alpha: z.string(), beta: z.string() }),
 		});
-	} catch (caught) {
+	} catch (error_) {
 		await settle();
-		error = errorMessage(caught, exchanges);
+		error = errorMessage(error_, exchanges);
 	} finally {
 		clearTimeout(deadline);
 	}
@@ -237,9 +237,9 @@ export const runSelection = async (
 			targetDate,
 			category,
 		);
-	} catch (caught) {
+	} catch (error_) {
 		await settle();
-		error = errorMessage(caught, exchanges);
+		error = errorMessage(error_, exchanges);
 	}
 	await settle();
 
@@ -252,8 +252,7 @@ export const runSelection = async (
 		const args = parseArguments(getArticlesArgs, call.arguments);
 		const asked = new Set(args?.providerIds ?? []);
 		return (
-			!args ||
-			args.day !== expectedDay ||
+			args?.day !== expectedDay ||
 			asked.size !== providerIds.size ||
 			[...asked].some((id) => !providerIds.has(id))
 		);
@@ -376,9 +375,9 @@ export const runSummary = async (
 			language: category.language,
 		});
 		output = { summary: result.summary, sources: result.sources };
-	} catch (caught) {
+	} catch (error_) {
 		await settle();
-		error = errorMessage(caught, exchanges);
+		error = errorMessage(error_, exchanges);
 	}
 	await settle();
 
@@ -400,7 +399,7 @@ export const runSummary = async (
 	const words = summary.split(/\s+/).filter(Boolean).length;
 	const targetWords = summaryTargetWords(listed.length);
 	const markerCount = (language: keyof typeof LANGUAGE_MARKERS) =>
-		summary.match(LANGUAGE_MARKERS[language])?.length ?? 0;
+		[...summary.matchAll(LANGUAGE_MARKERS[language])].length;
 	const otherLanguage = category.language === "fr" ? "en" : "fr";
 	const inRequestedLanguage =
 		markerCount(category.language) > markerCount(otherLanguage);
@@ -410,7 +409,7 @@ export const runSummary = async (
 			deletedIds.has(id) ? [] : (byId.get(id)?.url ?? []),
 		),
 	);
-	const citedUrls = (sources.match(URL) ?? []).map((url) =>
+	const citedUrls = [...sources.matchAll(URL)].map(([url]) =>
 		url.replace(TRAILING_PUNCTUATION, ""),
 	);
 	const inventedSources = citedUrls.filter((url) => !knownUrls.has(url)).length;

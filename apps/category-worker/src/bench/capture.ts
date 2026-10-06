@@ -67,6 +67,22 @@ const readChunks = (text: string): CompletionChunk[] => {
 		.flatMap((payload) => parseJson<CompletionChunk>(payload) ?? []);
 };
 
+const mergeToolCallDeltas = (
+	calls: Map<number, CapturedToolCall>,
+	deltas: NonNullable<ChoiceDelta["tool_calls"]>,
+) => {
+	for (const [position, call] of deltas.entries()) {
+		const index = call.index ?? position;
+		const current = calls.get(index) ?? { id: "", name: "", arguments: "" };
+		// Some providers repeat the name on every delta; only arguments stream.
+		calls.set(index, {
+			id: call.id ?? current.id,
+			name: call.function?.name || current.name,
+			arguments: current.arguments + (call.function?.arguments ?? ""),
+		});
+	}
+};
+
 export const assemble = (chunks: CompletionChunk[]) => {
 	let content = "";
 	let finishReason: string | null = null;
@@ -85,16 +101,7 @@ export const assemble = (chunks: CompletionChunk[]) => {
 			const delta = choice.delta ?? choice.message;
 			if (choice.finish_reason) finishReason = choice.finish_reason;
 			if (delta?.content) content += delta.content;
-			for (const [position, call] of (delta?.tool_calls ?? []).entries()) {
-				const index = call.index ?? position;
-				const current = calls.get(index) ?? { id: "", name: "", arguments: "" };
-				// Some providers repeat the name on every delta; only arguments stream.
-				calls.set(index, {
-					id: call.id ?? current.id,
-					name: call.function?.name || current.name,
-					arguments: current.arguments + (call.function?.arguments ?? ""),
-				});
-			}
+			mergeToolCallDeltas(calls, delta?.tool_calls ?? []);
 		}
 	}
 
