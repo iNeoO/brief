@@ -29,6 +29,7 @@ import {
 	buildResumeUserPrompt,
 	RESUME_SYSTEM_PROMPT,
 } from "./processing.prompt.js";
+import { createRunErrorCollector } from "./processing.runError.js";
 import type {
 	CategoryJobContext,
 	CategoryJobRun,
@@ -40,6 +41,18 @@ import {
 } from "./processing.usage.js";
 
 const MAX_SELECTED_ARTICLES = 10;
+
+class ToolProtocolError extends InternalError {
+	constructor(
+		message: string,
+		readonly usage: TokenUsageTotals,
+	) {
+		super({ code: INTERNAL_ERROR_CODE.AI_PROTOCOL_VIOLATION, message });
+		Object.setPrototypeOf(this, ToolProtocolError.prototype);
+	}
+}
+
+type ServedArticles = { calls: number; ids: Set<string> };
 
 /**
  * Wall-clock ceilings for the two model runs, not budgets for a single request:
@@ -122,10 +135,8 @@ export class ProcessingService {
 	): Promise<CategoryJobOutcome> {
 		const { job } = context;
 
-		const selection = await this.makeSelection(
-			job.id,
-			job.targetDate,
-			job.category,
+		const selection = await this.billingViolations(job.id, () =>
+			this.makeSelection(job.id, job.targetDate, job.category),
 		);
 
 		// Recorded before the guard below and before the summary: a job that fails
@@ -166,10 +177,9 @@ export class ProcessingService {
 
 		await this.setRanking(job.id, selection.articles);
 
-		const { summary, sources, usage } = await this.makeSummary(
-			selection.articles,
-			job.targetDate,
-			job.category,
+		const { summary, sources, usage } = await this.billingViolations(
+			job.id,
+			() => this.makeSummary(selection.articles, job.targetDate, job.category),
 		);
 
 		await this.addUsage(job.id, usage);
@@ -189,6 +199,16 @@ export class ProcessingService {
 		context.summary = summary;
 
 		return CATEGORY_JOB_OUTCOME.PRODUCED;
+	}
+
+	private async billingViolations<T>(jobId: number, run: () => Promise<T>) {
+		try {
+			return await run();
+		} catch (err) {
+			if (err instanceof ToolProtocolError)
+				await this.addUsage(jobId, err.usage);
+			throw err;
+		}
 	}
 
 	/**
@@ -290,6 +310,7 @@ export class ProcessingService {
 
 	private buildGetArticlesTool(
 		observed: Awaited<ReturnType<ArticlesService["getObservedArticles"]>>,
+		served: ServedArticles,
 	) {
 		return toolDefinition({
 			name: "getArticles",
@@ -314,22 +335,26 @@ export class ProcessingService {
 			// job's immutable fetch snapshot, so there's nothing left to filter by
 			// day — only `providerIds` narrows the result.
 		}).server(async ({ providerIds }) => {
-			return observed
-				.filter(
-					(article) =>
-						!providerIds?.length || providerIds.includes(article.providerId),
-				)
-				.map((article) => ({
-					id: article.id,
-					providerId: article.providerId,
-					title: article.title,
-					description: article.description,
-					publishedAt: article.publishedAt?.toISOString() ?? null,
-				}));
+			served.calls += 1;
+			const matching = observed.filter(
+				(article) =>
+					!providerIds?.length || providerIds.includes(article.providerId),
+			);
+			for (const { id } of matching) served.ids.add(id);
+			return matching.map((article) => ({
+				id: article.id,
+				providerId: article.providerId,
+				title: article.title,
+				description: article.description,
+				publishedAt: article.publishedAt?.toISOString() ?? null,
+			}));
 		});
 	}
 
-	private buildGetArticleTool(selection: { id: string }[]) {
+	private buildGetArticleTool(
+		selection: { id: string }[],
+		fetched: Set<string>,
+	) {
 		const selected = new Set(selection.map((article) => article.id));
 
 		return toolDefinition({
@@ -353,6 +378,7 @@ export class ProcessingService {
 			// article from another category or day, and it would be summarised and
 			// cited while `category_job_articles` never mentions it.
 		}).server(async ({ id }) => {
+			fetched.add(id);
 			if (!selected.has(id)) {
 				getLoggerStore().warn(
 					{ articleId: id },
@@ -396,18 +422,39 @@ export class ProcessingService {
 
 	private normalizeSelection<TArticle extends { id: string; rank: number }>(
 		selection: TArticle[],
-		candidateIds: Set<string>,
 	): TArticle[] {
 		const kept = new Set<string>();
 
 		return [...selection]
 			.sort((a, b) => a.rank - b.rank)
 			.filter((article) => {
-				if (!candidateIds.has(article.id) || kept.has(article.id)) return false;
+				if (kept.has(article.id)) return false;
 				kept.add(article.id);
 				return true;
 			})
 			.map((article, index) => ({ ...article, rank: index }));
+	}
+
+	// Filtering out a skipped call or invented ids would pass a broken run off as a quiet day.
+	private assertSelectionProtocol(
+		selection: { id: string }[],
+		served: ServedArticles,
+		usage: TokenUsageTotals,
+	) {
+		if (served.calls === 0) {
+			throw new ToolProtocolError(
+				`Article selection answered without calling getArticles (${selection.length} ids returned)`,
+				usage,
+			);
+		}
+
+		const invented = selection.filter(({ id }) => !served.ids.has(id));
+		if (invented.length > 0) {
+			throw new ToolProtocolError(
+				`Article selection returned ${invented.length} ids that getArticles never served`,
+				usage,
+			);
+		}
 	}
 
 	async makeSelection(
@@ -420,6 +467,8 @@ export class ProcessingService {
 		const providerIds = [...new Set(observed.map((a) => a.providerId))];
 
 		const usage = createUsageCollector("selection");
+		const runError = createRunErrorCollector();
+		const served: ServedArticles = { calls: 0, ids: new Set() };
 
 		const selection = await withDeadline({
 			context: "Article selection",
@@ -431,7 +480,7 @@ export class ProcessingService {
 					adapter: this.textAdapter,
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
-					middleware: [usage.middleware],
+					middleware: [usage.middleware, runError.middleware],
 					systemPrompts: [ARTICLE_SELECTION_SYSTEM_PROMPT],
 					messages: [
 						{
@@ -445,7 +494,7 @@ export class ProcessingService {
 							}),
 						},
 					],
-					tools: [this.buildGetArticlesTool(observed)],
+					tools: [this.buildGetArticlesTool(observed, served)],
 					// The selection is wrapped in an object: a structured output whose root
 					// is an array comes back empty, the model never fills it.
 					//
@@ -455,15 +504,17 @@ export class ProcessingService {
 					outputSchema: z.object({
 						articles: z.array(z.object({ id: z.string(), rank: z.number() })),
 					}),
+				}).catch((err) => {
+					throw runError.explain(err);
 				}),
 		});
 
+		const report = usage.report();
+		this.assertSelectionProtocol(selection.articles, served, report);
+
 		const byId = new Map(observed.map((article) => [article.id, article]));
 
-		const articles = this.normalizeSelection(
-			selection.articles,
-			new Set(byId.keys()),
-		)
+		const articles = this.normalizeSelection(selection.articles)
 			.map(({ id, rank }) => {
 				const article = byId.get(id);
 				return article
@@ -472,7 +523,7 @@ export class ProcessingService {
 			})
 			.filter((article) => article !== null);
 
-		return { articles, usage: usage.report() };
+		return { articles, usage: report };
 	}
 
 	async makeSummary(
@@ -486,6 +537,8 @@ export class ProcessingService {
 		);
 
 		const usage = createUsageCollector("summary");
+		const runError = createRunErrorCollector();
+		const fetched = new Set<string>();
 
 		const resume = await withDeadline({
 			context: "Brief writing",
@@ -497,7 +550,7 @@ export class ProcessingService {
 					adapter: this.textAdapter,
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
-					middleware: [usage.middleware],
+					middleware: [usage.middleware, runError.middleware],
 					systemPrompts: [RESUME_SYSTEM_PROMPT],
 					messages: [
 						{
@@ -511,7 +564,7 @@ export class ProcessingService {
 							}),
 						},
 					],
-					tools: [this.buildGetArticleTool(articles)],
+					tools: [this.buildGetArticleTool(articles, fetched)],
 					// The prompt asks for one getArticle call per selected article. The
 					// default loop strategy allows 5 model turns, which only holds while
 					// the model batches those calls in parallel: fetch them one per turn
@@ -520,13 +573,24 @@ export class ProcessingService {
 					// Bound the tool calls instead, with room for a retry or two.
 					agentLoopStrategy: maxToolCalls(MAX_SELECTED_ARTICLES + 2),
 					outputSchema: z.object({ summary: z.string(), sources: z.string() }),
+				}).catch((err) => {
+					throw runError.explain(err);
 				}),
 		});
+
+		const report = usage.report();
+		const unread = articles.filter(({ id }) => !fetched.has(id));
+		if (unread.length > 0) {
+			throw new ToolProtocolError(
+				`Brief written without fetching ${unread.length} of its ${articles.length} articles: ${unread.map(({ id }) => id).join(", ")}`,
+				report,
+			);
+		}
 
 		return {
 			summary: resume.summary,
 			sources: resume.sources,
-			usage: usage.report(),
+			usage: report,
 		};
 	}
 }

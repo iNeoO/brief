@@ -1,12 +1,20 @@
 import { LLM_PROVIDER } from "@brief/common/constants";
-import { chat } from "@tanstack/ai";
+import { chat, toolDefinition } from "@tanstack/ai";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { createTextAdapter } from "./llm.adapter.js";
 
 const FREE_LLM = {
 	baseUrl: "http://freellmapi:3001/v1",
 	apiKey: "freellmapi-client-key",
+	model: "gemini-3.5-flash",
 };
+
+const PING_TOOL = toolDefinition({
+	name: "ping",
+	description: "Answers pong",
+	inputSchema: z.object({}),
+}).server(async () => "pong");
 
 const streamedReply = (content: string) => {
 	const chunk = (delta: object, finishReason: string | null) =>
@@ -35,10 +43,7 @@ describe("createTextAdapter", () => {
 	it("keeps prompting OpenAI's gpt-5.5 when OpenAI is the provider", () => {
 		vi.stubEnv("OPENAI_API_KEY", "sk-test");
 
-		const adapter = createTextAdapter({
-			provider: LLM_PROVIDER.OPENAI,
-			freeLlm: FREE_LLM,
-		});
+		const adapter = createTextAdapter({ provider: LLM_PROVIDER.OPENAI });
 
 		expect(adapter).toMatchObject({ name: "openai", model: "gpt-5.5" });
 	});
@@ -48,14 +53,13 @@ describe("createTextAdapter", () => {
 
 		const adapter = createTextAdapter({
 			provider: LLM_PROVIDER.OPENAI,
-			freeLlm: FREE_LLM,
 			openai: { model: "gpt-5.4-mini" },
 		});
 
 		expect(adapter).toMatchObject({ name: "openai", model: "gpt-5.4-mini" });
 	});
 
-	it("prompts FreeLLMAPI with the brief key and lets its router pick the model", async () => {
+	it("prompts FreeLLMAPI's pinned model with the brief key", async () => {
 		const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
 			streamedReply("pong"),
 		);
@@ -77,6 +81,62 @@ describe("createTextAdapter", () => {
 		expect(new Headers(init?.headers).get("authorization")).toBe(
 			"Bearer freellmapi-client-key",
 		);
-		expect(JSON.parse(String(init?.body))).toMatchObject({ model: "auto" });
+		expect(JSON.parse(String(init?.body))).toMatchObject({
+			model: "gemini-3.5-flash",
+		});
+	});
+
+	it("asks FreeLLMAPI for tools and the output schema in separate requests", async () => {
+		const fetchMock = vi
+			.fn(async (_url: string, _init: RequestInit) =>
+				streamedReply('{"ok":true}'),
+			)
+			.mockResolvedValueOnce(streamedReply("done"));
+		vi.stubGlobal("fetch", fetchMock);
+
+		await chat({
+			adapter: createTextAdapter({
+				provider: LLM_PROVIDER.FREELLMAPI,
+				freeLlm: FREE_LLM,
+			}),
+			stream: false,
+			messages: [{ role: "user", content: "ping" }],
+			tools: [PING_TOOL],
+			outputSchema: z.object({ ok: z.boolean() }),
+		});
+
+		const [toolTurn, schemaTurn] = fetchMock.mock.calls.map(([, init]) =>
+			JSON.parse(String(init?.body)),
+		);
+		expect(toolTurn).toHaveProperty("tools");
+		expect(toolTurn).not.toHaveProperty("response_format");
+		expect(schemaTurn).toHaveProperty("response_format");
+		expect(schemaTurn).not.toHaveProperty("tools");
+	});
+
+	it("combines them in one request only when told to", async () => {
+		const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
+			streamedReply('{"ok":true}'),
+		);
+		vi.stubGlobal("fetch", fetchMock);
+
+		await chat({
+			adapter: createTextAdapter({
+				provider: LLM_PROVIDER.FREELLMAPI,
+				freeLlm: { ...FREE_LLM, combinedToolsAndSchema: true },
+			}),
+			stream: false,
+			messages: [{ role: "user", content: "ping" }],
+			tools: [PING_TOOL],
+			outputSchema: z.object({ ok: z.boolean() }),
+		});
+
+		expect(fetchMock).toHaveBeenCalledOnce();
+		expect(
+			JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)),
+		).toMatchObject({
+			tools: expect.any(Array),
+			response_format: expect.any(Object),
+		});
 	});
 });

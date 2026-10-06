@@ -22,6 +22,7 @@ export default defineConfig({
 			exclude: [
 				"**/*.test.ts",
 				"**/src/scripts/**",
+				"**/src/bench/**",
 				"**/src/testing/**",
 				"**/src/**/index.ts",
 			],
