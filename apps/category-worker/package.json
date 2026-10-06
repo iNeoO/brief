@@ -10,7 +10,14 @@
 		"start": "node dist/index.js",
 		"test": "vitest run",
 		"job:run": "tsx src/scripts/runCategoryJob.ts",
-		"llm:ping": "tsx src/scripts/pingLlm.ts"
+		"llm:ping": "tsx src/scripts/pingLlm.ts",
+		"llm:fixture": "tsx src/scripts/buildLlmFixture.ts",
+		"llm:reference": "tsx src/scripts/llmBench.ts reference",
+		"llm:test-tools": "tsx src/scripts/llmBench.ts tools",
+		"llm:test-selection": "tsx src/scripts/llmBench.ts selection",
+		"llm:test-summary": "tsx src/scripts/llmBench.ts summary",
+		"llm:benchmark": "tsx src/scripts/llmBench.ts benchmark",
+		"llm:report": "tsx src/scripts/llmBench.ts report"
 	},
 	"dependencies": {
 		"@brief/common": "workspace:*",

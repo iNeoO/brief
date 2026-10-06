@@ -10,3 +10,9 @@ db/prisma/generated/
 !.env.docker.example
 coverage/
 .scannerwork/
+
+# LLM bench runs
+apps/category-worker/bench/results/
+
+# Scraped third-party article bodies: rebuilt locally with `pnpm llm:fixture`
+apps/category-worker/bench/llm-fixture.json

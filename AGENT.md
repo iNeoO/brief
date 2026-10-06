@@ -49,7 +49,11 @@ category_jobs
   -> articles
 ```
 
-The LLM selects the relevant articles and creates the summary. `LLM_PROVIDER` picks who answers: OpenAI (the default, on the model `OPENAI_MODEL` names, gpt-5.5 unless set) or a self-hosted FreeLLMAPI router over free model tiers, whose `auto` model falls over between providers as their quotas run out. Text-to-speech stays on OpenAI either way.
+The LLM selects the relevant articles and creates the summary. `LLM_PROVIDER` picks who answers: OpenAI (the default, on the model `OPENAI_MODEL` names, gpt-5.5 unless set) or a self-hosted FreeLLMAPI router over free model tiers. FreeLLMAPI is pinned to one model (`FREE_LLM_MODEL`) and never `auto`: on 2026-10-06 `auto` routed to a model that answered without calling `getArticles`, invented every id, and emptied the three briefs. Tools and the output schema go in separate requests for the same reason. Text-to-speech stays on OpenAI either way.
+
+A selection made without calling `getArticles`, or holding an id it never served, and a brief written without fetching every selected article, fail the job as `AI_PROTOCOL_VIOLATION` and are retried, rather than being filtered into a quiet day.
+
+A model is only worth pinning once the local bench has passed it (`apps/category-worker/src/bench`): `pnpm llm:fixture` freezes today's feeds with planted traps (kept out of git, the bodies belong to the outlets), `pnpm llm:reference` records gpt-5.5's selection, then `pnpm llm:test-tools`, `llm:test-selection`, `llm:test-summary` or `llm:benchmark --models a,b --runs 5 [--judge]` run the real selection and summary against explicit models and write `results.jsonl` and `report.md` under `apps/category-worker/bench/results/`. The bench spends the same free quotas the morning run needs.
 
 - `category_jobs.summary` stores the generated text.
 - `category_job_articles` stores the selected articles.

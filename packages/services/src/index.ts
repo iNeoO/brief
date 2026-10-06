@@ -18,6 +18,7 @@ export * from "./modules/categories/categories.type.js";
 export * from "./modules/categoryJobs/categoryJobs.service.js";
 export * from "./modules/categoryJobs/categoryJobs.type.js";
 export * from "./modules/health/health.service.js";
+export * from "./modules/ingestion/connector.registry.js";
 export * from "./modules/ingestion/ingestion.service.js";
 export * from "./modules/llm/llm.adapter.js";
 export * from "./modules/messageJobs/messageDelivery.service.js";
