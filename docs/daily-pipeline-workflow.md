@@ -39,7 +39,7 @@ A selected article is a candidate that the LLM used in the summary. `category_jo
 | `providers` | Configures article sources and enables or disables fetching. |
 | `category_providers` | Defines the current provider assignment for each category. |
 | `articles` | Stores deduplicated article content. |
-| `category_jobs` | Stores one category pipeline run per date. |
+| `category_jobs` | Stores one category pipeline run per date, and the LLM tokens it spent. |
 | `provider_fetch_jobs` | Stores one provider fetch run per date. |
 | `category_job_provider_fetch_jobs` | Freezes the fetch dependencies of a category run. |
 | `provider_fetch_job_articles` | Records every article observed during a fetch. |
@@ -171,6 +171,14 @@ The worker sends the candidates to the LLM. After a valid response, it stores:
 The summary and selected-article rows should share one transaction. A retry should replace the previous selection for that category job before inserting the new ordered selection. The current schema keeps the latest result and does not version past summaries.
 
 The worker then changes `state` from `creating_report` to `creating_audio` and resets step-level retry data according to the retry policy.
+
+### What the run cost
+
+Both model calls of this step report their token usage through a `chat()` middleware, which sums the `onUsage` hook across the run's iterations — the run's own `RUN_FINISHED` carries the last iteration only, so reading it would price a four-turn agent loop at the cost of its fourth turn. The middleware logs `promptTokens`, `completionTokens`, `totalTokens` and `iterations` at `info` under `llm usage`, and each call's totals are added to `category_jobs`.
+
+The figures are added, never set: the selection and the summary are two calls, and a retried step pays for its calls again. They are written as soon as each call returns, before the guard that fails a job with no usable selection, so a job that dies halfway still shows what it spent. A failure to record usage is logged and swallowed — bookkeeping must not fail a brief that was already paid for.
+
+`iterations` is the second half of the answer. A call that quietly ran out of agent-loop turns reads as a round number against its own ceiling, long before the summary it produced looks odd.
 
 ## Step 5: create audio
 

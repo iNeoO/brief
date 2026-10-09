@@ -24,6 +24,10 @@ import {
 	RESUME_SYSTEM_PROMPT,
 } from "./processing.prompt.js";
 import type { CategoryJobContext, CategoryJobStep } from "./processing.type.js";
+import {
+	createUsageCollector,
+	type TokenUsageTotals,
+} from "./processing.usage.js";
 
 const MAX_SELECTED_ARTICLES = 10;
 
@@ -104,20 +108,29 @@ export class ProcessingService {
 			job.category,
 		);
 
-		if (selection.length === 0) {
+		// Recorded before the guard below and before the summary: a job that fails
+		// halfway through the report was still billed for what it spent, and the
+		// figure is only useful if a failure cannot hide it. `addTokenUsage` adds to
+		// what is already there, so a retried step accumulates rather than
+		// overwrites — three attempts cost three attempts.
+		await this.addUsage(job.id, selection.usage);
+
+		if (selection.articles.length === 0) {
 			throw new InternalError({
 				code: INTERNAL_ERROR_CODE.NO_ARTICLES_SELECTED,
 				message: `No articles selected for category ${job.category.name} on ${job.targetDate.toISOString()}`,
 			});
 		}
 
-		await this.setRanking(job.id, selection);
+		await this.setRanking(job.id, selection.articles);
 
-		const { summary, sources } = await this.makeSummary(
-			selection,
+		const { summary, sources, usage } = await this.makeSummary(
+			selection.articles,
 			job.targetDate,
 			job.category,
 		);
+
+		await this.addUsage(job.id, usage);
 
 		const [updated] = await this.categoryJobsService.setReport(job.id, {
 			summary,
@@ -132,6 +145,22 @@ export class ProcessingService {
 		}
 
 		context.summary = summary;
+	}
+
+	/**
+	 * Bookkeeping only: a failure to record what a call cost must not fail the
+	 * brief that call already paid for. The log line from the collector stands
+	 * either way, so the figure is never lost outright.
+	 */
+	private async addUsage(jobId: number, usage: TokenUsageTotals) {
+		try {
+			await this.categoryJobsService.addTokenUsage(jobId, usage);
+		} catch (err) {
+			getLoggerStore().error(
+				{ err, jobId, ...usage },
+				"could not record token usage",
+			);
+		}
 	}
 
 	private async createAudio(context: CategoryJobContext) {
@@ -330,6 +359,8 @@ export class ProcessingService {
 			await this.articlesService.getObservedArticles(categoryJobId);
 		const providerIds = [...new Set(observed.map((a) => a.providerId))];
 
+		const usage = createUsageCollector("selection");
+
 		const selection = await withDeadline({
 			context: "Article selection",
 			timeoutMs: SELECTION_DEADLINE_MS,
@@ -340,6 +371,7 @@ export class ProcessingService {
 					adapter: openaiText("gpt-5.5"),
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
+					middleware: [usage.middleware],
 					systemPrompts: [ARTICLE_SELECTION_SYSTEM_PROMPT],
 					messages: [
 						{
@@ -368,7 +400,10 @@ export class ProcessingService {
 
 		const byId = new Map(observed.map((article) => [article.id, article]));
 
-		return this.normalizeSelection(selection.articles, new Set(byId.keys()))
+		const articles = this.normalizeSelection(
+			selection.articles,
+			new Set(byId.keys()),
+		)
 			.map(({ id, rank }) => {
 				const article = byId.get(id);
 				return article
@@ -376,6 +411,8 @@ export class ProcessingService {
 					: null;
 			})
 			.filter((article) => article !== null);
+
+		return { articles, usage: usage.report() };
 	}
 
 	async makeSummary(
@@ -388,6 +425,8 @@ export class ProcessingService {
 			MAX_SUMMARY_WORDS,
 		);
 
+		const usage = createUsageCollector("summary");
+
 		const resume = await withDeadline({
 			context: "Brief writing",
 			timeoutMs: SUMMARY_DEADLINE_MS,
@@ -398,6 +437,7 @@ export class ProcessingService {
 					adapter: openaiText("gpt-5.5"),
 					stream: false,
 					debug: { logger: createAiDebugLogger(getLoggerStore()) },
+					middleware: [usage.middleware],
 					systemPrompts: [RESUME_SYSTEM_PROMPT],
 					messages: [
 						{
@@ -423,6 +463,10 @@ export class ProcessingService {
 				}),
 		});
 
-		return { summary: resume.summary, sources: resume.sources };
+		return {
+			summary: resume.summary,
+			sources: resume.sources,
+			usage: usage.report(),
+		};
 	}
 }

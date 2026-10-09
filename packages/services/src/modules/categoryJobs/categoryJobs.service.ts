@@ -6,7 +6,7 @@ import {
 	MAX_JOB_RETRY,
 } from "@brief/common/constants";
 import type { CategoryJobState } from "@brief/common/types";
-import { and, type Database, eq, schema } from "@brief/drizzle";
+import { and, type Database, eq, schema, sql } from "@brief/drizzle";
 import { InternalError } from "@brief/infra/errors";
 
 export class CategoryJobsService {
@@ -169,6 +169,35 @@ export class CategoryJobsService {
 				),
 			)
 			.returning();
+	}
+
+	/**
+	 * Adds what one LLM call cost to this job's running totals.
+	 *
+	 * Adds rather than sets: a job makes two calls, and a retried step makes them
+	 * again — every one of them was billed. Written with SQL arithmetic so two
+	 * concurrent writers cannot read the same figure and each overwrite the
+	 * other's.
+	 */
+	async addTokenUsage(
+		jobId: number,
+		usage: {
+			promptTokens: number;
+			completionTokens: number;
+			totalTokens: number;
+		},
+	) {
+		const [job] = await this.db
+			.update(schema.categoryJobs)
+			.set({
+				promptTokens: sql`${schema.categoryJobs.promptTokens} + ${usage.promptTokens}`,
+				completionTokens: sql`${schema.categoryJobs.completionTokens} + ${usage.completionTokens}`,
+				totalTokens: sql`${schema.categoryJobs.totalTokens} + ${usage.totalTokens}`,
+			})
+			.where(eq(schema.categoryJobs.id, jobId))
+			.returning();
+
+		return job ?? null;
 	}
 
 	async markFinished(jobId: number) {

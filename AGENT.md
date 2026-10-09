@@ -101,7 +101,7 @@ creating_report -> creating_audio -> sending_message
 - `providers`: provider configuration, fetch limit, enabled flag, and last fetch timestamp. IDs use UUIDv7.
 - `category_providers`: current many-to-many provider assignment for categories.
 - `articles`: deduplicated provider articles. IDs use UUIDv7.
-- `category_jobs`: one category pipeline run per `(categoryId, targetDate)`.
+- `category_jobs`: one category pipeline run per `(categoryId, targetDate)`. Also carries what the run cost in LLM tokens (`prompt_tokens`, `completion_tokens`, `total_tokens`), added to on every model call and never reset, so a retried run reads as the three attempts it was billed for.
 - `provider_fetch_jobs`: one provider fetch run per `(providerId, targetDate)`.
 - `category_job_provider_fetch_jobs`: immutable dependency snapshot between a category run and its provider fetches.
 - `provider_fetch_job_articles`: articles observed by a provider fetch.

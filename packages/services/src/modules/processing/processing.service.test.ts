@@ -45,10 +45,22 @@ type ToolStub = {
 	handler: (input: Record<string, unknown>) => Promise<unknown>;
 };
 
+type UsageTotals = {
+	promptTokens: number;
+	completionTokens: number;
+	totalTokens: number;
+};
+
+type MiddlewareStub = {
+	onIteration?: () => void;
+	onUsage?: (ctx: unknown, usage: UsageTotals) => void;
+};
+
 type ChatCall = {
 	systemPrompts: string[];
 	messages: { content: string }[];
 	tools: ToolStub[];
+	middleware?: MiddlewareStub[];
 	agentLoopStrategy?: (state: { toolCallCount: number }) => boolean;
 };
 
@@ -60,6 +72,28 @@ const chatCalls = (): ChatCall[] =>
 
 const isSelectionCall = (call: ChatCall) =>
 	call.systemPrompts[0] === ARTICLE_SELECTION_SYSTEM_PROMPT;
+
+/**
+ * What each call reports per iteration. The summary call reports twice, which is
+ * the point: `onUsage` fires once per model iteration and the totals must add up
+ * rather than keep the last one.
+ */
+const ITERATION_USAGE: UsageTotals = {
+	promptTokens: 1_000,
+	completionTokens: 100,
+	totalTokens: 1_150,
+};
+const SUMMARY_ITERATIONS = 2;
+
+/** Replays the iterations a real run would have reported to the middleware. */
+const reportUsage = (call: ChatCall, iterations: number) => {
+	for (const middleware of call.middleware ?? []) {
+		for (let i = 0; i < iterations; i += 1) {
+			middleware.onIteration?.();
+			middleware.onUsage?.(undefined, ITERATION_USAGE);
+		}
+	}
+};
 
 const TARGET_DATE = new Date("2026-08-17T00:00:00.000Z");
 const SUMMARY = "Voici le brief économie du 17 août.\n\nC'était le brief.";
@@ -104,6 +138,7 @@ const getObservedArticles = vi.fn();
 const getArticle = vi.fn();
 const completeStep = vi.fn();
 const setReport = vi.fn();
+const addTokenUsage = vi.fn();
 const uploadFile = vi.fn();
 
 /** The ranking rows `setRanking` writes, in the order it writes them. */
@@ -132,7 +167,11 @@ const db = {
 const service = () =>
 	new ProcessingService(
 		{ getObservedArticles, getArticle } as unknown as ArticlesService,
-		{ completeStep, setReport } as unknown as CategoryJobsService,
+		{
+			completeStep,
+			setReport,
+			addTokenUsage,
+		} as unknown as CategoryJobsService,
 		db as unknown as Database,
 		{ uploadFile } as unknown as S3Service,
 	);
@@ -146,15 +185,19 @@ beforeEach(() => {
 	modelSelection = [{ id: "article-1", rank: 0 }];
 	findAudioFile.mockResolvedValue({ id: "file-1" });
 
-	chatMock.mockImplementation(async (params: ChatCall) =>
-		isSelectionCall(params)
+	chatMock.mockImplementation(async (params: ChatCall) => {
+		const selecting = isSelectionCall(params);
+		reportUsage(params, selecting ? 1 : SUMMARY_ITERATIONS);
+
+		return selecting
 			? { articles: modelSelection }
-			: { summary: SUMMARY, sources: SOURCES },
-	);
+			: { summary: SUMMARY, sources: SOURCES };
+	});
 
 	getObservedArticles.mockResolvedValue([observedArticle(1)]);
 	completeStep.mockResolvedValue({ id: 42 });
 	setReport.mockResolvedValue([{ id: 42 }]);
+	addTokenUsage.mockResolvedValue({ id: 42 });
 	textToAudioMock.mockResolvedValue({
 		body: Readable.from([Buffer.from("audio")]),
 		mimeType: MIME_TYPE.MP3,
@@ -195,6 +238,34 @@ describe("runCategoryJob", () => {
 			],
 			[42, CATEGORY_JOB_STATE.SENDING_MESSAGE, undefined],
 		]);
+	});
+
+	it("records what each call cost against the job", async () => {
+		await service().runCategoryJob(job());
+
+		// One write per call, summed over that call's iterations, so a job that
+		// dies after the selection still shows what the selection cost.
+		expect(addTokenUsage.mock.calls).toEqual([
+			[42, ITERATION_USAGE],
+			[
+				42,
+				{
+					promptTokens: ITERATION_USAGE.promptTokens * SUMMARY_ITERATIONS,
+					completionTokens:
+						ITERATION_USAGE.completionTokens * SUMMARY_ITERATIONS,
+					totalTokens: ITERATION_USAGE.totalTokens * SUMMARY_ITERATIONS,
+				},
+			],
+		]);
+	});
+
+	it("still produces the brief when the usage write fails", async () => {
+		addTokenUsage.mockRejectedValue(new Error("column is gone"));
+
+		const context = await service().runCategoryJob(job());
+
+		// Bookkeeping must never cost a brief that was already paid for.
+		expect(context.summary).toBe(SUMMARY);
 	});
 
 	it("resumes a retried job at the step it stopped on", async () => {
@@ -346,20 +417,23 @@ describe("makeSelection", () => {
 		];
 
 		// Ranks come back contiguous from zero, whatever spacing the model used.
-		await expect(select()).resolves.toEqual([
-			{
-				id: "article-1",
-				rank: 0,
-				providerId: "provider-1",
-				title: "Article 1",
-			},
-			{
-				id: "article-2",
-				rank: 1,
-				providerId: "provider-2",
-				title: "Article 2",
-			},
-		]);
+		await expect(select()).resolves.toEqual({
+			articles: [
+				{
+					id: "article-1",
+					rank: 0,
+					providerId: "provider-1",
+					title: "Article 1",
+				},
+				{
+					id: "article-2",
+					rank: 1,
+					providerId: "provider-2",
+					title: "Article 2",
+				},
+			],
+			usage: ITERATION_USAGE,
+		});
 	});
 
 	it("drops the ids the model invented and the ones it repeated", async () => {
@@ -370,20 +444,26 @@ describe("makeSelection", () => {
 			{ id: "hallucinated", rank: 2 },
 		];
 
-		await expect(select()).resolves.toEqual([
-			{
-				id: "article-1",
-				rank: 0,
-				providerId: "provider-1",
-				title: "Article 1",
-			},
-		]);
+		await expect(select()).resolves.toEqual({
+			articles: [
+				{
+					id: "article-1",
+					rank: 0,
+					providerId: "provider-1",
+					title: "Article 1",
+				},
+			],
+			usage: ITERATION_USAGE,
+		});
 	});
 
 	it("returns nothing when no candidate fits the category", async () => {
 		modelSelection = [];
 
-		await expect(select()).resolves.toEqual([]);
+		await expect(select()).resolves.toEqual({
+			articles: [],
+			usage: ITERATION_USAGE,
+		});
 	});
 
 	it("gives the model the distinct providers of the day, once each", async () => {
@@ -416,6 +496,11 @@ describe("makeSummary", () => {
 		await expect(summarize(1)).resolves.toEqual({
 			summary: SUMMARY,
 			sources: SOURCES,
+			usage: {
+				promptTokens: ITERATION_USAGE.promptTokens * SUMMARY_ITERATIONS,
+				completionTokens: ITERATION_USAGE.completionTokens * SUMMARY_ITERATIONS,
+				totalTokens: ITERATION_USAGE.totalTokens * SUMMARY_ITERATIONS,
+			},
 		});
 	});
 

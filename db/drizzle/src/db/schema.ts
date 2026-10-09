@@ -164,6 +164,13 @@ export const categoryJobs = pgTable(
 		sources: text("sources"),
 		error: text("error"),
 		retry: integer("retry").notNull().default(0),
+		// What this brief cost in LLM tokens: the selection call plus the summary
+		// call, summed over every attempt, since a retry is billed like the attempt
+		// it replaces. `totalTokens` is the provider's own figure and can exceed
+		// prompt + completion — reasoning and cached tokens are billed apart.
+		promptTokens: integer("prompt_tokens").notNull().default(0),
+		completionTokens: integer("completion_tokens").notNull().default(0),
+		totalTokens: integer("total_tokens").notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
