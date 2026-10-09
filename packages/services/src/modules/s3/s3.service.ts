@@ -15,6 +15,22 @@ import type {
 	UploadFileParams,
 } from "./s3.type.js";
 
+export const createS3Client = (config: S3ServiceConfig) =>
+	new S3Client({
+		endpoint: config.endpoint,
+		region: config.region,
+		credentials: {
+			accessKeyId: config.accessKeyId,
+			secretAccessKey: config.secretAccessKey,
+		},
+		forcePathStyle: config.forcePathStyle,
+		// Garage's multipart CRC32 is not the full-object checksum that recent
+		// AWS SDKs expect. Optional validation therefore rejects intact objects
+		// after their last byte has been read. Required protocol checks remain on.
+		requestChecksumCalculation: "WHEN_REQUIRED",
+		responseChecksumValidation: "WHEN_REQUIRED",
+	});
+
 export class S3Service {
 	private client: S3Client;
 	private bucket: string;
@@ -24,15 +40,7 @@ export class S3Service {
 		config: S3ServiceConfig,
 	) {
 		this.bucket = config.bucket;
-		this.client = new S3Client({
-			endpoint: config.endpoint,
-			region: config.region,
-			credentials: {
-				accessKeyId: config.accessKeyId,
-				secretAccessKey: config.secretAccessKey,
-			},
-			forcePathStyle: config.forcePathStyle,
-		});
+		this.client = createS3Client(config);
 	}
 
 	async uploadFile({

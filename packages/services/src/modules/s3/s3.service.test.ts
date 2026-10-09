@@ -15,6 +15,7 @@ const NOW = new Date("2026-08-17T06:30:00.000Z");
 const send = vi.fn();
 const uploadDone = vi.fn();
 const buildObjectKey = vi.fn((_target: unknown) => OBJECT_KEY);
+const clientOptions = vi.fn();
 
 /**
  * The SDK is replaced wholesale: the commands become plain carriers of their
@@ -24,6 +25,9 @@ const buildObjectKey = vi.fn((_target: unknown) => OBJECT_KEY);
  */
 vi.mock("@aws-sdk/client-s3", () => ({
 	S3Client: class {
+		constructor(options: unknown) {
+			clientOptions(options);
+		}
 		send(command: unknown) {
 			return send(command);
 		}
@@ -121,6 +125,19 @@ const upload = (service: S3Service, body: Readable) =>
 	);
 
 const audio = () => Readable.from([Buffer.from("audio")]);
+
+describe("S3 client", () => {
+	it("only calculates and validates checksums required by the protocol", () => {
+		harness();
+
+		expect(clientOptions).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				requestChecksumCalculation: "WHEN_REQUIRED",
+				responseChecksumValidation: "WHEN_REQUIRED",
+			}),
+		);
+	});
+});
 
 /** What a real multipart upload does to the body, and nothing else. */
 const drainBody = async ({ params }: { params: { Body: Readable } }) => {
