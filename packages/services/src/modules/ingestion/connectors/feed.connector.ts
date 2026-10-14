@@ -1,5 +1,10 @@
+import {
+	MAX_ARTICLE_DESCRIPTION_CHARS,
+	MAX_ARTICLE_TITLE_CHARS,
+} from "@brief/common/constants";
 import { InternalError } from "@brief/infra/errors";
 import { getLoggerStore } from "@brief/infra/libs";
+import { clampText } from "../../../helpers/clampText.helper.js";
 import { extractArticle } from "../../../helpers/extractArticle.helper.js";
 import { fetchText } from "../../../helpers/fetchText.helper.js";
 import type {
@@ -57,8 +62,14 @@ export abstract class FeedConnector implements ArticleConnector {
 
 				return {
 					url,
-					title: item.title as string,
-					description: item.description,
+					// The body already comes back clamped from `extractArticle`; the
+					// title and the summary are the feed's own text, and a feed is free
+					// to put a whole page in either of them.
+					title: clampText(item.title as string, MAX_ARTICLE_TITLE_CHARS),
+					description:
+						item.description == null
+							? item.description
+							: clampText(item.description, MAX_ARTICLE_DESCRIPTION_CHARS),
 					content,
 					imageUrl: item.imageUrl ?? null,
 					publishedAt: item.publishedAt ? new Date(item.publishedAt) : null,

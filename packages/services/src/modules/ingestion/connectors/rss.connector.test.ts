@@ -1,3 +1,7 @@
+import {
+	MAX_ARTICLE_DESCRIPTION_CHARS,
+	MAX_ARTICLE_TITLE_CHARS,
+} from "@brief/common/constants";
 import { InternalError } from "@brief/infra/errors";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchText } from "../../../helpers/fetchText.helper.js";
@@ -73,6 +77,25 @@ describe("RssConnector", () => {
 				publishedAt: new Date("Mon, 03 Aug 2026 10:01:00 GMT"),
 			},
 		]);
+	});
+
+	it("clamps a title and a description the feed made oversized", async () => {
+		serve(
+			feed(`<item>
+				<title>${"Titre ".repeat(MAX_ARTICLE_TITLE_CHARS)}</title>
+				<link>https://example.test/article-1</link>
+				<description>${"Résumé ".repeat(MAX_ARTICLE_DESCRIPTION_CHARS)}</description>
+			</item>`),
+		);
+
+		const [article] = await fetchLatest();
+
+		// The clamp is what keeps a feed from spending the prompt — and the bill —
+		// on a whole page sent where a summary was expected.
+		expect(article?.title).toHaveLength(MAX_ARTICLE_TITLE_CHARS + 1);
+		expect(article?.description).toHaveLength(
+			MAX_ARTICLE_DESCRIPTION_CHARS + 1,
+		);
 	});
 
 	it("caps the number of articles at the given limit", async () => {

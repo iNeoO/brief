@@ -2,6 +2,7 @@ import { MAX_ARTICLE_CONTENT_CHARS } from "@brief/common/constants";
 import { getLoggerStore } from "@brief/infra/libs";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import { clampText } from "./clampText.helper.js";
 
 const tidy = (text: string) =>
 	text
@@ -28,7 +29,5 @@ export const extractArticle = (html: string, url: string) => {
 		);
 	}
 
-	return text.length > MAX_ARTICLE_CONTENT_CHARS
-		? `${text.slice(0, MAX_ARTICLE_CONTENT_CHARS)}…`
-		: text;
+	return clampText(text, MAX_ARTICLE_CONTENT_CHARS);
 };
